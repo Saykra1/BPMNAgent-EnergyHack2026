@@ -239,3 +239,81 @@ def test_env_file_parsing_windows_variants(tmp_path):
         v = read_env_file(f)
         assert v["llm_provider"] == "gemini" and v["llm_api_key"] == "AQ.abc", enc
         assert v["llm_model"] == "gemini-2.5-flash"
+
+
+def _gemini_ok(text='{"ok": 1}'):
+    import httpx
+    return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": text}]}, "finishReason": "STOP"}]})
+
+
+def test_gemini_fallback_on_overload_and_404():
+    import httpx
+
+    from app.config import Settings
+    from app.llm.client import GeminiClient
+
+    calls = []
+
+    def handler(request: httpx.Request):
+        path = request.url.path
+        calls.append(path)
+        if path.endswith("/models"):
+            return httpx.Response(200, json={"models": [
+                {"name": "models/gemini-3.8-flash", "supportedGenerationMethods": ["generateContent"]},
+                {"name": "models/gemini-2.5-flash", "supportedGenerationMethods": ["generateContent"]},
+                {"name": "models/gemini-2.5-flash-image", "supportedGenerationMethods": ["generateContent"]},
+                {"name": "models/text-embedding-004", "supportedGenerationMethods": ["embedContent"]}]})
+        if "gemini-3.8-flash:" in path:
+            return httpx.Response(503, json={"error": {"code": 503, "message": "The model is overloaded."}})
+        if "bad-model:" in path:
+            return httpx.Response(404, json={"error": {"message": "models/bad-model is not found"}})
+        return _gemini_ok()
+
+    s = Settings(llm_provider="gemini", llm_api_key="k", llm_model="bad-model")
+    c = GeminiClient(s, transport=httpx.MockTransport(handler), sleep=lambda _: None)
+    r = c.complete("s", [{"role": "user", "content": "x"}])
+    assert r.text == '{"ok": 1}'
+    assert c.model == "gemini-2.5-flash"            # sticky after fallback
+    assert not any("image" in p for p in calls)
+    n = len(calls)
+    c.complete("s", [{"role": "user", "content": "y"}])
+    assert len(calls) == n + 1                       # goes straight to the working model
+
+
+def test_gemini_drops_unsupported_thinking_config():
+    import httpx
+
+    from app.config import Settings
+    from app.llm.client import GeminiClient
+
+    bodies = []
+
+    def handler(request):
+        body = json.loads(request.content)
+        bodies.append(body)
+        if "thinkingConfig" in body["generationConfig"]:
+            return httpx.Response(400, json={"error": {"message": "Unknown field thinkingConfig.thinkingLevel"}})
+        return _gemini_ok("ok")
+
+    c = GeminiClient(Settings(llm_provider="gemini", llm_api_key="k", llm_model="gemini-3.8-flash"),
+                     transport=httpx.MockTransport(handler), sleep=lambda _: None)
+    assert c.complete("s", [{"role": "user", "content": "x"}]).text == "ok"
+    assert len(bodies) == 2
+
+
+def test_gemini_all_overloaded_message():
+    import httpx
+
+    from app.config import Settings
+    from app.llm.client import GeminiClient, LLMError
+
+    def handler(request):
+        if request.url.path.endswith("/models"):
+            return httpx.Response(200, json={"models": []})
+        return httpx.Response(503, json={"error": {"message": "The model is overloaded."}})
+
+    c = GeminiClient(Settings(llm_provider="gemini", llm_api_key="k", llm_model="gemini-3.8-flash"),
+                     transport=httpx.MockTransport(handler), sleep=lambda _: None)
+    with pytest.raises(LLMError) as e:
+        c.complete("s", [{"role": "user", "content": "x"}])
+    assert "перегружены" in str(e.value)

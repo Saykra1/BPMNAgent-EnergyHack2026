@@ -19,8 +19,18 @@ print(f"LLM_PROVIDER={s.llm_provider}  LLM_MODEL={s.llm_model or '(по умол
       f"LLM_BASE_URL={s.llm_base_url or '(по умолчанию)'}")
 try:
     llm = make_client(s)
+    if hasattr(llm, "list_models"):
+        try:
+            models = [m for m in llm.list_models() if "flash" in m or "pro" in m]
+            print("Доступные модели (flash/pro):", ", ".join(models) or "нет")
+        except LLMError as e:
+            print("Список моделей недоступен:", e)
     r = llm.complete("Отвечай одним словом.", [{"role": "user", "content": "Скажи: работает"}], max_tokens=50)
     print(f"OK: модель {r.model} ответила «{r.text.strip()}» за {r.latency_s:.1f} с")
+    for line in getattr(llm, "log", []):
+        print("   ", line)
 except LLMError as e:
     print("ОШИБКА:", e)
+    for line in getattr(llm, "log", []) if "llm" in dir() else []:
+        print("   ", line)
     sys.exit(1)

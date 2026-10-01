@@ -8,6 +8,7 @@
 """
 from __future__ import annotations
 
+import re
 import time
 from dataclasses import dataclass
 from typing import Protocol
@@ -117,14 +118,29 @@ class OpenAICompatibleClient:
                            time.time() - t0, usage.get("prompt_tokens"), usage.get("completion_tokens"))
 
 
+def _gemini_rank(name: str):
+    """Order fallback models: "latest" aliases, stable before preview, newer versions, non-lite first."""
+    m = re.search(r"gemini-(\d+)(?:\.(\d+))?", name)
+    ver = (int(m.group(1)), int(m.group(2) or 0)) if m else (0, 0)
+    return ("latest" not in name, "preview" in name or "exp" in name, (-ver[0], -ver[1]), "lite" in name, name)
+
+
 class GeminiClient:
-    """Google Gemini via the native REST API (generateContent)."""
+    """Google Gemini via the native REST API (generateContent).
+
+    Free-tier models are often overloaded (503) or rate limited (429). The client retries
+    with backoff, then falls back to other available Flash models discovered with the
+    ListModels API (or LLM_FALLBACK_MODELS), and sticks to the first model that answers.
+    """
     name = "gemini"
     DEFAULT_URL = "https://generativelanguage.googleapis.com/v1beta"
-    THINKING = {"low": 1024, "medium": 4096, "high": -1}   # -1 = dynamic
-    RETRY_STATUSES = (429, 500, 503)
+    DEFAULT_MODEL = "gemini-flash-latest"
+    THINKING_BUDGET = {"low": 1024, "medium": 4096, "high": -1}   # Gemini 2.5: -1 = dynamic
+    RETRY_STATUSES = (429, 500, 502, 503, 504)
+    BACKOFF = (2, 5, 12)
+    SKIP_WORDS = ("image", "tts", "audio", "live", "embedding", "vision", "robotics", "computer-use", "native")
 
-    def __init__(self, settings: Settings, transport: httpx.BaseTransport | None = None):
+    def __init__(self, settings: Settings, transport: httpx.BaseTransport | None = None, sleep=time.sleep):
         if not settings.llm_api_key:
             raise LLMError("Не задан LLM_API_KEY для Gemini (ключ из https://aistudio.google.com/apikey)")
         base = (settings.llm_base_url or self.DEFAULT_URL).rstrip("/")
@@ -132,46 +148,139 @@ class GeminiClient:
             base = base[: -len("/openai")]
         self.base = base
         self.key = settings.llm_api_key.strip()
-        self.model = settings.llm_model or "gemini-2.5-flash"
+        self.model = (settings.llm_model or self.DEFAULT_MODEL).removeprefix("models/")
+        self.fallbacks = [m.strip().removeprefix("models/") for m in settings.llm_fallback_models.split(",")
+                          if m.strip()]
         self.temperature = settings.llm_temperature
-        self.thinking = self.THINKING.get(settings.llm_effort, 1024)
+        self.effort = settings.llm_effort
         self.http = httpx.Client(timeout=settings.llm_timeout, transport=transport)
+        self.sleep = sleep
+        self._no_thinking: set[str] = set()
+        self._discovered: list[str] | None = None
+        self.log: list[str] = []   # human-readable trace of retries / fallbacks
 
-    def complete(self, system, messages, json_mode=False, max_tokens=8000):
+    # ------------------------------------------------------------------ discovery
+    def list_models(self) -> list[str]:
+        """Models available for this key that support generateContent."""
+        r = self.http.get(f"{self.base}/models", params={"pageSize": 1000}, headers={"x-goog-api-key": self.key})
+        if r.status_code != 200:
+            raise LLMError(f"Gemini ListModels {r.status_code}: {self._error_text(r)}")
+        out = []
+        for m in r.json().get("models", []):
+            if "generateContent" in m.get("supportedGenerationMethods", []):
+                out.append(m["name"].removeprefix("models/"))
+        return out
+
+    def _candidates(self) -> list[str]:
+        if self.fallbacks:
+            return [m for m in self.fallbacks if m != self.model]
+        if self._discovered is None:
+            try:
+                names = self.list_models()
+            except (LLMError, httpx.HTTPError):
+                names = []
+            flash = [n for n in names if "flash" in n and not any(w in n for w in self.SKIP_WORDS)]
+
+            self._discovered = sorted(flash, key=_gemini_rank)[:6]
+        return [m for m in self._discovered if m != self.model]
+
+    # ------------------------------------------------------------------ request
+    @staticmethod
+    def _error_text(r: httpx.Response) -> str:
+        try:
+            return r.json().get("error", {}).get("message", r.text)
+        except ValueError:
+            return r.text
+
+    @staticmethod
+    def _retry_delay(r: httpx.Response) -> float | None:
+        try:
+            for d in r.json().get("error", {}).get("details", []):
+                if "retryDelay" in d:
+                    return float(str(d["retryDelay"]).rstrip("s"))
+        except (ValueError, AttributeError):
+            pass
+        return None
+
+    def _body(self, model, system, messages, json_mode, max_tokens) -> dict:
         contents = [{"role": "model" if m["role"] == "assistant" else "user", "parts": [{"text": m["content"]}]}
                     for m in messages]
-        gen = {"temperature": self.temperature, "maxOutputTokens": max_tokens + max(self.thinking, 0) + 2048}
+        gen = {"temperature": self.temperature, "maxOutputTokens": max_tokens + 8192}
         if json_mode:
             gen["responseMimeType"] = "application/json"
-        if self.model.startswith("gemini-2.5"):
-            gen["thinkingConfig"] = {"thinkingBudget": self.thinking}
-        body = {"systemInstruction": {"parts": [{"text": system}]}, "contents": contents, "generationConfig": gen}
-        url = f"{self.base}/models/{self.model}:generateContent"
-        t0 = time.time()
-        r = None
-        for delay in (0, 3, 8, 20):
-            if delay:
-                time.sleep(delay)
+        if model not in self._no_thinking:
+            if model.startswith("gemini-2.5"):
+                gen["thinkingConfig"] = {"thinkingBudget": self.THINKING_BUDGET.get(self.effort, 1024)}
+            elif model.startswith("gemini-3") or "latest" in model:
+                gen["thinkingConfig"] = {"thinkingLevel": "high" if self.effort == "high" else "low"}
+        return {"systemInstruction": {"parts": [{"text": system}]}, "contents": contents, "generationConfig": gen}
+
+    def _try_model(self, model, system, messages, json_mode, max_tokens) -> tuple[dict | None, str]:
+        """Returns (response json, '') or (None, error description)."""
+        url = f"{self.base}/models/{model}:generateContent"
+        last = ""
+        for attempt in range(len(self.BACKOFF) + 1):
+            body = self._body(model, system, messages, json_mode, max_tokens)
             try:
                 r = self.http.post(url, json=body, headers={"x-goog-api-key": self.key})
             except httpx.HTTPError as e:
                 raise LLMError(f"Нет соединения с Gemini API: {e}") from e
-            if r.status_code not in self.RETRY_STATUSES:
-                break
-        if r.status_code != 200:
-            try:
-                msg = r.json().get("error", {}).get("message", r.text)
-            except ValueError:
-                msg = r.text
-            hint = ""
-            if r.status_code in (400, 401, 403) and "key" in msg.lower():
-                hint = " Проверьте LLM_API_KEY."
-            elif r.status_code == 429:
-                hint = " Превышена квота бесплатного тарифа — подождите минуту."
-            elif r.status_code == 404:
-                hint = f" Проверьте LLM_MODEL (сейчас {self.model})."
-            raise LLMError(f"Gemini API {r.status_code}: {msg[:400]}{hint}")
-        data = r.json()
+            if r.status_code == 200:
+                return r.json(), ""
+            msg = self._error_text(r)
+            last = f"{model}: {r.status_code} {msg[:200]}"
+            self.log.append(last)
+            if r.status_code == 400 and "thinking" in msg.lower() and model not in self._no_thinking:
+                self._no_thinking.add(model)      # model does not accept thinkingConfig: resend without it
+                continue
+            if r.status_code in (400, 401, 403) and ("key" in msg.lower() or r.status_code != 400):
+                raise LLMError(f"Gemini API {r.status_code}: {msg[:300]} Проверьте LLM_API_KEY.")
+            if r.status_code == 404:
+                return None, last                 # unknown model -> next candidate
+            if r.status_code in self.RETRY_STATUSES:
+                delay = self._retry_delay(r)
+                if r.status_code == 429 and delay and delay > 30:
+                    return None, last             # quota for this model exhausted -> next candidate
+                if attempt < len(self.BACKOFF):
+                    self.sleep(min(delay or self.BACKOFF[attempt], 30))
+                    continue
+                return None, last
+            raise LLMError(f"Gemini API {r.status_code}: {msg[:400]}")
+        return None, last
+
+    def complete(self, system, messages, json_mode=False, max_tokens=8000):
+        t0 = time.time()
+        errors = []
+        tried = []
+
+        def models():
+            yield self.model
+            yield from self._candidates()      # discovered lazily, only if the primary model fails
+
+        for model in models():
+            if model in tried:
+                continue
+            tried.append(model)
+            data, err = self._try_model(model, system, messages, json_mode, max_tokens)
+            if data is None:
+                errors.append(err)
+                continue
+            if model != self.model:
+                self.log.append(f"переключение на модель {model}")
+                print(f"[bpmn-agent] Gemini: {self.model} недоступна, работаю через {model}")
+                self.model = model                # sticky: next calls go straight to the working model
+            return self._parse(data, model, t0)
+        hint = ""
+        if any(" 503 " in e for e in errors):
+            hint = " Модели перегружены (503) — повторите через пару минут или укажите другую в LLM_MODEL."
+        elif any(" 429 " in e for e in errors):
+            hint = " Исчерпана квота бесплатного тарифа (429) — подождите или используйте другой ключ/модель."
+        elif any(" 404 " in e for e in errors):
+            hint = " Модель не найдена (404): запустите python scripts/check_llm.py, он покажет доступные модели."
+        raise LLMError("Gemini не ответил ни одной моделью (" + ", ".join(tried) + ")." + hint +
+                       " Детали: " + " | ".join(errors[-4:]))
+
+    def _parse(self, data: dict, model: str, t0: float) -> LLMResponse:
         cands = data.get("candidates") or []
         if not cands:
             reason = (data.get("promptFeedback") or {}).get("blockReason", "пустой ответ")
@@ -181,7 +290,7 @@ class GeminiClient:
         if not text and cands[0].get("finishReason") == "MAX_TOKENS":
             raise LLMError("Gemini: ответ обрезан по лимиту токенов (MAX_TOKENS)")
         usage = data.get("usageMetadata") or {}
-        return LLMResponse(text, data.get("modelVersion", self.model), time.time() - t0,
+        return LLMResponse(text, data.get("modelVersion", model), time.time() - t0,
                            usage.get("promptTokenCount"), usage.get("candidatesTokenCount"))
 
 

@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     llm_model: str = ""                    # default per provider
     llm_api_key: str = ""
     llm_base_url: str = ""
+    llm_fallback_models: str = ""          # comma-separated; empty = discover automatically (gemini)
     llm_timeout: float = 180.0
     llm_temperature: float = 0.1
     llm_effort: str = "low"                # low | medium | high
