@@ -138,7 +138,9 @@ class GeminiClient:
     THINKING_BUDGET = {"low": 1024, "medium": 4096, "high": -1}   # Gemini 2.5: -1 = dynamic
     RETRY_STATUSES = (429, 500, 502, 503, 504)
     BACKOFF = (2, 5, 12)
-    SKIP_WORDS = ("image", "tts", "audio", "live", "embedding", "vision", "robotics", "computer-use", "native")
+    SKIP_WORDS = ("image", "tts", "audio", "live", "embedding", "vision", "robotics", "computer-use", "native",
+                  "omni", "customtools", "deep-research", "nano-banana", "lyria")
+    DEADLINE_S = 150          # whole complete() call, all models and retries
 
     def __init__(self, settings: Settings, transport: httpx.BaseTransport | None = None, sleep=time.sleep):
         if not settings.llm_api_key:
@@ -153,11 +155,18 @@ class GeminiClient:
                           if m.strip()]
         self.temperature = settings.llm_temperature
         self.effort = settings.llm_effort
-        self.http = httpx.Client(timeout=settings.llm_timeout, transport=transport)
+        self.http = httpx.Client(timeout=httpx.Timeout(settings.llm_timeout, connect=15), transport=transport)
         self.sleep = sleep
         self._no_thinking: set[str] = set()
         self._discovered: list[str] | None = None
         self.log: list[str] = []   # human-readable trace of retries / fallbacks
+        self.verbose = False        # print every attempt (scripts/check_llm.py)
+        self._deadline = float("inf")
+
+    def _note(self, msg: str) -> None:
+        self.log.append(msg)
+        if self.verbose:
+            print("   ", msg, flush=True)
 
     # ------------------------------------------------------------------ discovery
     def list_models(self) -> list[str]:
@@ -220,16 +229,24 @@ class GeminiClient:
         url = f"{self.base}/models/{model}:generateContent"
         last = ""
         for attempt in range(len(self.BACKOFF) + 1):
+            if time.time() > self._deadline:
+                return None, f"{model}: превышено общее время ожидания"
             body = self._body(model, system, messages, json_mode, max_tokens)
+            t = time.time()
             try:
                 r = self.http.post(url, json=body, headers={"x-goog-api-key": self.key})
+            except httpx.TimeoutException:
+                last = f"{model}: таймаут {time.time() - t:.0f} с"
+                self._note(last)
+                return None, last
             except httpx.HTTPError as e:
                 raise LLMError(f"Нет соединения с Gemini API: {e}") from e
             if r.status_code == 200:
+                self._note(f"{model}: 200 OK за {time.time() - t:.1f} с")
                 return r.json(), ""
             msg = self._error_text(r)
             last = f"{model}: {r.status_code} {msg[:200]}"
-            self.log.append(last)
+            self._note(f"{last} ({time.time() - t:.1f} с)")
             if r.status_code == 400 and "thinking" in msg.lower() and model not in self._no_thinking:
                 self._no_thinking.add(model)      # model does not accept thinkingConfig: resend without it
                 continue
@@ -242,7 +259,9 @@ class GeminiClient:
                 if r.status_code == 429 and delay and delay > 30:
                     return None, last             # quota for this model exhausted -> next candidate
                 if attempt < len(self.BACKOFF):
-                    self.sleep(min(delay or self.BACKOFF[attempt], 30))
+                    pause = min(delay or self.BACKOFF[attempt], 30)
+                    self._note(f"{model}: пауза {pause:.0f} с и повтор")
+                    self.sleep(pause)
                     continue
                 return None, last
             raise LLMError(f"Gemini API {r.status_code}: {msg[:400]}")
@@ -250,6 +269,7 @@ class GeminiClient:
 
     def complete(self, system, messages, json_mode=False, max_tokens=8000):
         t0 = time.time()
+        self._deadline = t0 + self.DEADLINE_S
         errors = []
         tried = []
 
@@ -266,12 +286,14 @@ class GeminiClient:
                 errors.append(err)
                 continue
             if model != self.model:
-                self.log.append(f"переключение на модель {model}")
+                self._note(f"переключение на модель {model}")
                 print(f"[bpmn-agent] Gemini: {self.model} недоступна, работаю через {model}")
                 self.model = model                # sticky: next calls go straight to the working model
             return self._parse(data, model, t0)
         hint = ""
-        if any(" 503 " in e for e in errors):
+        if any("таймаут" in e or "время ожидания" in e for e in errors):
+            hint = " Модели не успели ответить — проверьте сеть/VPN или выберите другую модель в LLM_MODEL."
+        elif any(" 503 " in e for e in errors):
             hint = " Модели перегружены (503) — повторите через пару минут или укажите другую в LLM_MODEL."
         elif any(" 429 " in e for e in errors):
             hint = " Исчерпана квота бесплатного тарифа (429) — подождите или используйте другой ключ/модель."

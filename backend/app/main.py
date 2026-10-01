@@ -37,6 +37,8 @@ def _pipeline() -> Pipeline:
     error = None
     try:
         llm = make_client(s)
+        if hasattr(llm, "verbose"):
+            llm.verbose = True        # log every Gemini attempt / fallback to the server console
         print(f"[bpmn-agent] .env: {s.env_file or 'не найден'} · LLM: {s.llm_provider} · {getattr(llm, 'model', '')}")
     except Exception as e:  # noqa: BLE001 - missing key / package: UI still works without LLM
         llm = None
