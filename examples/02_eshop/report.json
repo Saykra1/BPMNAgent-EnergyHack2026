@@ -1,0 +1,30 @@
+{
+  "source": "reference_plan+plan_compiler",
+  "issues": [],
+  "xsd_errors": [],
+  "stats": {
+    "nodes": 17,
+    "sequence_flows": 18,
+    "message_flows": 2,
+    "pools": 2,
+    "lanes": 5,
+    "by_kind": {
+      "startEvent": 1,
+      "endEvent": 2,
+      "userTask": 3,
+      "exclusiveGateway": 3,
+      "parallelGateway": 2,
+      "manualTask": 3,
+      "serviceTask": 1,
+      "task": 2
+    }
+  },
+  "assumptions": [
+    "Подтверждение платежа банком поступает менеджеру перед подтверждением заказа"
+  ],
+  "questions": [
+    "Что делать, если оплата картой не прошла?",
+    "Нужна ли проверка наличия товара перед подтверждением заказа?"
+  ],
+  "error": null
+}

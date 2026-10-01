@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BPMN Agent</title>
+  <link rel="stylesheet" href="/static/vendor/assets/diagram-js.css">
+  <link rel="stylesheet" href="/static/vendor/assets/bpmn-js.css">
+  <link rel="stylesheet" href="/static/vendor/assets/bpmn-font/css/bpmn-embedded.css">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <div class="brand"><span class="logo">◇</span> BPMN Agent <small>текст → BPMN 2.0</small></div>
+  <div id="llm-status" class="badge">…</div>
+</header>
+<main>
+  <aside id="left">
+    <section>
+      <label for="example">Пример</label>
+      <select id="example"><option value="">— выберите пример —</option></select>
+      <label for="text">Описание процесса</label>
+      <textarea id="text" placeholder="Опишите процесс: кто участвует, какие действия выполняет, какие есть условия и параллельные шаги…"></textarea>
+      <div class="row">
+        <select id="mode" title="Режим генерации">
+          <option value="two_stage">План → код (2 этапа)</option>
+          <option value="direct">Сразу код (1 этап)</option>
+        </select>
+        <button id="generate" class="primary">Сгенерировать</button>
+      </div>
+      <button id="show-saved" class="link" hidden>Показать сохранённый результат примера (без LLM)</button>
+    </section>
+    <section id="steps-box">
+      <ol id="steps">
+        <li data-step="plan">Планировщик: текст → JSON-план</li>
+        <li data-step="code">Генератор кода: план → Python API</li>
+        <li data-step="sandbox">Песочница: AST-фильтр, выполнение</li>
+        <li data-step="validate">Семантическая валидация</li>
+        <li data-step="layout">Раскладка: пулы, дорожки, ветви</li>
+        <li data-step="xsd">BPMN 2.0 XML + проверка XSD</li>
+      </ol>
+      <div id="summary"></div>
+    </section>
+    <section id="chat-box">
+      <label>Диалог: что изменить в схеме?</label>
+      <div id="chat"></div>
+      <div class="row">
+        <input id="instruction" placeholder="Напр.: добавь проверку юристом перед подписанием договора">
+        <button id="refine">↵</button>
+      </div>
+      <p class="hint">Ручные правки на холсте сохраняются: текущая схема передаётся ассистенту вместе с просьбой.</p>
+    </section>
+  </aside>
+  <section id="center">
+    <div class="toolbar">
+      <button id="fit" title="Вписать">⤢ Вписать</button>
+      <label class="btn">Открыть .bpmn<input id="open-file" type="file" accept=".bpmn,.xml" hidden></label>
+      <button id="relayout" title="Пересчитать раскладку текущей схемы">Перераскладка</button>
+      <button id="check-xsd">Проверить XSD</button>
+      <span class="sep"></span>
+      <button id="dl-bpmn">.bpmn</button>
+      <button id="dl-svg">SVG</button>
+      <button id="dl-png">PNG</button>
+    </div>
+    <div id="canvas"><div id="empty">Опишите процесс слева или выберите пример</div></div>
+    <div id="loading" hidden><div class="spinner"></div><span id="loading-text">Генерация…</span></div>
+  </section>
+  <aside id="right">
+    <nav class="tabs">
+      <button data-tab="report" class="active">Отчёт</button>
+      <button data-tab="plan">План</button>
+      <button data-tab="code">Код</button>
+      <button data-tab="attempts">Попытки</button>
+    </nav>
+    <div class="tab" id="tab-report"><p class="muted">Здесь появятся результаты проверок, допущения и вопросы к заказчику.</p></div>
+    <div class="tab" id="tab-plan" hidden><pre id="plan-json" class="code"></pre></div>
+    <div class="tab" id="tab-code" hidden>
+      <textarea id="code" spellcheck="false"></textarea>
+      <button id="rebuild">Перестроить диаграмму из кода</button>
+    </div>
+    <div class="tab" id="tab-attempts" hidden><div id="attempts"></div></div>
+  </aside>
+</main>
+<script src="/static/vendor/bpmn-modeler.production.min.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+{
+  "source": "reference_plan+plan_compiler",
+  "issues": [],
+  "xsd_errors": [],
+  "stats": {
+    "nodes": 21,
+    "sequence_flows": 22,
+    "message_flows": 0,
+    "pools": 1,
+    "lanes": 4,
+    "by_kind": {
+      "startEvent": 1,
+      "endEvent": 2,
+      "task": 1,
+      "userTask": 6,
+      "exclusiveGateway": 2,
+      "sendTask": 1,
+      "parallelGateway": 2,
+      "serviceTask": 2,
+      "manualTask": 4
+    }
+  },
+  "assumptions": [
+    "После подключения резервного питания бригада возвращается к устранению повреждения (цикл)"
+  ],
+  "questions": [
+    "Нужно ли уведомлять абонентов о подключении резервного источника?",
+    "Кто принимает решение о плановом/аварийном характере, если телемеханика недоступна?"
+  ],
+  "error": null
+}

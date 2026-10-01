@@ -1,0 +1,50 @@
+{
+  "source": "reference_plan+plan_compiler",
+  "issues": [
+    {
+      "level": "fix",
+      "code": "F_ADD_START",
+      "message": "Добавлено стартовое событие в подпроцесс «Построить сетевые объекты»",
+      "elements": [
+        "StartEvent_2"
+      ]
+    },
+    {
+      "level": "fix",
+      "code": "F_ADD_END",
+      "message": "Добавлено конечное событие в подпроцесс «Построить сетевые объекты»",
+      "elements": [
+        "EndEvent_2"
+      ]
+    }
+  ],
+  "xsd_errors": [],
+  "stats": {
+    "nodes": 32,
+    "sequence_flows": 35,
+    "message_flows": 1,
+    "pools": 2,
+    "lanes": 5,
+    "by_kind": {
+      "startEvent": 2,
+      "endEvent": 2,
+      "subProcess": 1,
+      "userTask": 5,
+      "exclusiveGateway": 4,
+      "sendTask": 3,
+      "task": 6,
+      "parallelGateway": 4,
+      "serviceTask": 1,
+      "manualTask": 4
+    }
+  },
+  "assumptions": [
+    "Строительство показано свёрнутым подпроцессом, выполняемым с привлечением подрядчика",
+    "Осмотр проводит инспектор технического отдела"
+  ],
+  "questions": [
+    "Что происходит, если заявитель не предоставил документы за 20 рабочих дней — заявка аннулируется?",
+    "Нужна ли оплата до начала строительства или допускается рассрочка?"
+  ],
+  "error": null
+}

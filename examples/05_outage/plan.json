@@ -1,0 +1,239 @@
+{
+  "title": "Устранение аварийного отключения электроэнергии",
+  "organization": "Электросетевая компания",
+  "participants": [
+    {
+      "id": "sub",
+      "name": "Абонент"
+    },
+    {
+      "id": "disp",
+      "name": "Диспетчер"
+    },
+    {
+      "id": "sys",
+      "name": "Информационная система"
+    },
+    {
+      "id": "crew",
+      "name": "Аварийная бригада"
+    }
+  ],
+  "elements": [
+    {
+      "id": "report",
+      "type": "task",
+      "name": "Сообщить об отключении",
+      "participant": "sub"
+    },
+    {
+      "id": "register",
+      "type": "user_task",
+      "name": "Зарегистрировать обращение",
+      "participant": "disp"
+    },
+    {
+      "id": "telemetry",
+      "type": "user_task",
+      "name": "Проверить данные телемеханики",
+      "participant": "disp"
+    },
+    {
+      "id": "gw_type",
+      "type": "exclusive_gateway",
+      "name": "Тип отключения?",
+      "participant": "disp"
+    },
+    {
+      "id": "inform",
+      "type": "send_task",
+      "name": "Сообщить сроки восстановления",
+      "participant": "disp"
+    },
+    {
+      "id": "end_planned",
+      "type": "end_event",
+      "name": "Обращение закрыто",
+      "participant": "disp"
+    },
+    {
+      "id": "p1",
+      "type": "parallel_gateway",
+      "name": "",
+      "participant": "disp"
+    },
+    {
+      "id": "order",
+      "type": "user_task",
+      "name": "Сформировать наряд",
+      "participant": "disp"
+    },
+    {
+      "id": "sms",
+      "type": "service_task",
+      "name": "Отправить SMS абонентам участка",
+      "participant": "sys"
+    },
+    {
+      "id": "go",
+      "type": "manual_task",
+      "name": "Выехать на место аварии",
+      "participant": "crew"
+    },
+    {
+      "id": "localize",
+      "type": "manual_task",
+      "name": "Локализовать повреждение",
+      "participant": "crew"
+    },
+    {
+      "id": "repair",
+      "type": "manual_task",
+      "name": "Устранить повреждение",
+      "participant": "crew"
+    },
+    {
+      "id": "gw_time",
+      "type": "exclusive_gateway",
+      "name": "Устранено за 4 часа?",
+      "participant": "crew"
+    },
+    {
+      "id": "dgu",
+      "type": "user_task",
+      "name": "Подключить резервный источник питания",
+      "participant": "disp"
+    },
+    {
+      "id": "restore",
+      "type": "manual_task",
+      "name": "Восстановить схему электроснабжения",
+      "participant": "crew"
+    },
+    {
+      "id": "p1_join",
+      "type": "parallel_gateway",
+      "name": "",
+      "participant": "disp"
+    },
+    {
+      "id": "check_v",
+      "type": "user_task",
+      "name": "Проверить подачу напряжения",
+      "participant": "disp"
+    },
+    {
+      "id": "close",
+      "type": "user_task",
+      "name": "Закрыть наряд",
+      "participant": "disp"
+    },
+    {
+      "id": "sms_ok",
+      "type": "service_task",
+      "name": "Уведомить о восстановлении",
+      "participant": "sys"
+    }
+  ],
+  "flows": [
+    {
+      "from": "start",
+      "to": "report"
+    },
+    {
+      "from": "report",
+      "to": "register"
+    },
+    {
+      "from": "register",
+      "to": "telemetry"
+    },
+    {
+      "from": "telemetry",
+      "to": "gw_type"
+    },
+    {
+      "from": "gw_type",
+      "to": "inform",
+      "label": "Плановое"
+    },
+    {
+      "from": "inform",
+      "to": "end_planned"
+    },
+    {
+      "from": "gw_type",
+      "to": "p1",
+      "label": "Аварийное"
+    },
+    {
+      "from": "p1",
+      "to": "order"
+    },
+    {
+      "from": "p1",
+      "to": "sms"
+    },
+    {
+      "from": "order",
+      "to": "go"
+    },
+    {
+      "from": "go",
+      "to": "localize"
+    },
+    {
+      "from": "localize",
+      "to": "repair"
+    },
+    {
+      "from": "repair",
+      "to": "gw_time"
+    },
+    {
+      "from": "gw_time",
+      "to": "restore",
+      "label": "Да"
+    },
+    {
+      "from": "gw_time",
+      "to": "dgu",
+      "label": "Нет"
+    },
+    {
+      "from": "dgu",
+      "to": "repair"
+    },
+    {
+      "from": "restore",
+      "to": "p1_join"
+    },
+    {
+      "from": "sms",
+      "to": "p1_join"
+    },
+    {
+      "from": "p1_join",
+      "to": "check_v"
+    },
+    {
+      "from": "check_v",
+      "to": "close"
+    },
+    {
+      "from": "close",
+      "to": "sms_ok"
+    },
+    {
+      "from": "sms_ok",
+      "to": "end"
+    }
+  ],
+  "assumptions": [
+    "После подключения резервного питания бригада возвращается к устранению повреждения (цикл)"
+  ],
+  "questions": [
+    "Нужно ли уведомлять абонентов о подключении резервного источника?",
+    "Кто принимает решение о плановом/аварийном характере, если телемеханика недоступна?"
+  ]
+}

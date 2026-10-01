@@ -1,0 +1,55 @@
+{
+  "title": "Обработка заказа интернет-магазина",
+  "organization": "Интернет-магазин",
+  "participants": [
+    {"id": "buyer", "name": "Покупатель"},
+    {"id": "manager", "name": "Менеджер"},
+    {"id": "warehouse", "name": "Склад"},
+    {"id": "acc", "name": "Бухгалтерия"},
+    {"id": "delivery", "name": "Служба доставки"},
+    {"id": "bank", "name": "Платёжный шлюз банка", "external": true}
+  ],
+  "elements": [
+    {"id": "order", "type": "user_task", "name": "Оформить заказ", "participant": "buyer"},
+    {"id": "gw_pay", "type": "exclusive_gateway", "name": "Способ оплаты?", "participant": "buyer"},
+    {"id": "pay", "type": "user_task", "name": "Оплатить заказ онлайн", "participant": "buyer"},
+    {"id": "gw_pay_join", "type": "exclusive_gateway", "name": "", "participant": "manager"},
+    {"id": "confirm", "type": "user_task", "name": "Подтвердить заказ", "participant": "manager"},
+    {"id": "p_split", "type": "parallel_gateway", "name": "", "participant": "manager"},
+    {"id": "pick", "type": "manual_task", "name": "Собрать заказ", "participant": "warehouse"},
+    {"id": "docs", "type": "service_task", "name": "Сформировать чек и документы", "participant": "acc"},
+    {"id": "p_join", "type": "parallel_gateway", "name": "", "participant": "delivery"},
+    {"id": "deliver", "type": "manual_task", "name": "Доставить заказ", "participant": "delivery"},
+    {"id": "receive", "type": "task", "name": "Получить заказ", "participant": "buyer"},
+    {"id": "gw_accept", "type": "exclusive_gateway", "name": "Покупатель принял заказ?", "participant": "buyer"},
+    {"id": "return_goods", "type": "manual_task", "name": "Вернуть товар на склад", "participant": "delivery"},
+    {"id": "process_return", "type": "task", "name": "Оформить возврат", "participant": "warehouse"},
+    {"id": "end_return", "type": "end_event", "name": "Заказ возвращён", "participant": "warehouse"}
+  ],
+  "flows": [
+    {"from": "start", "to": "order"},
+    {"from": "order", "to": "gw_pay"},
+    {"from": "gw_pay", "to": "pay", "label": "Картой онлайн"},
+    {"from": "gw_pay", "to": "gw_pay_join", "label": "При получении"},
+    {"from": "pay", "to": "gw_pay_join"},
+    {"from": "gw_pay_join", "to": "confirm"},
+    {"from": "confirm", "to": "p_split"},
+    {"from": "p_split", "to": "pick"},
+    {"from": "p_split", "to": "docs"},
+    {"from": "pick", "to": "p_join"},
+    {"from": "docs", "to": "p_join"},
+    {"from": "p_join", "to": "deliver"},
+    {"from": "deliver", "to": "receive"},
+    {"from": "receive", "to": "gw_accept"},
+    {"from": "gw_accept", "to": "end", "label": "Да"},
+    {"from": "gw_accept", "to": "return_goods", "label": "Нет"},
+    {"from": "return_goods", "to": "process_return"},
+    {"from": "process_return", "to": "end_return"}
+  ],
+  "message_flows": [
+    {"from": "pay", "to": "bank", "label": "Платёж"},
+    {"from": "bank", "to": "confirm", "label": "Подтверждение оплаты"}
+  ],
+  "assumptions": ["Подтверждение платежа банком поступает менеджеру перед подтверждением заказа"],
+  "questions": ["Что делать, если оплата картой не прошла?", "Нужна ли проверка наличия товара перед подтверждением заказа?"]
+}

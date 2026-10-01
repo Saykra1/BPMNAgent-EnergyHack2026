@@ -1,0 +1,31 @@
+{
+  "source": "reference_plan+plan_compiler",
+  "issues": [],
+  "xsd_errors": [],
+  "stats": {
+    "nodes": 22,
+    "sequence_flows": 24,
+    "message_flows": 1,
+    "pools": 2,
+    "lanes": 6,
+    "by_kind": {
+      "startEvent": 1,
+      "endEvent": 2,
+      "userTask": 6,
+      "serviceTask": 2,
+      "exclusiveGateway": 4,
+      "sendTask": 2,
+      "parallelGateway": 2,
+      "task": 3
+    }
+  },
+  "assumptions": [
+    "Бюро кредитных историй показано внешним участником («чёрный ящик»)",
+    "Решения менеджера и комитета сводятся в одну точку перед проверкой результата"
+  ],
+  "questions": [
+    "Что происходит, если служба безопасности находит клиента в чёрном списке — отказ сразу или после оценки?",
+    "Есть ли срок на дополнение анкеты клиентом?"
+  ],
+  "error": null
+}
