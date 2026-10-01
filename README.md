@@ -14,13 +14,27 @@ LLM не пишет XML. Модель составляет JSON-план про�
 
 ## Быстрый старт
 
+Все команды выполняются **из корня репозитория**.
+
+```powershell
+# Windows (PowerShell / cmd)
+copy .env.example .env        # укажите LLM_PROVIDER / LLM_API_KEY / LLM_MODEL (можно позже)
+.\run.bat                     # pip install + сервер → http://127.0.0.1:8080
+# или вручную:
+python -m pip install -r requirements.txt
+python -m uvicorn server:app --reload --reload-dir backend --host 127.0.0.1 --port 8080
+```
+
 ```bash
-cp .env.example .env          # укажите LLM_PROVIDER / LLM_API_KEY / LLM_MODEL
-./run.sh                      # pip install + uvicorn → http://localhost:8000
+# Linux / macOS
+cp .env.example .env && ./run.sh
 ```
 
 Нужны Python 3.10+. Node.js нужен только для eval-проверки в bpmn-js и рендера PNG
 (`tools/`). Docker: `docker build -t bpmn-agent . && docker run -p 8000:8000 --env-file .env bpmn-agent`.
+
+Проверка без LLM: откройте http://127.0.0.1:8080, выберите пример → «Показать сохранённый результат примера».
+Схему можно двигать на холсте, нажать «Перераскладка», «Проверить XSD», скачать .bpmn и открыть его на https://demo.bpmn.io.
 
 Без ключа LLM интерфейс тоже работает: можно открыть сохранённые примеры, импортировать любой
 `.bpmn`, править код схемы и пересчитывать раскладку.

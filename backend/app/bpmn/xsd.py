@@ -9,9 +9,24 @@ from lxml import etree
 SCHEMA_DIR = Path(__file__).parent / "schemas"
 
 
+class _SchemaResolver(etree.Resolver):
+    """Serve the bundled XSD files from memory: libxml2 is not given any file paths,
+    so non-ASCII directories (e.g. on Windows) do not break schema loading."""
+
+    def resolve(self, url, pubid, context):
+        name = url.replace("\\", "/").rsplit("/", 1)[-1]
+        f = SCHEMA_DIR / name
+        if f.exists():
+            return self.resolve_string(f.read_bytes(), context, base_url=f"bpmn-schema:/{name}")
+        return None
+
+
 @lru_cache(maxsize=1)
 def _schema() -> etree.XMLSchema:
-    return etree.XMLSchema(etree.parse(str(SCHEMA_DIR / "BPMN20.xsd")))
+    parser = etree.XMLParser()
+    parser.resolvers.add(_SchemaResolver())
+    doc = etree.fromstring((SCHEMA_DIR / "BPMN20.xsd").read_bytes(), parser, base_url="bpmn-schema:/BPMN20.xsd")
+    return etree.XMLSchema(etree.ElementTree(doc))
 
 
 def validate_xsd(xml: str) -> list[str]:
