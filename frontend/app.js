@@ -229,6 +229,7 @@ $('#show-saved').onclick = async () => {
     const h = await api('/api/health');
     const b = $('#llm-status');
     b.textContent = h.llm ? `LLM: ${h.provider} · ${h.model || ''}` : 'LLM не настроен — доступны примеры и импорт';
+    if (!h.llm && h.llm_error) b.title = h.llm_error;
     b.className = 'badge ' + (h.llm ? 'ok' : 'off');
   } catch { /* backend unavailable */ }
   try {

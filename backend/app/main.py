@@ -21,12 +21,18 @@ EXAMPLES = ROOT / "examples"
 app = FastAPI(title="BPMN Agent", version="1.0")
 
 
+_llm_error: str | None = None
+
+
 @lru_cache(maxsize=1)
 def _pipeline() -> Pipeline:
+    global _llm_error
     s = get_settings()
     try:
         llm = make_client(s)
+        print(f"[bpmn-agent] LLM: {s.llm_provider} · {getattr(llm, 'model', '')}")
     except Exception as e:  # noqa: BLE001 - missing key / package: UI still works without LLM
+        _llm_error = str(e)
         print(f"[bpmn-agent] LLM недоступен: {e}")
         llm = None
     return Pipeline(llm, s.runs_dir, s.max_repairs)
@@ -56,7 +62,7 @@ class XmlRequest(BaseModel):
 def health():
     s = get_settings()
     p = _pipeline()
-    return {"ok": True, "llm": p.llm is not None, "provider": s.llm_provider,
+    return {"ok": True, "llm": p.llm is not None, "provider": s.llm_provider, "llm_error": _llm_error,
             "model": getattr(p.llm, "model", None), "max_repairs": s.max_repairs}
 
 

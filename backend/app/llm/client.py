@@ -1,6 +1,7 @@
 """LLM providers.
 
 - `anthropic`: Claude via the official Anthropic SDK.
+- `gemini`: Google Gemini via the native generateContent REST API.
 - `openai`: any OpenAI-compatible Chat Completions endpoint (OpenAI, vLLM, Ollama,
   LM Studio, OpenRouter, GigaChat/YandexGPT via compatible gateways) over plain HTTP.
 - `scripted`: replays prepared answers (tests and offline demo).
@@ -116,6 +117,74 @@ class OpenAICompatibleClient:
                            time.time() - t0, usage.get("prompt_tokens"), usage.get("completion_tokens"))
 
 
+class GeminiClient:
+    """Google Gemini via the native REST API (generateContent)."""
+    name = "gemini"
+    DEFAULT_URL = "https://generativelanguage.googleapis.com/v1beta"
+    THINKING = {"low": 1024, "medium": 4096, "high": -1}   # -1 = dynamic
+    RETRY_STATUSES = (429, 500, 503)
+
+    def __init__(self, settings: Settings, transport: httpx.BaseTransport | None = None):
+        if not settings.llm_api_key:
+            raise LLMError("Не задан LLM_API_KEY для Gemini (ключ из https://aistudio.google.com/apikey)")
+        base = (settings.llm_base_url or self.DEFAULT_URL).rstrip("/")
+        if base.endswith("/openai"):          # OpenAI-compatible URL given: use the native one
+            base = base[: -len("/openai")]
+        self.base = base
+        self.key = settings.llm_api_key.strip()
+        self.model = settings.llm_model or "gemini-2.5-flash"
+        self.temperature = settings.llm_temperature
+        self.thinking = self.THINKING.get(settings.llm_effort, 1024)
+        self.http = httpx.Client(timeout=settings.llm_timeout, transport=transport)
+
+    def complete(self, system, messages, json_mode=False, max_tokens=8000):
+        contents = [{"role": "model" if m["role"] == "assistant" else "user", "parts": [{"text": m["content"]}]}
+                    for m in messages]
+        gen = {"temperature": self.temperature, "maxOutputTokens": max_tokens + max(self.thinking, 0) + 2048}
+        if json_mode:
+            gen["responseMimeType"] = "application/json"
+        if self.model.startswith("gemini-2.5"):
+            gen["thinkingConfig"] = {"thinkingBudget": self.thinking}
+        body = {"systemInstruction": {"parts": [{"text": system}]}, "contents": contents, "generationConfig": gen}
+        url = f"{self.base}/models/{self.model}:generateContent"
+        t0 = time.time()
+        r = None
+        for delay in (0, 3, 8, 20):
+            if delay:
+                time.sleep(delay)
+            try:
+                r = self.http.post(url, json=body, headers={"x-goog-api-key": self.key})
+            except httpx.HTTPError as e:
+                raise LLMError(f"Нет соединения с Gemini API: {e}") from e
+            if r.status_code not in self.RETRY_STATUSES:
+                break
+        if r.status_code != 200:
+            try:
+                msg = r.json().get("error", {}).get("message", r.text)
+            except ValueError:
+                msg = r.text
+            hint = ""
+            if r.status_code in (400, 401, 403) and "key" in msg.lower():
+                hint = " Проверьте LLM_API_KEY."
+            elif r.status_code == 429:
+                hint = " Превышена квота бесплатного тарифа — подождите минуту."
+            elif r.status_code == 404:
+                hint = f" Проверьте LLM_MODEL (сейчас {self.model})."
+            raise LLMError(f"Gemini API {r.status_code}: {msg[:400]}{hint}")
+        data = r.json()
+        cands = data.get("candidates") or []
+        if not cands:
+            reason = (data.get("promptFeedback") or {}).get("blockReason", "пустой ответ")
+            raise LLMError(f"Gemini не вернул ответ: {reason}")
+        parts = (cands[0].get("content") or {}).get("parts") or []
+        text = "".join(p.get("text", "") for p in parts if not p.get("thought"))
+        if not text and cands[0].get("finishReason") == "MAX_TOKENS":
+            raise LLMError("Gemini: ответ обрезан по лимиту токенов (MAX_TOKENS)")
+        usage = data.get("usageMetadata") or {}
+        return LLMResponse(text, data.get("modelVersion", self.model), time.time() - t0,
+                           usage.get("promptTokenCount"), usage.get("candidatesTokenCount"))
+
+
 class ScriptedClient:
     """Returns prepared answers in order. Used by tests and the offline demo."""
     name = "scripted"
@@ -135,6 +204,8 @@ def make_client(settings: Settings) -> LLMClient:
     provider = settings.llm_provider.lower()
     if provider == "anthropic":
         return AnthropicClient(settings)
+    if provider in ("gemini", "google"):
+        return GeminiClient(settings)
     if provider in ("openai", "openai-compatible", "ollama", "vllm"):
         return OpenAICompatibleClient(settings)
-    raise LLMError(f"Неизвестный LLM_PROVIDER={settings.llm_provider!r} (anthropic | openai)")
+    raise LLMError(f"Неизвестный LLM_PROVIDER={settings.llm_provider!r} (anthropic | gemini | openai)")

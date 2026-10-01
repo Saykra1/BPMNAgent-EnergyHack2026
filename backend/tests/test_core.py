@@ -181,3 +181,48 @@ def test_refine_summary():
     llm = ScriptedClient(["# Изменения: добавлен шаг\n" + SIMPLE])
     res = Pipeline(llm, None).refine("text", SIMPLE, "добавь шаг")
     assert res.ok and res.summary == "добавлен шаг"
+
+
+# ----------------------------------------------------------------- gemini client (mocked HTTP)
+def test_gemini_client_request_and_parse():
+    import httpx
+
+    from app.config import Settings
+    from app.llm.client import GeminiClient
+
+    seen = {}
+
+    def handler(request: httpx.Request):
+        seen["url"] = str(request.url)
+        seen["key"] = request.headers.get("x-goog-api-key")
+        seen["body"] = json.loads(request.content)
+        return httpx.Response(200, json={
+            "candidates": [{"content": {"parts": [{"text": "думаю", "thought": True}, {"text": '{"ok": 1}'}]},
+                            "finishReason": "STOP"}],
+            "usageMetadata": {"promptTokenCount": 10, "candidatesTokenCount": 5}})
+
+    s = Settings(llm_provider="gemini", llm_api_key="k", llm_model="gemini-2.5-flash",
+                 llm_base_url="https://generativelanguage.googleapis.com/v1beta/openai")
+    c = GeminiClient(s, transport=httpx.MockTransport(handler))
+    r = c.complete("sys", [{"role": "user", "content": "a"}, {"role": "assistant", "content": "b"},
+                           {"role": "user", "content": "c"}], json_mode=True)
+    assert r.text == '{"ok": 1}'
+    assert seen["url"].endswith("/v1beta/models/gemini-2.5-flash:generateContent")
+    assert seen["key"] == "k"
+    assert [c["role"] for c in seen["body"]["contents"]] == ["user", "model", "user"]
+    assert seen["body"]["generationConfig"]["responseMimeType"] == "application/json"
+
+
+def test_gemini_client_error_message():
+    import httpx
+
+    from app.config import Settings
+    from app.llm.client import GeminiClient, LLMError
+
+    def handler(request):
+        return httpx.Response(400, json={"error": {"message": "API key not valid."}})
+
+    c = GeminiClient(Settings(llm_provider="gemini", llm_api_key="bad"), transport=httpx.MockTransport(handler))
+    with pytest.raises(LLMError) as e:
+        c.complete("s", [{"role": "user", "content": "x"}])
+    assert "LLM_API_KEY" in str(e.value)

@@ -42,6 +42,9 @@ cp .env.example .env && ./run.sh
 **Провайдеры LLM**
 - `LLM_PROVIDER=anthropic`: Claude через официальный SDK. По умолчанию модель `claude-opus-5-5`,
   `LLM_EFFORT=low`.
+- `LLM_PROVIDER=gemini`: Google Gemini через нативный API (`generateContent`). Ключ берётся в
+  https://aistudio.google.com/apikey, модель по умолчанию `gemini-2.5-flash`. `LLM_BASE_URL`
+  указывать не нужно.
 - `LLM_PROVIDER=openai`: любой OpenAI-совместимый Chat Completions API (OpenAI, vLLM, Ollama,
   LM Studio, OpenRouter, шлюзы к GigaChat/YandexGPT). Задайте `LLM_BASE_URL` и `LLM_MODEL`.
 
