@@ -99,11 +99,12 @@ class Pipeline:
         self.llm = llm
         self.runs_dir = runs_dir
         self.max_repairs = max_repairs
+        self.llm_error: str | None = None     # why the LLM client could not be created
 
     # ------------------------------------------------------------------ LLM stages
     def _ask(self, log: RunLog, stage: str, system: str, messages: list[dict], json_mode=False) -> str:
         if self.llm is None:
-            raise LLMError("LLM не настроен: задайте LLM_PROVIDER/LLM_API_KEY в .env")
+            raise LLMError("LLM не настроен: " + (self.llm_error or "задайте LLM_PROVIDER/LLM_API_KEY в .env"))
         resp = self.llm.complete(system, messages, json_mode=json_mode)
         log.llm(stage, system, messages, resp)
         return resp.text

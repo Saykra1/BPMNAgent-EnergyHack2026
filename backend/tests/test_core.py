@@ -226,3 +226,16 @@ def test_gemini_client_error_message():
     with pytest.raises(LLMError) as e:
         c.complete("s", [{"role": "user", "content": "x"}])
     assert "LLM_API_KEY" in str(e.value)
+
+
+def test_env_file_parsing_windows_variants(tmp_path):
+    from app.config import read_env_file
+
+    content = ("# Провайдер LLM: используем нативный API Gemini\nLLM_PROVIDER=gemini\n"
+               "LLM_API_KEY=\"AQ.abc\"  \nLLM_MODEL=gemini-2.5-flash # комментарий\nLLM_EFFORT=low\n")
+    for enc in ("utf-8-sig", "utf-8", "cp1251"):
+        f = tmp_path / f"env_{enc}"
+        f.write_bytes(content.encode(enc))
+        v = read_env_file(f)
+        assert v["llm_provider"] == "gemini" and v["llm_api_key"] == "AQ.abc", enc
+        assert v["llm_model"] == "gemini-2.5-flash"

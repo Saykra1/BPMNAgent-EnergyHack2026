@@ -228,8 +228,9 @@ $('#show-saved').onclick = async () => {
   try {
     const h = await api('/api/health');
     const b = $('#llm-status');
-    b.textContent = h.llm ? `LLM: ${h.provider} · ${h.model || ''}` : 'LLM не настроен — доступны примеры и импорт';
-    if (!h.llm && h.llm_error) b.title = h.llm_error;
+    b.textContent = h.llm ? `LLM: ${h.provider} · ${h.model || ''}` : 'LLM не настроен — наведите для причины';
+    b.title = h.llm ? `Настройки: ${h.env_file || 'переменные окружения'}` : (h.llm_error || '');
+    if (!h.llm && h.llm_error) $('#summary').innerHTML = `<span class="pill err">LLM</span> ${esc(h.llm_error)}`;
     b.className = 'badge ' + (h.llm ? 'ok' : 'off');
   } catch { /* backend unavailable */ }
   try {

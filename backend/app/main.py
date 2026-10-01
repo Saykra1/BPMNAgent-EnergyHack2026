@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-from functools import lru_cache
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
@@ -11,7 +10,7 @@ from pydantic import BaseModel, Field
 
 from .bpmn.importer import ImportErrorBPMN, bpmn_to_code
 from .bpmn.xsd import validate_xsd
-from .config import ROOT, get_settings
+from .config import ROOT, find_env_file, get_settings
 from .llm.client import make_client
 from .pipeline import Pipeline
 
@@ -21,21 +20,34 @@ EXAMPLES = ROOT / "examples"
 app = FastAPI(title="BPMN Agent", version="1.0")
 
 
-_llm_error: str | None = None
+_state: dict = {"key": None, "pipeline": None, "error": None, "settings": None}
 
 
-@lru_cache(maxsize=1)
+def _env_key():
+    path = find_env_file()
+    return (str(path), path.stat().st_mtime) if path else None
+
+
 def _pipeline() -> Pipeline:
-    global _llm_error
+    """Built once and rebuilt automatically when the .env file changes (no restart needed)."""
+    key = _env_key()
+    if _state["pipeline"] is not None and _state["key"] == key:
+        return _state["pipeline"]
     s = get_settings()
+    error = None
     try:
         llm = make_client(s)
-        print(f"[bpmn-agent] LLM: {s.llm_provider} · {getattr(llm, 'model', '')}")
+        print(f"[bpmn-agent] .env: {s.env_file or 'не найден'} · LLM: {s.llm_provider} · {getattr(llm, 'model', '')}")
     except Exception as e:  # noqa: BLE001 - missing key / package: UI still works without LLM
-        _llm_error = str(e)
-        print(f"[bpmn-agent] LLM недоступен: {e}")
         llm = None
-    return Pipeline(llm, s.runs_dir, s.max_repairs)
+        where = f"файл настроек: {s.env_file}" if s.env_file else (
+            f"файл .env не найден — создайте его в {ROOT} (copy .env.example .env)")
+        error = f"{e} [LLM_PROVIDER={s.llm_provider}; {where}]"
+        print(f"[bpmn-agent] LLM недоступен: {error}")
+    p = Pipeline(llm, s.runs_dir, s.max_repairs)
+    p.llm_error = error
+    _state.update(key=key, pipeline=p, error=error, settings=s)
+    return p
 
 
 class GenerateRequest(BaseModel):
@@ -60,9 +72,10 @@ class XmlRequest(BaseModel):
 
 @app.get("/api/health")
 def health():
-    s = get_settings()
     p = _pipeline()
-    return {"ok": True, "llm": p.llm is not None, "provider": s.llm_provider, "llm_error": _llm_error,
+    s = _state["settings"]
+    return {"ok": True, "llm": p.llm is not None, "provider": s.llm_provider, "llm_error": _state["error"],
+            "env_file": s.env_file,
             "model": getattr(p.llm, "model", None), "max_repairs": s.max_repairs}
 
 
