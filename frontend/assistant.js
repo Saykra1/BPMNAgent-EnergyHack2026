@@ -84,6 +84,8 @@
     const card = inspection?.cards.find(c => c.id === selectedId);
     const quote = typeof details.source_quote === 'string' ? details.source_quote : '';
     const found = quote && state.text.includes(quote);
+    const locked = state.access === 'viewer';
+    const lockAttr = locked ? 'disabled' : '';
     box.innerHTML = `<h3>${esc(element.businessObject.name || 'Без названия')}</h3>
       ${card?.role ? `<p class="muted">Исполнитель: ${esc(card.role)}</p>` : ''}
       <h4>Основание в описании</h4>
@@ -91,11 +93,11 @@
       ${details.assumption ? `<div class="notice">Допущение: ${esc(details.assumption)}</div>` : ''}
       <h4>Карточка срока и документов</h4>
       <p class="hint">Указывайте срок вместе с точкой отсчёта. Это описание обязательства, не исполняемый таймер.</p>
-      <label for="detail-deadline">Срок и точка отсчёта</label><input id="detail-deadline" maxlength="500" placeholder="20 рабочих дней с получения уведомления" value="${esc(details.deadline || '')}">
-      <label for="detail-documents">Документы — по одному на строку</label><textarea id="detail-documents" maxlength="4000" placeholder="Заявка\nТехнические условия">${esc((Array.isArray(details.documents) ? details.documents : []).join('\n'))}</textarea>
-      <label for="detail-quote">Цитата из исходного описания</label><textarea id="detail-quote" maxlength="3000" placeholder="Вставьте точный фрагмент описания">${esc(quote)}</textarea>
-      <label for="detail-assumption">Допущение / требует уточнения</label><textarea id="detail-assumption" maxlength="1500">${esc(details.assumption || '')}</textarea>
-      <button id="detail-save" class="primary" ${state.busy || simulation ? 'disabled' : ''}>Сохранить карточку</button>
+      <label for="detail-deadline">Срок и точка отсчёта</label><input id="detail-deadline" maxlength="500" placeholder="20 рабочих дней с получения уведомления" value="${esc(details.deadline || '')}" ${lockAttr}>
+      <label for="detail-documents">Документы — по одному на строку</label><textarea id="detail-documents" maxlength="4000" placeholder="Заявка\nТехнические условия" ${lockAttr}>${esc((Array.isArray(details.documents) ? details.documents : []).join('\n'))}</textarea>
+      <label for="detail-quote">Цитата из исходного описания</label><textarea id="detail-quote" maxlength="3000" placeholder="Вставьте точный фрагмент описания" ${lockAttr}>${esc(quote)}</textarea>
+      <label for="detail-assumption">Допущение / требует уточнения</label><textarea id="detail-assumption" maxlength="1500" ${lockAttr}>${esc(details.assumption || '')}</textarea>
+      <button id="detail-save" class="primary" ${locked || state.busy || simulation ? 'disabled' : ''}>Сохранить карточку</button>
       <p class="hint">Карточка хранится внутри .bpmn и сохраняется при повторном открытии. Отмена — Ctrl+Z.</p>
       <p id="detail-status" role="status"></p>`;
     if ($('#show-source')) $('#show-source').onclick = () => {
@@ -105,7 +107,7 @@
       input.focus(); input.setSelectionRange(start, start + quote.length);
     };
     $('#detail-save').onclick = () => {
-      if (state.busy || simulation) return;
+      if (state.access === 'viewer' || state.busy || simulation) return;
       const sourceQuote = $('#detail-quote').value.trim();
       // Existing imported quotes can be retained when the source text is unavailable.
       if (sourceQuote && sourceQuote !== quote && !state.text.includes(sourceQuote)) {

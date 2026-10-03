@@ -13,7 +13,12 @@
 <body>
 <header>
   <div class="brand"><span class="logo">◇</span> BPMN Agent <small>текст → BPMN 2.0</small></div>
-  <div id="llm-status" class="badge">…</div>
+  <div class="header-side">
+    <span id="who" class="who"></span>
+    <span id="team-label" class="who" hidden></span>
+    <button id="team-open" type="button">Команда</button>
+    <div id="llm-status" class="badge">…</div>
+  </div>
 </header>
 <main>
   <aside id="left">
@@ -63,6 +68,10 @@
       <button id="inspect-current">Проверить процесс</button>
       <button id="simulate">▶ Проиграть</button>
       <span class="sep"></span>
+      <button id="project-save" type="button" hidden>Сохранить</button>
+      <button id="project-reload" type="button" hidden>Загрузить последнюю версию</button>
+      <span id="project-meta" class="project-meta" hidden></span>
+      <span class="sep"></span>
       <button id="dl-bpmn">.bpmn</button>
       <button id="dl-svg">SVG</button>
       <button id="dl-png">PNG</button>
@@ -91,8 +100,28 @@
     <div class="tab" id="tab-attempts" hidden><div id="attempts"></div></div>
   </aside>
 </main>
+<div id="team-backdrop" class="team-backdrop" hidden></div>
+<aside id="team-panel" class="team-panel" hidden>
+  <div class="team-head">
+    <h3>Команда</h3>
+    <button id="team-close" type="button">Закрыть</button>
+  </div>
+  <div id="team-body"></div>
+</aside>
+<div id="name-modal" class="modal" hidden>
+  <form id="name-form">
+    <h3 id="name-title">Как вас зовут?</h3>
+    <p id="name-hint" class="hint">Имя видно участникам команды. Пароль не нужен.</p>
+    <input id="name-input" maxlength="80" placeholder="Например, Ася" autocomplete="nickname">
+    <div class="row">
+      <button id="name-cancel" type="button">Отмена</button>
+      <button class="primary" type="submit">Продолжить</button>
+    </div>
+  </form>
+</div>
 <script src="/static/vendor/modeler-simulation.js"></script>
 <script src="/static/app.js"></script>
 <script src="/static/assistant.js"></script>
+<script src="/static/team.js"></script>
 </body>
 </html>

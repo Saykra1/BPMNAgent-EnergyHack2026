@@ -2,7 +2,21 @@
 const $ = (s) => document.querySelector(s);
 const modeler = new BpmnJS({ container: '#canvas' });
 
-const state = { text: '', code: '', plan: null, lastResult: null, examples: [], hasDiagram: false };
+const state = {
+  text: '', code: '', plan: null, lastResult: null, examples: [], hasDiagram: false,
+  access: null, project: null, busy: false, suspendLock: false,
+};
+
+(function lockViewerEdits() {
+  const stack = modeler.get('commandStack');
+  for (const name of ['execute', 'undo', 'redo']) {
+    const raw = stack[name].bind(stack);
+    stack[name] = function (...args) {
+      if (state.access === 'viewer' && !state.suspendLock) return;
+      return raw(...args);
+    };
+  }
+})();
 
 // ------------------------------------------------------------------ helpers
 async function api(path, body) {
@@ -19,11 +33,43 @@ function download(name, content, type) {
   a.href = content instanceof Blob ? URL.createObjectURL(content) : URL.createObjectURL(new Blob([content], { type }));
   a.download = name; a.click();
 }
+const VIEWER_LOCK = ['#generate', '#refine', '#rebuild', '#relayout', '#show-saved', '#mode', '#example', '#text', '#open-file', '#instruction', '#code'];
+
+function applyAccess() {
+  const viewer = state.access === 'viewer';
+  document.body.classList.toggle('is-viewer', viewer);
+  const open = !!state.project;
+  if (!state.busy) {
+    for (const sel of VIEWER_LOCK) {
+      const el = $(sel);
+      if (el) el.disabled = viewer;
+    }
+    const save = $('#project-save');
+    if (save) save.disabled = viewer || !open;
+  }
+  const save = $('#project-save');
+  const reload = $('#project-reload');
+  const meta = $('#project-meta');
+  if (save) save.hidden = !open || viewer;
+  if (reload) reload.hidden = !open;
+  if (meta) {
+    meta.hidden = !open;
+    if (open) {
+      const who = state.project.updated_by_name ? `, сохранил ${state.project.updated_by_name}` : '';
+      meta.textContent = `версия ${state.project.version}${who}`;
+    }
+  }
+}
+
 function busy(on, text = 'Генерация…') {
   state.busy = on;
   window.agentFeatures?.onBusy(on);
   $('#loading').hidden = !on; $('#loading-text').textContent = text;
-  ['#generate', '#refine', '#rebuild', '#relayout', '#show-saved', '#mode', '#example', '#text', '#open-file', '#simulate'].forEach((s) => ($(s).disabled = on));
+  ['#generate', '#refine', '#rebuild', '#relayout', '#show-saved', '#mode', '#example', '#text', '#open-file', '#simulate', '#instruction', '#code', '#project-save', '#project-reload'].forEach((s) => {
+    const el = $(s);
+    if (el) el.disabled = on;
+  });
+  if (!on) applyAccess();
 }
 function fileBase() {
   const t = (state.plan && state.plan.title) || 'process';
@@ -65,11 +111,16 @@ function finishSteps(res) {
 async function showXml(xml) {
   window.agentFeatures?.beforeImport();
   state.hasDiagram = false;
-  const { warnings } = await modeler.importXML(xml);
+  state.suspendLock = true;
+  try {
+    var imported = await modeler.importXML(xml);
+  } finally {
+    state.suspendLock = false;
+  }
   $('#empty').hidden = true;
   state.hasDiagram = true;
   modeler.get('canvas').zoom('fit-viewport', 'auto');
-  return warnings;
+  return imported.warnings;
 }
 
 function renderReport(res, warnings = []) {
@@ -134,6 +185,7 @@ function chat(text, cls) { const d = document.createElement('div'); d.className 
 
 // ------------------------------------------------------------------ actions
 $('#generate').onclick = async () => {
+  if (state.access === 'viewer') return;
   const text = $('#text').value.trim();
   if (text.length < 10) { alert('Опишите процесс подробнее'); return; }
   if ($('#mode').value === 'guided') { await window.agentFeatures.prepare(text); return; }
@@ -146,6 +198,7 @@ $('#generate').onclick = async () => {
 };
 
 $('#refine').onclick = async () => {
+  if (state.access === 'viewer') return;
   const instruction = $('#instruction').value.trim();
   if (!instruction) return;
   if (!state.hasDiagram) { alert('Сначала постройте или откройте диаграмму'); return; }
@@ -163,19 +216,21 @@ $('#refine').onclick = async () => {
 $('#instruction').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#refine').click(); });
 
 $('#rebuild').onclick = async () => {
+  if (state.access === 'viewer') return;
   busy(true, 'Перестраиваю из кода…');
   try { await applyResult(await api('/api/build', { code: $('#code').value })); }
   catch (e) { alert(e.message); } finally { busy(false); }
 };
 
 $('#relayout').onclick = async () => {
-  if (!state.hasDiagram) return;
+  if (state.access === 'viewer' || !state.hasDiagram) return;
   busy(true, 'Пересчитываю раскладку…');
   try { const { xml } = await modeler.saveXML(); await applyResult(await api('/api/import', { xml })); }
   catch (e) { alert(e.message); } finally { busy(false); }
 };
 
 $('#open-file').onchange = async (e) => {
+  if (state.access === 'viewer') { e.target.value = ''; return; }
   const f = e.target.files[0]; if (!f) return;
   const xml = await f.text();
   try {
@@ -237,6 +292,71 @@ $('#show-saved').onclick = async () => {
   await applyResult({ xml: ex.xml, code: ex.code, plan: ex.plan, issues: r.issues || [], xsd_errors: r.xsd_errors || [],
     stats: r.stats || {}, assumptions: r.assumptions || [], questions: r.questions || [], attempts: [], source: 'manual', duration_s: 0 });
   $('#summary').innerHTML = '<span class="pill ok">сохранённый результат</span> ' + esc(r.source || '');
+};
+
+function rememberProject(project) {
+  state.project = {
+    id: project.id,
+    team_id: project.team_id,
+    version: project.version,
+    title: project.title,
+    updated_by_name: project.updated_by_name || '',
+  };
+  if (project.role) state.access = project.role;
+}
+
+function clearDiagram() {
+  state.suspendLock = true;
+  try { modeler.clear(); }
+  catch { /* холст ещё не открывался */ }
+  finally { state.suspendLock = false; }
+  state.hasDiagram = false;
+  $('#empty').hidden = false;
+}
+
+window.diagramIO = {
+  async snapshot() {
+    let xml = '';
+    if (state.hasDiagram) xml = (await modeler.saveXML({ format: true })).xml;
+    return { text: $('#text').value, xml, code: $('#code').value || state.code || '', plan: state.plan };
+  },
+  async load(project) {
+    state.text = project.text || '';
+    $('#text').value = state.text;
+    state.plan = project.plan || null;
+    state.code = project.code || '';
+    $('#code').value = state.code;
+    $('#plan-json').textContent = project.plan ? JSON.stringify(project.plan, null, 2) : 'План появится после генерации.';
+    window.agentFeatures?.clearInterview();
+    rememberProject(project);
+    if (project.xml) {
+      await applyResult({
+        xml: project.xml, code: project.code || '', plan: project.plan, issues: [], xsd_errors: [],
+        stats: {}, assumptions: [], questions: [], attempts: [], source: 'manual', duration_s: 0,
+      });
+    } else {
+      clearDiagram();
+      $('#summary').innerHTML = `<span class="pill ok">проект</span> ${esc(project.title)} · пустой`;
+    }
+    rememberProject(project);
+    $('#summary').innerHTML = `<span class="pill ok">проект</span> ${esc(project.title)} · версия ${project.version}`;
+    applyAccess();
+  },
+  noteSaved(project) {
+    rememberProject(project);
+    $('#summary').innerHTML = `<span class="pill ok">сохранено</span> версия ${project.version}`;
+    applyAccess();
+  },
+  setAccess(role) {
+    state.access = role;
+    applyAccess();
+  },
+  clearProject() {
+    state.project = null;
+    state.access = null;
+    applyAccess();
+  },
+  current() { return state.project; },
 };
 
 // ------------------------------------------------------------------ init

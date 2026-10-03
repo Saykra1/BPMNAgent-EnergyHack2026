@@ -15,6 +15,7 @@ from .llm.client import make_client
 from .pipeline import Pipeline
 from .llm.plan import parse_plan, PlanError
 from .sandbox import SandboxError
+from .collab.routes import router as collab_router
 from .insights import inspect_xml
 from lxml import etree
 
@@ -22,6 +23,7 @@ FRONTEND = ROOT / "frontend"
 EXAMPLES = ROOT / "examples"
 
 app = FastAPI(title="BPMN Agent", version="1.0")
+app.include_router(collab_router)
 
 
 _state: dict = {"key": None, "pipeline": None, "error": None, "settings": None}
@@ -197,4 +199,9 @@ app.mount("/static", StaticFiles(directory=str(FRONTEND)), name="static")
 
 @app.get("/")
 def index():
+    return FileResponse(FRONTEND / "index.html")
+
+
+@app.get("/join/{token}")
+def join_page(token: str):
     return FileResponse(FRONTEND / "index.html")
