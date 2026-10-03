@@ -55,14 +55,17 @@
       <bpmn:incoming>Flow_21</bpmn:incoming>
       <bpmn:outgoing>Flow_23</bpmn:outgoing>
       <bpmn:task id="Task_4" name="Выполнить проектирование">
+        <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "", "assumption": "Детализация строительства из эталонного плана; в исходном описании этот шаг отдельно не указан.", "deadline": "", "documents": []}</bpmn:documentation>
         <bpmn:incoming>Flow_34</bpmn:incoming>
         <bpmn:outgoing>Flow_32</bpmn:outgoing>
       </bpmn:task>
       <bpmn:task id="Task_5" name="Выполнить строительно-монтажные работы">
+        <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "", "assumption": "Детализация строительства из эталонного плана; в исходном описании этот шаг отдельно не указан.", "deadline": "", "documents": []}</bpmn:documentation>
         <bpmn:incoming>Flow_32</bpmn:incoming>
         <bpmn:outgoing>Flow_33</bpmn:outgoing>
       </bpmn:task>
       <bpmn:task id="Task_6" name="Сдать объекты сетевой организации">
+        <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "", "assumption": "Детализация строительства из эталонного плана; в исходном описании этот шаг отдельно не указан.", "deadline": "", "documents": []}</bpmn:documentation>
         <bpmn:incoming>Flow_33</bpmn:incoming>
         <bpmn:outgoing>Flow_35</bpmn:outgoing>
       </bpmn:task>
@@ -78,10 +81,12 @@
       <bpmn:sequenceFlow id="Flow_35" sourceRef="Task_6" targetRef="EndEvent_2"/>
     </bpmn:subProcess>
     <bpmn:userTask id="UserTask_1" name="Подать заявку на присоединение">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "Заявитель подаёт заявку на технологическое присоединение через личный кабинет сетевой организации.", "assumption": "", "deadline": "", "documents": ["Заявка на технологическое присоединение"]}</bpmn:documentation>
       <bpmn:incoming>Flow_1</bpmn:incoming>
       <bpmn:outgoing>Flow_2</bpmn:outgoing>
     </bpmn:userTask>
     <bpmn:userTask id="UserTask_2" name="Проверить комплектность документов">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "Специалист отдела по работе с клиентами проверяет комплектность документов.", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
       <bpmn:incoming>Flow_2</bpmn:incoming>
       <bpmn:incoming>Flow_7</bpmn:incoming>
       <bpmn:outgoing>Flow_3</bpmn:outgoing>
@@ -96,6 +101,7 @@
       <bpmn:outgoing>Flow_6</bpmn:outgoing>
     </bpmn:sendTask>
     <bpmn:userTask id="UserTask_3" name="Дополнить документы">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "Если документов не хватает, заявителю направляется уведомление, и у него есть 20 рабочих дней на их предоставление; заявитель дополняет документы, и проверка повторяется.", "assumption": "В описании не определены точка отсчёта срока и исход при просрочке.", "deadline": "20 рабочих дней; точку отсчёта необходимо уточнить", "documents": ["Недостающие документы"]}</bpmn:documentation>
       <bpmn:incoming>Flow_6</bpmn:incoming>
       <bpmn:outgoing>Flow_7</bpmn:outgoing>
     </bpmn:userTask>
@@ -127,6 +133,7 @@
       <bpmn:outgoing>Flow_15</bpmn:outgoing>
     </bpmn:parallelGateway>
     <bpmn:task id="Task_3" name="Подготовить технические условия">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "Затем технический отдел готовит технические условия", "assumption": "", "deadline": "", "documents": ["Технические условия"]}</bpmn:documentation>
       <bpmn:incoming>Flow_14</bpmn:incoming>
       <bpmn:outgoing>Flow_16</bpmn:outgoing>
     </bpmn:task>
@@ -140,10 +147,12 @@
       <bpmn:outgoing>Flow_18</bpmn:outgoing>
     </bpmn:parallelGateway>
     <bpmn:sendTask id="SendTask_2" name="Направить договор и ТУ">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "После этого заявителю направляется договор с техническими условиями.", "assumption": "", "deadline": "", "documents": ["Договор", "Технические условия"]}</bpmn:documentation>
       <bpmn:incoming>Flow_18</bpmn:incoming>
       <bpmn:outgoing>Flow_19</bpmn:outgoing>
     </bpmn:sendTask>
     <bpmn:userTask id="UserTask_5" name="Подписать договор и оплатить">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "Заявитель подписывает договор и оплачивает услугу.", "assumption": "", "deadline": "", "documents": ["Договор"]}</bpmn:documentation>
       <bpmn:incoming>Flow_19</bpmn:incoming>
       <bpmn:outgoing>Flow_20</bpmn:outgoing>
     </bpmn:userTask>
@@ -162,6 +171,7 @@
       <bpmn:outgoing>Flow_25</bpmn:outgoing>
     </bpmn:parallelGateway>
     <bpmn:manualTask id="ManualTask_2" name="Провести осмотр электроустановки">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "После этого инспектор проводит осмотр электроустановки.", "assumption": "Инспектор отнесён к техническому отделу — организационную принадлежность нужно подтвердить.", "deadline": "", "documents": []}</bpmn:documentation>
       <bpmn:incoming>Flow_25</bpmn:incoming>
       <bpmn:incoming>Flow_28</bpmn:incoming>
       <bpmn:outgoing>Flow_26</bpmn:outgoing>

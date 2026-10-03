@@ -13,6 +13,10 @@ from .bpmn.xsd import validate_xsd
 from .config import ROOT, find_env_file, get_settings
 from .llm.client import make_client
 from .pipeline import Pipeline
+from .llm.plan import parse_plan, PlanError
+from .sandbox import SandboxError
+from .insights import inspect_xml
+from lxml import etree
 
 FRONTEND = ROOT / "frontend"
 EXAMPLES = ROOT / "examples"
@@ -70,6 +74,36 @@ class CodeRequest(BaseModel):
 
 class XmlRequest(BaseModel):
     xml: str
+
+
+class PlanRequest(BaseModel):
+    plan: dict
+    text: str = Field(default="", max_length=30000)
+
+
+class InspectRequest(XmlRequest):
+    text: str = Field(default="", max_length=30000)
+
+
+@app.post("/api/prepare")
+def prepare(req: GenerateRequest):
+    return _pipeline().prepare(req.text)
+
+
+@app.post("/api/from-plan")
+def from_plan(req: PlanRequest):
+    try:
+        return _pipeline().from_plan(parse_plan(req.plan), req.text).to_dict()
+    except (PlanError, KeyError, ValueError) as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/inspect")
+def inspect(req: InspectRequest):
+    try:
+        return inspect_xml(req.xml, req.text)
+    except (ImportErrorBPMN, SandboxError, etree.XMLSyntaxError, ValueError) as e:
+        raise HTTPException(400, str(e))
 
 
 @app.get("/api/health")

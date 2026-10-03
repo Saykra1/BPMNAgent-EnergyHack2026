@@ -20,8 +20,10 @@ function download(name, content, type) {
   a.download = name; a.click();
 }
 function busy(on, text = 'Генерация…') {
+  state.busy = on;
+  window.agentFeatures?.onBusy(on);
   $('#loading').hidden = !on; $('#loading-text').textContent = text;
-  ['#generate', '#refine', '#rebuild'].forEach((s) => ($(s).disabled = on));
+  ['#generate', '#refine', '#rebuild', '#relayout', '#show-saved', '#mode', '#example', '#text', '#open-file', '#simulate'].forEach((s) => ($(s).disabled = on));
 }
 function fileBase() {
   const t = (state.plan && state.plan.title) || 'process';
@@ -53,14 +55,16 @@ function finishSteps(res) {
   setStep('validate', res.xml ? (errs.length ? 'retry' : 'ok') : (res.code && !sandboxFail ? 'fail' : ''));
   setStep('layout', res.xml ? 'ok' : '');
   setStep('xsd', res.xml ? (res.xsd_errors && res.xsd_errors.length ? 'fail' : 'ok') : '');
-  const src = { llm: 'с первой попытки', llm_repaired: `после ${repairs} исправл. (repair-loop)`, plan_compiler: 'детерминированный компилятор плана (fallback)', lenient: 'мягкий режим с автоисправлениями', manual: 'из кода', error: 'ошибка' }[res.source] || res.source;
+  const src = { llm: 'с первой попытки', llm_repaired: `после ${repairs} исправл. (repair-loop)`, reviewed_plan: 'из согласованного плана', plan_compiler: 'детерминированный компилятор плана (fallback)', lenient: 'мягкий режим с автоисправлениями', manual: 'из кода', error: 'ошибка' }[res.source] || res.source;
   $('#summary').innerHTML = res.xml
-    ? `<span class="pill ok">готово</span> ${esc(src)} · ${res.duration_s} с`
+    ? `<span class="pill ${res.ok === false || errs.length ? 'warn' : 'ok'}">${res.ok === false || errs.length ? 'требует проверки' : 'готово'}</span> ${esc(src)} · ${res.duration_s} с`
     : `<span class="pill err">ошибка</span> ${esc(res.message || '')}`;
 }
 
 // ------------------------------------------------------------------ rendering results
 async function showXml(xml) {
+  window.agentFeatures?.beforeImport();
+  state.hasDiagram = false;
   const { warnings } = await modeler.importXML(xml);
   $('#empty').hidden = true;
   state.hasDiagram = true;
@@ -111,15 +115,19 @@ function renderAttempts(res) {
 
 async function applyResult(res) {
   state.lastResult = res;
+  state.plan = res.plan || null;
+  $('#plan-json').textContent = res.plan ? JSON.stringify(res.plan, null, 2) : 'После правок актуальна схема; исходный план не обновлялся.';
   if (res.plan) { state.plan = res.plan; $('#plan-json').textContent = JSON.stringify(res.plan, null, 2); }
   if (res.code) { state.code = res.code; $('#code').value = res.code; }
   let warnings = [];
+  let imported = false;
   if (res.xml) {
-    try { warnings = await showXml(res.xml); } catch (e) { warnings = [{ message: 'importXML: ' + e.message }]; }
+    try { warnings = await showXml(res.xml); imported = true; } catch (e) { warnings = [{ message: 'importXML: ' + e.message }]; }
   }
   finishSteps(res);
   renderReport(res, warnings);
   renderAttempts(res);
+  if (imported) await window.agentFeatures?.onResult(res);
 }
 
 function chat(text, cls) { const d = document.createElement('div'); d.className = 'msg ' + cls; d.textContent = text; $('#chat').append(d); $('#chat').scrollTop = 1e9; }
@@ -128,6 +136,7 @@ function chat(text, cls) { const d = document.createElement('div'); d.className 
 $('#generate').onclick = async () => {
   const text = $('#text').value.trim();
   if (text.length < 10) { alert('Опишите процесс подробнее'); return; }
+  if ($('#mode').value === 'guided') { await window.agentFeatures.prepare(text); return; }
   state.text = text;
   const mode = $('#mode').value;
   busy(true, 'Ассистент строит схему…'); animateSteps(mode);
@@ -145,6 +154,7 @@ $('#refine').onclick = async () => {
   try {
     const { xml } = await modeler.saveXML({ format: true });
     const res = await api('/api/refine', { instruction, xml, code: state.code, text: state.text });
+    if (res.xml) state.text += '\n\nУточнение аналитика: ' + instruction;
     await applyResult(res);
     chat(res.xml ? (res.summary || 'Готово, схема обновлена') : ('Не получилось: ' + (res.message || '')), res.xml ? 'bot' : 'bot err');
   } catch (e) { chat('Ошибка: ' + e.message, 'bot err'); }
@@ -169,11 +179,15 @@ $('#open-file').onchange = async (e) => {
   const f = e.target.files[0]; if (!f) return;
   const xml = await f.text();
   try {
+    state.text = ''; state.plan = null; state.code = '';
+    $('#text').value = ''; $('#plan-json').textContent = ''; $('#code').value = '';
+    window.agentFeatures?.clearInterview();
     const warnings = await showXml(xml);
     const v = await api('/api/validate', { xml });
     renderReport({ xml, xsd_errors: v.xsd_errors, stats: {}, issues: [] }, warnings);
     const imp = await api('/api/import', { xml }).catch(() => null);
     if (imp && imp.code) { state.code = imp.code; $('#code').value = imp.code; }
+    await window.agentFeatures?.onResult({});
   } catch (err) { alert('Не удалось открыть файл: ' + err.message); }
   e.target.value = '';
 };
@@ -217,6 +231,8 @@ $('#show-saved').onclick = async () => {
   const id = $('#example').value; if (!id) return;
   const ex = await api('/api/examples/' + encodeURIComponent(id));
   state.text = ex.text;
+  $('#text').value = ex.text;
+  window.agentFeatures?.clearInterview();
   const r = ex.report || {};
   await applyResult({ xml: ex.xml, code: ex.code, plan: ex.plan, issues: r.issues || [], xsd_errors: r.xsd_errors || [],
     stats: r.stats || {}, assumptions: r.assumptions || [], questions: r.questions || [], attempts: [], source: 'manual', duration_s: 0 });

@@ -8,3 +8,4 @@ tools/node_modules/
 eval/results/*
 !eval/results/.gitkeep
 .venv/
+.cache/

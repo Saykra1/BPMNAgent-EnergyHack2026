@@ -36,6 +36,7 @@ class Node:
     group: str | None = None
     event_definition: str | None = None
     auto: bool = False        # created by post-processing, not by the model
+    details: dict = field(default_factory=dict)
 
     @property
     def is_task(self) -> bool:
@@ -113,6 +114,19 @@ class Diagram:
         self.root_process = self._new_process(name)
         self.root_start = self._add_node("startEvent", "Начало", self.root_process, prefix="StartEvent")
         self.root_end = self._add_node("endEvent", "Конец", self.root_process, prefix="EndEvent")
+
+    def set_details(self, target, source_quote="", assumption="", deadline="", documents=None):
+        if target not in self.nodes:
+            raise DiagramError("Карточку можно добавить только к шагу, шлюзу или событию")
+        if not all(isinstance(v, str) for v in (source_quote, assumption, deadline)):
+            raise DiagramError("Цитата, допущение и срок должны быть строками")
+        if documents is None:
+            documents = []
+        if not isinstance(documents, list) or not all(isinstance(v, str) for v in documents):
+            raise DiagramError("Документы должны быть списком строк")
+        self.nodes[target].details = dict(source_quote=source_quote, assumption=assumption,
+                                          deadline=deadline, documents=documents)
+        return target
 
     # ------------------------------------------------------------------ ids
     def _id(self, prefix: str) -> str:
@@ -360,5 +374,5 @@ API_METHODS = frozenset({
     "add_exclusive_gateway", "add_parallel_gateway", "add_inclusive_gateway", "add_event_based_gateway",
     "add_start_event", "add_end_event", "add_intermediate_event",
     "add_pool", "add_black_box_pool", "add_group", "add_annotation",
-    "add_link", "add_message_link",
+    "add_link", "add_message_link", "set_details",
 })

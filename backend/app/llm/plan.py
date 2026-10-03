@@ -36,6 +36,10 @@ class Element(BaseModel):
     parent: str | None = None      # id of a subprocess element
     group: str | None = None
     event: str | None = None       # for start/end events: message | timer | error | terminate | signal
+    source_quote: str = ""
+    assumption: str = ""
+    deadline: str = ""
+    documents: list[str] = Field(default_factory=list)
 
     @field_validator("name", mode="before")
     @classmethod
@@ -113,7 +117,19 @@ def check_plan(plan: Plan) -> None:
         errors.append(f"id {sorted(bad_reserved)} зарезервированы для общего начала/конца — не объявляйте их в elements")
     known = set(ids) | RESERVED
     subprocesses = {e.id for e in plan.elements if e.type == "subprocess"}
+    parents = {e.id: e.parent for e in plan.elements}
+    for e in plan.elements:
+        seen = {e.id}
+        parent = e.parent
+        while parent in parents:
+            if parent in seen:
+                errors.append(f"элемент {e.id}: циклическая вложенность подпроцессов")
+                break
+            seen.add(parent)
+            parent = parents[parent]
     groups = {g.id for g in plan.groups}
+    if len(groups) != len(plan.groups):
+        errors.append("id групп повторяются")
     for e in plan.elements:
         if e.participant and e.participant not in pids:
             errors.append(f"элемент {e.id}: неизвестный участник {e.participant!r}")
@@ -171,28 +187,37 @@ def compile_plan(plan: Plan) -> str:
                          f"[{', '.join(q(p.name) for p in internal)}], {q(org)})")
             for i, p in enumerate(internal):
                 container[p.id] = f"lanes_main[{i}]"
-        for p in external:
+        for index, p in enumerate(external):
+            pool_var = f"pool_external_{index}"
             if p.id in used_ext:
-                lines.append(f"pool_{_var(p.id)}, _lanes_{_var(p.id)} = DIAGRAM.add_pool(ROOT_PROCESS_ID, [], "
+                lines.append(f"{pool_var}, lanes_external_{index} = DIAGRAM.add_pool(ROOT_PROCESS_ID, [], "
                              f"{q(p.name)})")
-                container[p.id] = f"pool_{_var(p.id)}"
+                container[p.id] = pool_var
             else:
-                lines.append(f"pool_{_var(p.id)} = DIAGRAM.add_black_box_pool({q(p.name)})")
-                container[p.id] = f"pool_{_var(p.id)}"
+                lines.append(f"{pool_var} = DIAGRAM.add_black_box_pool({q(p.name)})")
+                container[p.id] = pool_var
     default_parent = container[internal[0].id] if internal else "ROOT_PROCESS_ID"
+    group_vars = {g.id: f"group_{i}" for i, g in enumerate(plan.groups)}
     for g in plan.groups:
-        lines.append(f"grp_{_var(g.id)} = DIAGRAM.add_group({q(g.name)}, {default_parent})")
+        lines.append(f"{group_vars[g.id]} = DIAGRAM.add_group({q(g.name)}, {default_parent})")
 
     var = {"start": "ROOT_START_TASK_ID", "end": "ROOT_END_TASK_ID"}
-    # subprocesses first so that their children can reference them
-    order = sorted(plan.elements, key=lambda e: (e.type != "subprocess", e.parent is not None))
+    # IDs are data, not Python names: punctuation, keywords and collisions are safe.
+    var.update({e.id: f"node_{i}" for i, e in enumerate(plan.elements)})
+    parents = {e.id: e.parent for e in plan.elements}
+    def depth(element):
+        parent, count = element.parent, 0
+        while parent:
+            count += 1
+            parent = parents[parent]
+        return count
+    order = sorted(plan.elements, key=lambda e: (depth(e), e.type != "subprocess"))
     for e in order:
-        v = _var(e.id)
-        var[e.id] = v
+        v = var[e.id]
         if e.parent:
             parent = var[e.parent]
         elif e.group:
-            parent = f"grp_{_var(e.group)}"
+            parent = group_vars[e.group]
         elif e.participant and e.participant in container:
             parent = container[e.participant]
         else:
@@ -209,6 +234,9 @@ def compile_plan(plan: Plan) -> str:
             lines.append(f"{v} = DIAGRAM.add_intermediate_event({q(e.name)}, {parent}, 'message')")
         elif e.type == "message_throw_event":
             lines.append(f"{v} = DIAGRAM.add_intermediate_event({q(e.name)}, {parent}, 'message', True)")
+        if e.source_quote or e.assumption or e.deadline or e.documents:
+            lines.append(f"DIAGRAM.set_details({v}, {q(e.source_quote)}, {q(e.assumption)}, "
+                         f"{q(e.deadline)}, {e.documents!r})")
     for f in plan.flows:
         label = f", {q(f.label)}" if f.label else ""
         lines.append(f"DIAGRAM.add_link({var[f.source]}, {var[f.target]}{label})")

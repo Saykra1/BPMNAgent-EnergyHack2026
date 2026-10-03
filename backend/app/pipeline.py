@@ -148,6 +148,43 @@ class Pipeline:
         return result, self.max_repairs
 
     # ------------------------------------------------------------------ public entry points
+    def prepare(self, text: str) -> dict:
+        """One planning pass, exposed for analyst review before diagram construction."""
+        log = RunLog(self.runs_dir, "interview")
+        log.write("input.txt", text)
+        attempts = []
+        try:
+            plan = self.plan(text, log, attempts)
+            self._ground_quotes(plan, text)
+            log.write("plan.json", plan.model_dump_json(indent=2, by_alias=True))
+            log.finish(ok=True)
+            return {"ok": True, "plan": plan.model_dump(by_alias=True), "run_id": log.id}
+        except (LLMError, PlanError) as e:
+            log.finish(ok=False, error=str(e))
+            return {"ok": False, "message": str(e), "run_id": log.id}
+
+    @staticmethod
+    def _ground_quotes(plan: Plan, text: str):
+        for element in plan.elements:
+            if element.source_quote and element.source_quote not in text:
+                element.source_quote = ""
+                element.assumption = (element.assumption + " Основание в исходном тексте не подтверждено.").strip()
+
+    def from_plan(self, plan: Plan, text: str = "") -> PipelineResult:
+        log = RunLog(self.runs_dir, "reviewed_plan")
+        t0 = time.time()
+        self._ground_quotes(plan, text)
+        log.write("input.txt", text)
+        log.write("plan.json", plan.model_dump_json(indent=2, by_alias=True))
+        result = build(compile_plan(plan), plan.title)
+        attempts = [{"stage": "plan_compiler", "ok": result.ok,
+                     "error": None if result.ok else result.errors_for_llm()}]
+        source = "reviewed_plan"
+        if not result.ok:
+            result = build(result.code, plan.title, lenient=True)
+            source = "lenient"
+        return self._finish(log, t0, result, plan, attempts, source)
+
     def generate(self, text: str, mode: str = "two_stage") -> PipelineResult:
         log = RunLog(self.runs_dir, "generate")
         log.write("input.txt", text)
@@ -158,6 +195,7 @@ class Pipeline:
         try:
             if mode == "two_stage":
                 plan = self.plan(text, log, attempts)
+                self._ground_quotes(plan, text)
                 title = plan.title
                 plan_json = plan.model_dump_json(indent=1, by_alias=True, exclude_none=True)
                 system = prompts.CODEGEN_SYSTEM

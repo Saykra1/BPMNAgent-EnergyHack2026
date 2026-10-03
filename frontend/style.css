@@ -66,4 +66,30 @@ ul.list { padding-left: 18px; margin: 4px 0; font-size: 13px; }
 .attempt summary { padding: 6px 8px; cursor: pointer; font-size: 13px; }
 .attempt pre { margin: 0; padding: 8px; border-top: 1px solid var(--line); max-height: 300px; overflow: auto; font-size: 11px; }
 .djs-element.highlight .djs-visual > :nth-child(1) { stroke: var(--err) !important; stroke-width: 3px !important; }
-@media (max-width: 1100px) { main { grid-template-columns: 320px 1fr; } #right { display: none; } }
+main { grid-template-columns: 330px minmax(320px, 1fr) 360px; }
+.tabs { flex-wrap: wrap; }
+.tabs button { min-width: 80px; }
+h3 { font-size: 16px; margin: 4px 0 12px; }
+#interview { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 4px; }
+#interview label { text-transform: none; font-size: 13px; color: var(--text); }
+.answer { min-height: 64px; resize: vertical; }
+#tab-element textarea { min-height: 70px; resize: vertical; margin-bottom: 6px; }
+#tab-element blockquote { margin: 8px 0; padding: 10px 12px; border-left: 3px solid var(--accent); background: #f1f0fd; white-space: pre-wrap; }
+.notice { padding: 10px 12px; background: #fff8e6; border-bottom: 1px solid #eddaab; font-size: 12px; }
+.review-card { border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin: 10px 0; font-size: 13px; }
+.review-card p { margin: 6px 0; }
+.obligation { display: block; text-align: left; width: 100%; margin: 6px 0; }
+.bts-toggle-mode { display: none !important; }
+#canvas { min-height: 300px; }
+.issue p { margin: 4px 0; }
+@media (max-width: 1100px) {
+  main { grid-template-columns: 290px minmax(320px, 1fr); height: auto; min-height: calc(100vh - 48px); }
+  #center { min-height: 650px; }
+  #right { grid-column: 1 / -1; min-height: 360px; max-height: 650px; border-top: 1px solid var(--line); }
+}
+@media (max-width: 650px) {
+  main { display: flex; flex-direction: column; }
+  #center { min-height: 550px; }
+  #right { min-height: 400px; }
+  .brand small { display: none; }
+}

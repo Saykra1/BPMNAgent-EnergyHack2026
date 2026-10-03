@@ -1,6 +1,7 @@
 """Diagram + layout -> BPMN 2.0 XML (semantic model + BPMN DI)."""
 from __future__ import annotations
 
+import json
 from lxml import etree
 
 from .diagram import SUBPROCESS_KIND, Diagram
@@ -93,6 +94,9 @@ def _emit_container(d: Diagram, parent_el, container: str) -> None:
         el = etree.SubElement(parent_el, _b(n.kind), id=n.id)
         if n.name:
             el.set("name", n.name)
+        if n.details:
+            etree.SubElement(el, _b("documentation"), textFormat="application/json").text = (
+                "BPMN_AGENT_DETAILS:" + json.dumps(n.details, ensure_ascii=False))
         for f in d.incoming(n.id):
             etree.SubElement(el, _b("incoming")).text = f.id
         for f in d.outgoing(n.id):

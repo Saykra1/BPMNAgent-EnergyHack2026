@@ -8,6 +8,7 @@ LLM edits exactly what the analyst sees. Also allows importing any existing
 from __future__ import annotations
 
 import re
+import json
 
 from lxml import etree
 
@@ -41,9 +42,9 @@ def _name(el) -> str:
     return re.sub(r"\s+", " ", el.get("name") or "").strip()
 
 
-def bpmn_to_code(xml: str) -> str:
+def bpmn_to_code(xml: str, id_variables: dict | None = None) -> str:
     try:
-        root = etree.fromstring(xml.encode("utf-8"))
+        root = etree.fromstring(xml.encode("utf-8"), etree.XMLParser(resolve_entities=False, no_network=True))
     except etree.XMLSyntaxError as e:
         raise ImportErrorBPMN(f"Файл не является корректным XML: {e}") from e
     if _local(root) != "definitions":
@@ -161,4 +162,25 @@ def bpmn_to_code(xml: str) -> str:
             other = src if dst == ta.get("id") else dst if src == ta.get("id") else None
             if other in var and text:
                 lines.append(f"DIAGRAM.add_annotation({q(text)}, {var[other]})")
+    for el in root.iter():
+        if el.get("id") not in var or _local(el) == "participant":
+            continue
+        for doc in el.findall("b:documentation", NS):
+            raw = doc.text or ""
+            if not raw.startswith("BPMN_AGENT_DETAILS:"):
+                continue
+            try:
+                data = json.loads(raw.removeprefix("BPMN_AGENT_DETAILS:"))
+                values = [data.get(k, "") for k in ("source_quote", "assumption", "deadline")]
+                documents = data.get("documents", [])
+                if not all(isinstance(v, str) for v in values) or not isinstance(documents, list):
+                    continue
+                if not all(isinstance(v, str) for v in documents):
+                    continue
+                lines.append(f"DIAGRAM.set_details({var[el.get('id')]}, "
+                             f"{', '.join(repr(v) for v in values)}, {documents!r})")
+            except (ValueError, AttributeError):
+                continue
+    if id_variables is not None:
+        id_variables.update(var)
     return "\n".join(lines) + "\n"
