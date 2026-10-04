@@ -8,6 +8,7 @@ from .bpmn.importer import BPMN, NS, bpmn_to_code
 from .bpmn.validator import validate
 from .bpmn.xsd import validate_xsd
 from .sandbox import run_code
+from .facts import unsupported_facts
 
 GUIDANCE = {
     "E_DEADLOCK": ("Процесс может зависнуть", "Слияние ждёт все ветви, хотя была выбрана только одна. Проверьте тип шлюза слияния."),
@@ -82,6 +83,7 @@ def inspect_xml(xml: str, text: str = "") -> dict:
                           if isinstance(el.tag, str) and etree.QName(el).localname in
                           {"boundaryEvent", "complexGateway", "callActivity", "transaction", "adHocSubProcess",
                            "dataObjectReference", "dataStoreReference"}})
-    return {"issues": issues, "cards": cards, "energy_checks": checks,
+    return {"issues": issues, "cards": cards, "unsupported_facts": unsupported_facts(d, text, reverse),
+            "energy_checks": checks,
             "xsd_errors": validate_xsd(xml), "unsupported": unsupported,
             "note": "Проверка исключений ищет упоминания, а не доказывает полноту маршрутов или соответствие нормативам."}

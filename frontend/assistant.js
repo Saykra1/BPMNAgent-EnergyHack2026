@@ -63,7 +63,7 @@
     busy(true, answering ? 'Учитываю ответы заказчика…' : 'Выделяю шаги и вопросы к процессу…');
     let prepared = false;
     try {
-      const res = await api('/api/prepare', { text });
+      const res = await api('/api/prepare', { text, privacy: window.privacyUI?.options() });
       if (!res.ok) throw new Error(res.message || 'Не удалось подготовить план');
       pending = { plan: res.plan, text };
       renderInterview();

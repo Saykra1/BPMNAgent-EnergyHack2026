@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     llm_fallback_models: str = ""          # comma-separated; empty = discover automatically (gemini)
     jev_enabled: bool = False               # optional OpenRouter semantic source-link review
     jev_model: str = "typesafe/jev-1.13"
+    require_login: bool = False            # demo stays open; account is needed for shared projects
     llm_timeout: float = 180.0
     llm_temperature: float = 0.1
     llm_effort: str = "low"                # low | medium | high

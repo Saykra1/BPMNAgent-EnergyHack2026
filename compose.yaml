@@ -10,6 +10,8 @@ services:
         required: false
     ports:
       - "127.0.0.1:${APP_PORT:-8080}:8000"
+    volumes:
+      - bpmn_team_data:/app/data
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=5)"]
       interval: 15s
@@ -28,3 +30,6 @@ services:
       app:
         condition: service_healthy
     restart: unless-stopped
+
+volumes:
+  bpmn_team_data:

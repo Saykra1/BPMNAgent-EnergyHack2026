@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/static/vendor/assets/bpmn-font/css/bpmn-embedded.css">
   <link rel="stylesheet" href="/static/vendor/modeler-simulation.css">
   <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/integration.css">
 </head>
 <body>
 <div id="intro-screen" class="intro-screen" role="dialog" aria-modal="true" aria-label="Data Science Club — Архитектор процессов">
@@ -33,6 +34,8 @@
       <div id="source-nav" class="source-nav" hidden><span class="source-nav-label">Связанные места</span><button id="source-prev" class="icon-button" aria-label="Предыдущая связанная фраза" data-help="Перейти к предыдущей фразе и показать её шаг на схеме.">←</button><span id="source-position"></span><button id="source-next" class="icon-button" aria-label="Следующая связанная фраза" data-help="Перейти к следующей фразе и показать её шаг на схеме.">→</button></div>
       <textarea id="text" placeholder="Например: клиент отправляет заявку; менеджер проверяет документы; если чего-то не хватает — просит дополнить…"></textarea>
       <p id="source-tip" class="hint" hidden></p>
+      <div id="privacy-strip" class="privacy-strip" hidden><span id="privacy-summary"></span><span id="privacy-engine" hidden>Natasha недоступна</span><button id="privacy-open" class="quiet" type="button" data-help="Посмотреть, какие персональные данные будут скрыты перед отправкой в модель.">Что увидит модель ↗</button></div>
+      <div id="privacy-alert" class="privacy-alert" hidden></div>
       <button id="jev-entry" class="jev-entry" type="button" hidden data-help="Jev проверит, соответствуют ли выделенные цитаты шагам схемы, и покажет сомнительные связи.">Сверить текст и схему <span>Jev ↗</span></button>
       <div class="generate-actions"><button id="generate" class="primary action-main" data-help="Построить редактируемую BPMN-схему по этому описанию.">Создать схему <span aria-hidden="true">→</span></button><details class="generation-settings"><summary data-help="Выбрать генерацию сразу, с уточняющими вопросами или напрямую."><span class="mode-icon" aria-hidden="true">⚙</span><span>Режим: <strong id="mode-name">Без уточнений</strong></span><span class="mode-chevron" aria-hidden="true">⌄</span></summary><div class="mode-picker" role="group" aria-label="Способ построения схемы">
         <button type="button" class="mode-option" data-mode-choice="two_stage" aria-pressed="true" data-help="Сначала модель составляет план процесса, затем строит по нему схему. Вопросов вам не задаёт."><strong>Без уточнений</strong><small>План, затем схема · без вопросов</small></button>
@@ -86,6 +89,7 @@
     <div id="canvas"><div id="empty"><span class="empty-symbol" aria-hidden="true">◇</span><strong>Начните с готового процесса</strong><span>Откройте пример техприсоединения: участники, развилки и проверки уже на схеме.</span><button id="open-demo" type="button" class="primary" data-help="Открыть редактируемый пример техприсоединения без обращения к модели.">Открыть демо-процесс <span aria-hidden="true">→</span></button><small>Без ожидания генерации · можно сразу редактировать</small></div></div>
     <div class="canvas-controls" aria-label="Масштаб схемы"><button id="fit" data-help="Показать всю схему целиком.">Вся схема</button><button id="read-view" data-help="Перейти к началу процесса и увеличить схему до читаемого масштаба.">К началу</button><span class="control-divider" aria-hidden="true"></span><button id="zoom-out" class="icon-button zoom-control" aria-label="Уменьшить масштаб" data-help="Уменьшить схему для обзора.">−</button><button id="zoom-in" class="icon-button zoom-control" aria-label="Увеличить масштаб" data-help="Увеличить схему, чтобы рассмотреть детали.">+</button></div>
     <section id="tour-panel" class="tour-panel" aria-label="Показ процесса" hidden><div class="tour-head"><span class="eyebrow">ПОКАЗ ПРОЦЕССА</span><span id="tour-position"></span><button id="tour-close" class="icon-button" type="button" aria-label="Закрыть показ" data-help="Вернуться к обычному редактированию схемы.">×</button></div><div class="tour-body"><img src="/static/assets/mascot-cat.png" alt="" class="tour-cat"><div><h3 id="tour-title"></h3><p id="tour-role" class="hint"></p><blockquote id="tour-quote"></blockquote><div id="tour-choices" class="tour-choices" hidden></div></div></div><div class="tour-actions"><button id="tour-prev" type="button">← Назад</button><button id="tour-play" type="button" data-help="Автоматически переходить к следующему шагу; на развилке показ остановится для выбора пути.">▶ Автопоказ</button><button id="tour-next" class="primary" type="button">Далее →</button></div></section>
+    <div id="privacy-panel" class="privacy-panel" hidden></div>
     <div id="loading" hidden>
       <div class="wait-experience">
         <div class="wait-heading"><span class="wait-club">DSC / НА ПАУЗЕ</span><span class="wait-working"><span class="spinner" aria-hidden="true"></span><span id="loading-text" role="status">Генерация…</span></span></div>
@@ -104,6 +108,6 @@
   </aside>
 </main>
 <div id="help-popover" role="tooltip" hidden></div>
-<script src="/static/vendor/modeler-simulation.js"></script><script src="/static/app.js"></script><script src="/static/wait-quiz.js"></script><script src="/static/assistant.js"></script><script src="/static/source-review.js"></script><script src="/static/workspace-ui.js"></script><script src="/static/diagram-navigation.js"></script><script src="/static/process-audit.js"></script><script src="/static/presentation.js"></script><script src="/static/mascot.js"></script><script src="/static/intro.js"></script>
+<script src="/static/vendor/modeler-simulation.js"></script><script src="/static/auth.js"></script><script src="/static/app.js"></script><script src="/static/privacy.js"></script><script src="/static/wait-quiz.js"></script><script src="/static/assistant.js"></script><script src="/static/source-review.js"></script><script src="/static/workspace-ui.js"></script><script src="/static/diagram-navigation.js"></script><script src="/static/process-audit.js"></script><script src="/static/presentation.js"></script><script src="/static/mascot.js"></script><script src="/static/team.js"></script><script src="/static/intro.js"></script>
 </body>
 </html>

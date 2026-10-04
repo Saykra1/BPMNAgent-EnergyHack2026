@@ -5,6 +5,7 @@ import httpx
 
 from .config import Settings
 from .insights import inspect_xml
+from .privacy import PrivacyGuard
 
 JEV_URL = "https://openrouter.ai/api/alpha/decisions"
 TASK_KINDS = {"task", "userTask", "serviceTask", "scriptTask", "manualTask",
@@ -17,7 +18,7 @@ class JevReviewError(Exception):
 
 
 def review_source_links(xml: str, text: str, settings: Settings,
-                        transport: httpx.BaseTransport | None = None) -> dict:
+                        transport: httpx.BaseTransport | None = None, privacy: dict | None = None) -> dict:
     if not settings.jev_enabled:
         raise JevReviewError("Проверка Jev не включена в настройках сервера.")
     if not settings.llm_api_key or settings.llm_base_url.rstrip("/") != "https://openrouter.ai/api/v1":
@@ -36,7 +37,8 @@ def review_source_links(xml: str, text: str, settings: Settings,
                  f"Does the source quote in links.{key}.quote describe substantially the same process action "
                  f"as links.{key}.step? Treat a paraphrase as a match, but do not invent unstated actions."}
                  for key in links}
-    payload = {"model": settings.jev_model, "state": {"links": links}, "questions": questions}
+    guard = PrivacyGuard(text, **(privacy or {}))
+    payload = {"model": settings.jev_model, "state": _mask_state({"links": links}, guard), "questions": questions}
     try:
         with httpx.Client(transport=transport, timeout=35) as client:
             response = client.post(JEV_URL, json=payload,
@@ -68,7 +70,7 @@ def review_source_links(xml: str, text: str, settings: Settings,
 
 
 def review_audit_items(gaps: list[dict], branches: list[dict], settings: Settings,
-                       transport: httpx.BaseTransport | None = None) -> dict:
+                       transport: httpx.BaseTransport | None = None, privacy: dict | None = None) -> dict:
     """Assess bounded, user-visible audit candidates; never mutate the BPMN graph."""
     if not settings.jev_enabled:
         raise JevReviewError("Проверка Jev не включена в настройках сервера.")
@@ -102,6 +104,9 @@ def review_audit_items(gaps: list[dict], branches: list[dict], settings: Setting
         questions[key] = {"type": "noul", "instructions":
                           f"Does branches.{key}.source_excerpt support taking this exact BPMN branch "
                           f"from its gateway to its destination under the named condition? Do not infer missing rules."}
+    guard = PrivacyGuard("\n".join(str(value) for item in selected_gaps + selected_branches
+                                   for value in item.values()), **(privacy or {}))
+    state = _mask_state(state, guard)
     try:
         with httpx.Client(transport=transport, timeout=35) as client:
             response = client.post(JEV_URL, json={"model": settings.jev_model, "state": state,
@@ -130,3 +135,13 @@ def review_audit_items(gaps: list[dict], branches: list[dict], settings: Setting
         raise
     except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
         raise JevReviewError("Смысловая проверка Jev не завершилась. Повторите попытку позже.") from exc
+
+
+def _mask_state(value, guard: PrivacyGuard):
+    if isinstance(value, str):
+        return guard.mask(value)
+    if isinstance(value, list):
+        return [_mask_state(item, guard) for item in value]
+    if isinstance(value, dict):
+        return {key: _mask_state(item, guard) for key, item in value.items()}
+    return value

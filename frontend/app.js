@@ -2,7 +2,8 @@
 const $ = (s) => document.querySelector(s);
 const modeler = new BpmnJS({ container: '#canvas' });
 
-const state = { text: '', code: '', plan: null, lastResult: null, examples: [], hasDiagram: false };
+const state = { text: '', code: '', plan: null, lastResult: null, examples: [], hasDiagram: false,
+  privacy: { hide: [], show: [], trusted: [] } };
 
 // ------------------------------------------------------------------ helpers
 async function api(path, body) {
@@ -197,19 +198,21 @@ async function applyResult(res) {
   }
   finishSteps(res);
   renderReport(res, warnings);
+  window.privacyUI?.renderReport();
   renderAttempts(res);
   if (imported) {
     renderDiagramStatus(res);
     await window.agentFeatures?.onResult(res);
     if (matchMedia('(max-width: 760px)').matches) $('#center').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+  window.privacyUI?.refresh();
 }
 
 function chat(text, cls) { const d = document.createElement('div'); d.className = 'msg ' + cls; d.textContent = text; $('#chat').append(d); $('#chat').scrollTop = 1e9; }
 
 // ------------------------------------------------------------------ actions
 $('#generate').onclick = async () => {
-  const text = $('#text').value.trim();
+  const text = (window.privacyUI?.clean($('#text').value) || $('#text').value).trim();
   if (text.length < 10) { alert('Опишите процесс подробнее'); return; }
   if (!await ensureModel()) return;
   // Keep the displayed source identical to the text sent to the model. Otherwise
@@ -219,7 +222,7 @@ $('#generate').onclick = async () => {
   const mode = $('#mode').value;
   busy(true, 'Ассистент строит схему…'); animateSteps(mode);
   try {
-    const result = await api('/api/generate', { text, mode });
+    const result = await api('/api/generate', { text, mode, privacy: window.privacyUI?.options() });
     if (result.xml) state.text = text;
     await applyResult(result);
   }
@@ -245,7 +248,7 @@ document.querySelectorAll('[data-mode-choice]').forEach(button => {
 updateModeName();
 
 $('#refine').onclick = async () => {
-  const instruction = $('#instruction').value.trim();
+  const instruction = (window.privacyUI?.clean($('#instruction').value) || $('#instruction').value).trim();
   if (!instruction) return;
   if (!state.hasDiagram) { alert('Сначала постройте или откройте диаграмму'); return; }
   if (!await ensureModel()) return;
@@ -253,7 +256,8 @@ $('#refine').onclick = async () => {
   busy(true, 'Вношу изменения…'); animateSteps('direct');
   try {
     const { xml } = await modeler.saveXML({ format: true });
-    const res = await api('/api/refine', { instruction, xml, code: state.code, text: state.text });
+    const res = await api('/api/refine', { instruction, xml, code: state.code, text: state.text,
+      privacy: window.privacyUI?.options() });
     if (res.xml) { state.text += '\n\nУточнение аналитика: ' + instruction; $('#text').value = state.text; }
     await applyResult(res);
     chat(res.xml ? (res.summary || 'Готово, схема обновлена') : ('Не получилось: ' + (res.message || '')), res.xml ? 'bot' : 'bot err');
@@ -281,6 +285,7 @@ $('#open-file').onchange = async (e) => {
   try {
     state.text = ''; state.plan = null; state.code = ''; state.lastResult = null;
     $('#text').value = ''; $('#plan-json').textContent = ''; $('#code').value = '';
+    window.privacyUI?.refresh();
     window.agentFeatures?.clearInterview();
     const warnings = await showXml(xml);
     const v = await api('/api/validate', { xml });
@@ -347,6 +352,7 @@ $('#example').onchange = () => {
   const ex = state.examples.find((x) => x.id === $('#example').value);
   if (!ex) { $('#show-saved').hidden = true; return; }
   $('#text').value = ex.text;
+  window.privacyUI?.refresh();
   $('#show-saved').hidden = !ex.has_result;
   $('#show-saved').innerHTML = 'Открыть готовую схему примера <span aria-hidden="true">↗</span>';
   $('#show-saved').dataset.help = 'Показать готовую схему этого примера без обращения к модели.';

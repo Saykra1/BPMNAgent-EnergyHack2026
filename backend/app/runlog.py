@@ -10,6 +10,7 @@ import json
 import time
 import uuid
 from pathlib import Path
+from .privacy_client import active_guard
 
 
 class RunLog:
@@ -38,9 +39,11 @@ class RunLog:
 
     def llm(self, stage: str, system: str, messages: list[dict], response) -> None:
         if self.dir:
+            guard = active_guard()
             rec = {"stage": stage, "model": response.model, "latency_s": round(response.latency_s, 2),
                    "input_tokens": response.input_tokens, "output_tokens": response.output_tokens,
-                   "messages": messages, "response": response.text}
+                   "messages": [{**m, "content": guard.mask(m["content"])} for m in messages] if guard else messages,
+                   "response": guard.mask(response.text) if guard else response.text}
             try:
                 with (self.dir / "llm.jsonl").open("a", encoding="utf-8") as f:
                     f.write(json.dumps(rec, ensure_ascii=False) + "\n")
