@@ -12,6 +12,12 @@
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+<div id="intro-screen" class="intro-screen" role="dialog" aria-modal="true" aria-label="Data Science Club — Архитектор процессов">
+  <div class="intro-top"><span class="intro-monogram" aria-hidden="true">DSC</span><span>Data Science Club</span></div>
+  <button id="intro-skip" class="intro-skip" type="button" aria-label="Пропустить вступление">Пропустить <span aria-hidden="true">↗</span></button>
+  <div class="intro-center"><div class="intro-mascot-wrap"><img src="/static/assets/mascot-cat.png" alt="" class="intro-mascot"></div><span class="intro-overline">DATA SCIENCE CLUB ПРЕДСТАВЛЯЕТ</span><h1>Архитектор<br>процессов<span class="intro-period">.</span></h1><p>От вашего описания — к понятной BPMN-схеме</p></div>
+  <div class="intro-bottom"><span>ТЕКСТ → BPMN 2.0</span><span class="intro-progress" aria-hidden="true"><i></i></span><span>ENERGYHACK 2026</span></div>
+</div>
 <header class="topbar">
   <div class="brand"><img class="brand-cat" src="/static/assets/mascot-cat.png" alt=""><span>Архитектор процессов<small>Текст → BPMN 2.0</small></span></div>
   <div class="topbar-right"><div id="llm-status" class="badge">Проверяем подключение</div><button id="insights-toggle" class="topbar-button" type="button" aria-controls="right" aria-expanded="false" data-help="Открыть проверки, сведения о шагах, связи с текстом и историю правок.">Анализ <span aria-hidden="true">↗</span></button></div>
@@ -91,6 +97,6 @@
   </aside>
 </main>
 <div id="help-popover" role="tooltip" hidden></div>
-<script src="/static/vendor/modeler-simulation.js"></script><script src="/static/app.js"></script><script src="/static/assistant.js"></script><script src="/static/source-review.js"></script><script src="/static/workspace-ui.js"></script><script src="/static/diagram-navigation.js"></script><script src="/static/process-audit.js"></script><script src="/static/presentation.js"></script><script src="/static/mascot.js"></script>
+<script src="/static/vendor/modeler-simulation.js"></script><script src="/static/app.js"></script><script src="/static/assistant.js"></script><script src="/static/source-review.js"></script><script src="/static/workspace-ui.js"></script><script src="/static/diagram-navigation.js"></script><script src="/static/process-audit.js"></script><script src="/static/presentation.js"></script><script src="/static/mascot.js"></script><script src="/static/intro.js"></script>
 </body>
 </html>

@@ -29,6 +29,17 @@ await page.route('**/api/prepare', route => {
 });
 try {
   await page.goto(url);
+  const introStarted = Date.now();
+  await page.locator('#intro-screen').waitFor({ state: 'visible' });
+  if (process.env.SCREENSHOT_DIR) {
+    await mkdir(process.env.SCREENSHOT_DIR, { recursive: true });
+    await page.waitForTimeout(650); // capture the completed entrance, before automatic dismissal
+    await page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/intro.png` });
+  }
+  await page.locator('#intro-screen').waitFor({ state: 'detached' });
+  assert.equal(Date.now() - introStarted >= 1200, true);
+  await page.reload();
+  assert.equal(await page.locator('#intro-screen').count(), 0);
   assert.equal(await page.locator('#right').isVisible(), false);
   assert.equal(await page.locator('#open-demo').isVisible(), true);
   assert.equal(await page.locator('#dl-bpmn').isDisabled(), true);
@@ -193,8 +204,25 @@ try {
   }));
   assert.equal(await demoPage.locator('#audit-gaps .audit-card').count(), 1);
   await demoPage.close();
+  const compact = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const compactPage = await compact.newPage();
+  await compactPage.goto(url);
+  assert.equal(await compactPage.locator('#intro-screen').isVisible(), true);
+  assert.equal(await compactPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  if (process.env.SCREENSHOT_DIR) {
+    await compactPage.waitForTimeout(650); // capture the completed entrance on mobile too
+    await compactPage.screenshot({ path: `${process.env.SCREENSHOT_DIR}/intro-mobile.png` });
+  }
+  await compactPage.locator('#intro-skip').click();
+  await compactPage.locator('#intro-screen').waitFor({ state: 'detached' });
+  await compact.close();
+  const reduced = await browser.newContext({ reducedMotion: 'reduce' });
+  const reducedPage = await reduced.newPage();
+  await reducedPage.goto(url);
+  assert.equal(await reducedPage.locator('#intro-screen').count(), 0);
+  await reduced.close();
   assert.deepEqual(errors, []);
-  console.log('PASS: interview, source highlight, search, cards, XSD, simulation, inspection, mobile UI, one-click demo');
+  console.log('PASS: intro, modes, interview, source highlight, search, cards, XSD, simulation, inspection, mobile UI, one-click demo');
 } finally {
   await context.close();
   await browser.close();
