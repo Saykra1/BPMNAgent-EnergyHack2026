@@ -61,16 +61,21 @@
   }
   async function prepare(text, answering = false) {
     busy(true, answering ? 'Учитываю ответы заказчика…' : 'Выделяю шаги и вопросы к процессу…');
+    let prepared = false;
     try {
       const res = await api('/api/prepare', { text });
       if (!res.ok) throw new Error(res.message || 'Не удалось подготовить план');
       pending = { plan: res.plan, text };
       renderInterview();
+      prepared = true;
       notice('План подготовлен. Ответьте на вопросы или постройте схему.');
     } catch (e) {
       if (answering && $('#interview-status')) $('#interview-status').textContent = e.message;
       else notice(e.message);
-    } finally { busy(false); }
+    } finally {
+      busy(false);
+      if (prepared && matchMedia('(max-width: 760px)').matches) $('#interview').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }
 
   function renderCard() {

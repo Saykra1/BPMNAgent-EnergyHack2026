@@ -25,7 +25,10 @@ await page.route('**/api/prepare', route => {
   preparations++;
   const reviewed = structuredClone(plan);
   if (preparations > 1) reviewed.questions = [];
-  return route.fulfill({ json: { ok: true, plan: reviewed } });
+  return (async () => {
+    if (preparations === 1) await new Promise(resolve => setTimeout(resolve, 1200));
+    await route.fulfill({ json: { ok: true, plan: reviewed } });
+  })();
 });
 try {
   await page.goto(url);
@@ -65,7 +68,20 @@ try {
   assert.equal(await page.locator('#mode').inputValue(), 'guided');
   assert.match(await page.locator('#mode-name').innerText(), /С уточнениями/);
   await page.locator('#generate').click();
+  await page.locator('#loading').waitFor({ state: 'visible' });
+  assert.equal(await page.locator('#loading').isVisible(), true);
+  assert.equal(await page.locator('.wait-quiz-option').count(), 3);
+  await page.locator('.wait-quiz-option').first().click();
+  assert.equal(await page.locator('#wait-quiz-feedback').isVisible(), true);
+  assert.match(await page.locator('#wait-quiz-feedback').innerText(), /Источник факта/);
+  if (process.env.SCREENSHOT_DIR) {
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/wait-quiz.png` });
+  }
+  await page.locator('#wait-quiz-next').click();
+  assert.match(await page.locator('#wait-quiz-progress').innerText(), /2 \/ 5/);
   await page.locator('#answer-0').fill('Заявку закрывают и уведомляют заявителя.');
+  assert.equal(await page.locator('#loading').isVisible(), false);
   await page.locator('#answer-apply').click();
   await page.waitForFunction(() => document.querySelector('#plan-build')?.textContent === 'Построить схему');
   await page.locator('#plan-build').click();
@@ -215,6 +231,14 @@ try {
   }
   await compactPage.locator('#intro-skip').click();
   await compactPage.locator('#intro-screen').waitFor({ state: 'detached' });
+  await compactPage.evaluate(() => busy(true, 'Ассистент строит схему…'));
+  await compactPage.locator('#loading').waitFor({ state: 'visible' });
+  assert.equal(await compactPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  if (process.env.SCREENSHOT_DIR) {
+    await compactPage.waitForTimeout(350);
+    await compactPage.screenshot({ path: `${process.env.SCREENSHOT_DIR}/wait-quiz-mobile.png` });
+  }
+  await compactPage.evaluate(() => busy(false));
   await compact.close();
   const reduced = await browser.newContext({ reducedMotion: 'reduce' });
   const reducedPage = await reduced.newPage();

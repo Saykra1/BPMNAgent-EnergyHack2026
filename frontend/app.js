@@ -21,8 +21,11 @@ function download(name, content, type) {
 }
 function busy(on, text = 'Генерация…') {
   state.busy = on;
+  document.body.classList.toggle('is-generating', on);
   window.agentFeatures?.onBusy(on);
   $('#loading').hidden = !on; $('#loading-text').textContent = text;
+  if (on) window.waitQuiz?.start(); else window.waitQuiz?.stop();
+  if (on && matchMedia('(max-width: 760px)').matches) $('#center').scrollIntoView({ behavior: 'smooth', block: 'start' });
   ['#generate', '#refine', '#rebuild', '#relayout', '#show-saved', '#mode', '#example', '#text', '#open-file', '#simulate'].forEach((s) => ($(s).disabled = on));
   document.querySelectorAll('[data-mode-choice]').forEach(button => { button.disabled = on; });
 }

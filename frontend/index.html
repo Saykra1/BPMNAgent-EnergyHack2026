@@ -86,7 +86,14 @@
     <div id="canvas"><div id="empty"><span class="empty-symbol" aria-hidden="true">◇</span><strong>Начните с готового процесса</strong><span>Откройте пример техприсоединения: участники, развилки и проверки уже на схеме.</span><button id="open-demo" type="button" class="primary" data-help="Открыть редактируемый пример техприсоединения без обращения к модели.">Открыть демо-процесс <span aria-hidden="true">→</span></button><small>Без ожидания генерации · можно сразу редактировать</small></div></div>
     <div class="canvas-controls" aria-label="Масштаб схемы"><button id="fit" data-help="Показать всю схему целиком.">Вся схема</button><button id="read-view" data-help="Перейти к началу процесса и увеличить схему до читаемого масштаба.">К началу</button><span class="control-divider" aria-hidden="true"></span><button id="zoom-out" class="icon-button zoom-control" aria-label="Уменьшить масштаб" data-help="Уменьшить схему для обзора.">−</button><button id="zoom-in" class="icon-button zoom-control" aria-label="Увеличить масштаб" data-help="Увеличить схему, чтобы рассмотреть детали.">+</button></div>
     <section id="tour-panel" class="tour-panel" aria-label="Показ процесса" hidden><div class="tour-head"><span class="eyebrow">ПОКАЗ ПРОЦЕССА</span><span id="tour-position"></span><button id="tour-close" class="icon-button" type="button" aria-label="Закрыть показ" data-help="Вернуться к обычному редактированию схемы.">×</button></div><div class="tour-body"><img src="/static/assets/mascot-cat.png" alt="" class="tour-cat"><div><h3 id="tour-title"></h3><p id="tour-role" class="hint"></p><blockquote id="tour-quote"></blockquote><div id="tour-choices" class="tour-choices" hidden></div></div></div><div class="tour-actions"><button id="tour-prev" type="button">← Назад</button><button id="tour-play" type="button" data-help="Автоматически переходить к следующему шагу; на развилке показ остановится для выбора пути.">▶ Автопоказ</button><button id="tour-next" class="primary" type="button">Далее →</button></div></section>
-    <div id="loading" hidden><div class="spinner"></div><span id="loading-text">Генерация…</span></div>
+    <div id="loading" hidden>
+      <div class="wait-experience">
+        <div class="wait-heading"><span class="wait-club">DSC / НА ПАУЗЕ</span><span class="wait-working"><span class="spinner" aria-hidden="true"></span><span id="loading-text" role="status">Генерация…</span></span></div>
+        <div class="wait-intro"><img src="/static/assets/mascot-cat.png" alt="" aria-hidden="true"><div><h2>Пока схема строится — сыграем?</h2><p>Мы — Data Science Club. Собрали несколько любопытных фактов из мира ИИ, чтобы ожидание прошло интереснее.</p></div></div>
+        <section class="wait-quiz" aria-label="Квиз об искусственном интеллекте"><div class="wait-quiz-head"><span id="wait-quiz-progress">ВОПРОС 1 / 5</span><span>МИР ИИ · БЕЗ СЛОЖНЫХ ТЕРМИНОВ</span></div><h3 id="wait-quiz-question"></h3><div id="wait-quiz-options" class="wait-quiz-options"></div><div id="wait-quiz-feedback" class="wait-quiz-feedback" role="status" hidden></div><button id="wait-quiz-next" class="wait-quiz-next" type="button" hidden>Следующий вопрос <span aria-hidden="true">→</span></button></section>
+        <p class="wait-footnote">Результат появится здесь автоматически, как только схема будет готова.</p>
+      </div>
+    </div>
   </section>
   <div id="panel-backdrop" hidden></div>
   <aside id="right" aria-label="Анализ диаграммы" aria-hidden="true">
@@ -97,6 +104,6 @@
   </aside>
 </main>
 <div id="help-popover" role="tooltip" hidden></div>
-<script src="/static/vendor/modeler-simulation.js"></script><script src="/static/app.js"></script><script src="/static/assistant.js"></script><script src="/static/source-review.js"></script><script src="/static/workspace-ui.js"></script><script src="/static/diagram-navigation.js"></script><script src="/static/process-audit.js"></script><script src="/static/presentation.js"></script><script src="/static/mascot.js"></script><script src="/static/intro.js"></script>
+<script src="/static/vendor/modeler-simulation.js"></script><script src="/static/app.js"></script><script src="/static/wait-quiz.js"></script><script src="/static/assistant.js"></script><script src="/static/source-review.js"></script><script src="/static/workspace-ui.js"></script><script src="/static/diagram-navigation.js"></script><script src="/static/process-audit.js"></script><script src="/static/presentation.js"></script><script src="/static/mascot.js"></script><script src="/static/intro.js"></script>
 </body>
 </html>
