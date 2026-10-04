@@ -99,6 +99,30 @@ def bpmn_to_code(xml: str, id_variables: dict | None = None) -> str:
             proc_parent[pid] = "ROOT_PROCESS_ID"
             first = False
 
+    # performers directory (stored in a process documentation)
+    performer_ids: set[str] = set()
+    role_ids = {ln.get("id") for ln in root.iter(f"{{{BPMN}}}lane")} | {p.get("id") for p in participants}
+    for proc in processes.values():
+        for doc in proc.findall("b:documentation", NS):
+            raw = (doc.text or "").strip()
+            if not raw.startswith("BPMN_AGENT_PERFORMERS:"):
+                continue
+            try:
+                people = json.loads(raw.removeprefix("BPMN_AGENT_PERFORMERS:"))
+            except ValueError:
+                continue
+            for person in people if isinstance(people, list) else []:
+                if not isinstance(person, dict) or not isinstance(person.get("name"), str):
+                    continue
+                pid = person.get("id") if isinstance(person.get("id"), str) else f"person_{len(performer_ids) + 1}"
+                if pid in performer_ids:
+                    continue
+                role = person.get("role") if person.get("role") in role_ids else None
+                lines.append(f"DIAGRAM.add_performer({q(person['name'])}, {q(role)}, "
+                             f"{q(str(person.get('position') or ''))}, {q(str(person.get('contacts') or ''))}, "
+                             f"id={q(pid)})")
+                performer_ids.add(pid)
+
     flows: list[str] = []
     boundaries: list = []
 
@@ -168,12 +192,25 @@ def bpmn_to_code(xml: str, id_variables: dict | None = None) -> str:
         flows.append(("msg", mf.get("sourceRef"), mf.get("targetRef"), _name(mf), mf.get("id")))
 
     defaults = {el.get("default") for el in root.iter() if el.get("default")}
+    probability = {}
+    for sf in root.iter(f"{{{BPMN}}}sequenceFlow"):
+        for doc in sf.findall("b:documentation", NS):
+            raw = (doc.text or "").strip()
+            if raw.startswith("BPMN_AGENT_DETAILS:"):
+                try:
+                    p = json.loads(raw.removeprefix("BPMN_AGENT_DETAILS:")).get("probability")
+                    if isinstance(p, (int, float)) and 0 <= p <= 1:
+                        probability[sf.get("id")] = p
+                except (ValueError, AttributeError):
+                    pass
     for kind, s, t, label, fid in flows:
         if s not in var or t not in var:
             continue  # e.g. boundary attachments or unsupported elements
         lab = f", {q(label)}" if label else ""
         if kind == "seq" and fid in defaults:
             lab += (", None" if not label else "") + ", default=True"
+        if kind == "seq" and fid in probability:
+            lab += (", None" if not label and fid not in defaults else "") + f", probability={probability[fid]!r}"
         method = "add_link" if kind == "seq" else "add_message_link"
         lines.append(f"DIAGRAM.{method}({var[s]}, {var[t]}{lab})")
 
@@ -188,32 +225,40 @@ def bpmn_to_code(xml: str, id_variables: dict | None = None) -> str:
     for el in root.iter():
         if el.get("id") not in var or _local(el) == "participant":
             continue
+        data, description = {}, []
         for doc in el.findall("b:documentation", NS):
-            raw = doc.text or ""
-            if not raw.startswith("BPMN_AGENT_DETAILS:"):
-                continue
-            try:
-                data = json.loads(raw.removeprefix("BPMN_AGENT_DETAILS:"))
-                values = [data.get(k, "") for k in ("source_quote", "assumption", "deadline")]
-                documents = data.get("documents", [])
-                if not all(isinstance(v, str) for v in values) or not isinstance(documents, list):
+            raw = (doc.text or "").strip()
+            if raw.startswith("BPMN_AGENT_DETAILS:"):
+                try:
+                    loaded = json.loads(raw.removeprefix("BPMN_AGENT_DETAILS:"))
+                    data = loaded if isinstance(loaded, dict) else {}
+                except ValueError:
                     continue
-                if not all(isinstance(v, str) for v in documents):
-                    continue
-                extra = {k: data[k] for k in ("duration_min", "wait_min", "sla_hours")
-                         if isinstance(data.get(k), (int, float)) and data[k] >= 0}
-                if data.get("estimate") is True:
-                    extra["estimate"] = True
-                if isinstance(data.get("accountable"), str):
-                    extra["accountable"] = data["accountable"]
-                for k in ("consulted", "informed"):
-                    if isinstance(data.get(k), list) and all(isinstance(v, str) for v in data[k]):
-                        extra[k] = data[k]
-                kw = "".join(f", {k}={v!r}" for k, v in extra.items())
-                lines.append(f"DIAGRAM.set_details({var[el.get('id')]}, "
-                             f"{', '.join(repr(v) for v in values)}, {documents!r}{kw})")
-            except (ValueError, AttributeError):
-                continue
+            elif raw and not raw.startswith("BPMN_AGENT_"):
+                description.append(raw)                    # plain documentation = description
+        if not data and not description:
+            continue
+        values = [data.get(k, "") for k in ("source_quote", "assumption", "deadline")]
+        values = [v if isinstance(v, str) else "" for v in values]
+        documents = data.get("documents", [])
+        if not isinstance(documents, list) or not all(isinstance(v, str) for v in documents):
+            documents = []
+        extra = {k: data[k] for k in ("duration_min", "wait_min", "sla_hours")
+                 if isinstance(data.get(k), (int, float)) and not isinstance(data.get(k), bool) and data[k] >= 0}
+        if data.get("estimate") is True:
+            extra["estimate"] = True
+        if isinstance(data.get("accountable"), str):
+            extra["accountable"] = data["accountable"]
+        for k in ("consulted", "informed"):
+            if isinstance(data.get(k), list) and all(isinstance(v, str) for v in data[k]):
+                extra[k] = data[k]
+        if description:
+            extra["description"] = "\n\n".join(description)
+        if isinstance(data.get("performer"), str) and data["performer"] in performer_ids:
+            extra["performer"] = data["performer"]
+        kw = "".join(f", {k}={v!r}" for k, v in extra.items())
+        lines.append(f"DIAGRAM.set_details({var[el.get('id')]}, "
+                     f"{', '.join(repr(v) for v in values)}, {documents!r}{kw})")
     if id_variables is not None:
         id_variables.update(var)
     return "\n".join(lines) + "\n"

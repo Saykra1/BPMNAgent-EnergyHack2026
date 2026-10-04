@@ -107,6 +107,33 @@ def ir_problems(plan: Plan, result: BuildResult | None, issues: list[LintIssue])
     return out
 
 
+def hide_people(plan: Plan) -> Plan:
+    """Copy of the IR for the model: the performers directory keeps ids and roles, but names,
+    positions and contacts are replaced. Regex PII masking alone would miss names like "Пётр Петров"."""
+    if not plan.performers:
+        return plan
+    out = plan.model_copy(deep=True)
+    for i, person in enumerate(out.performers, 1):
+        person.name, person.position, person.contacts = f"Исполнитель {i}", "", ""
+    return out
+
+
+def restore_people(plan: Plan, original: list) -> Plan:
+    """Put the real performer records back (by id) after the model answered."""
+    real = {p.id: p for p in original}
+    if not real and not plan.performers:
+        return plan
+    plan = plan.model_copy(deep=True)
+    plan.performers = [real.get(p.id, p) for p in plan.performers]
+    known = {p.id for p in plan.performers}
+    plan.performers += [p for pid, p in real.items() if pid not in known and
+                        any(e.performer == pid for e in plan.elements)]
+    for e in plan.elements:
+        if e.performer and e.performer not in {p.id for p in plan.performers}:
+            e.performer = None
+    return plan
+
+
 @dataclass
 class PipelineResult:
     ok: bool
@@ -262,7 +289,7 @@ class Pipeline:
             llm_rounds += 1
             text_errors = "\n".join(f"- {p}" for p in problems)
             log.write(f"errors_{llm_rounds}.txt", text_errors)
-            ir_json = plan.model_dump_json(by_alias=True, exclude_defaults=True)
+            ir_json = hide_people(plan).model_dump_json(by_alias=True, exclude_defaults=True)
             if masked:
                 ir_json = _remask(ir_json, masked)
             messages = conv[:2] + [{"role": "assistant", "content": ir_json},
@@ -273,7 +300,7 @@ class Pipeline:
                 new_plan = parse_plan(answer)
                 if masked:
                     new_plan = Plan.model_validate(pii.unmask(new_plan.model_dump(by_alias=True), masked))
-                plan, source = new_plan, "ir_repaired"
+                plan, source = restore_people(new_plan, plan.performers), "ir_repaired"
                 attempts.append({"stage": f"repair_{llm_rounds}", "ok": True})
             except (PlanError, LLMError) as e:
                 attempts.append({"stage": f"repair_{llm_rounds}", "ok": False, "error": str(e)})
@@ -374,7 +401,7 @@ class Pipeline:
             log.prompts(prompts.used("ir_edit.system", "ir_edit.user", "ir_repair.user"))
             g = IRGraph.build(before)
             steps = "\n".join(f"{i}. {g.name(n)} ({n})" for i, n in g.numbered_steps())
-            ir_json = before.model_dump_json(by_alias=True, exclude_defaults=True)
+            ir_json = hide_people(before).model_dump_json(by_alias=True, exclude_defaults=True)
             masked_instr, items = self._mask(instruction)
             ir_masked, more = self._mask(_remask(ir_json, items) if items else ir_json)
             items += [m for m in more if m.token not in {x.token for x in items}]
@@ -392,6 +419,7 @@ class Pipeline:
                 after = parse_plan(self._ask(log, "edit_ir_json_repair", messages, ir_json_schema()))
             if items:
                 after = Plan.model_validate(pii.unmask(after.model_dump(by_alias=True), items))
+            after = restore_people(after, before.performers)
             attempts.append({"stage": "edit_ir", "ok": True})
         except (InputError, LLMError, PlanError) as e:
             log.finish(ok=False, error=str(e))
@@ -427,7 +455,7 @@ class Pipeline:
         from .ir.sop import plain_explanation
         if use_llm:
             answer, run_id = self._tool_ask("explain", "explain.system",
-                                            plan.model_dump_json(by_alias=True, exclude_defaults=True), None)
+                                            hide_people(plan).model_dump_json(by_alias=True, exclude_defaults=True), None)
             if answer and len(answer.strip()) > 40:
                 return {"text": answer.strip(), "source": "llm", "run_id": run_id}
         return {"text": plain_explanation(plan), "source": "rules"}
@@ -483,7 +511,7 @@ class Pipeline:
             | {"elements": {"type": "array", "items": {"type": "string"}}}, "required": ["title", "action"]}}},
             "required": ["recommendations"]}
         answer, run_id = self._tool_ask("recommend", "recommend.system",
-                                        json.dumps({"ir": plan.model_dump(by_alias=True, exclude_defaults=True),
+                                        json.dumps({"ir": hide_people(plan).model_dump(by_alias=True, exclude_defaults=True),
                                                     "facts": facts}, ensure_ascii=False), schema)
         recs = []
         if answer:

@@ -127,6 +127,7 @@ class Diagram:
         self.lanes: dict[str, Lane] = {}
         self.groups: dict[str, Group] = {}
         self.annotations: dict[str, Annotation] = {}
+        self.performers: list[dict] = []          # directory of people: id, name, role, position, contacts
         self._counters: dict[str, int] = {}
         self.root_process = self._new_process(name)
         # ids "start"/"end" match the reserved IR ids, so diagram ids == IR ids
@@ -135,9 +136,23 @@ class Diagram:
 
     DETAIL_NUMBERS = ("duration_min", "wait_min", "sla_hours")
 
+    def add_performer(self, name, role=None, position="", contacts="", id=None):
+        """Person in the performers directory; `role` is a lane / pool id (the role he works in)."""
+        if role is not None and role not in self.lanes and role not in self.pools:
+            raise DiagramError(f"add_performer: неизвестная роль (дорожка) {role!r}")
+        for v, what in ((position, "position"), (contacts, "contacts")):
+            if not isinstance(v, str):
+                raise DiagramError(f"add_performer: {what} должно быть строкой")
+        pid = id if isinstance(id, str) and id.strip() else f"person_{len(self.performers) + 1}"
+        if any(p["id"] == pid for p in self.performers):
+            raise DiagramError(f"add_performer: исполнитель {pid!r} уже есть")
+        self.performers.append({"id": pid, "name": self._check_name(name, "add_performer"), "role": role,
+                                "position": position, "contacts": contacts})
+        return pid
+
     def set_details(self, target, source_quote="", assumption="", deadline="", documents=None,
                     duration_min=None, wait_min=None, sla_hours=None, estimate=False,
-                    accountable=None, consulted=None, informed=None):
+                    accountable=None, consulted=None, informed=None, description="", performer=None):
         if target not in self.nodes:
             raise DiagramError("Карточку можно добавить только к шагу, шлюзу или событию")
         if not all(isinstance(v, str) for v in (source_quote, assumption, deadline)):
@@ -163,6 +178,14 @@ class Diagram:
                 if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
                     raise DiagramError(f"{key} должен быть списком строк")
                 details[key] = value
+        if description:
+            if not isinstance(description, str):
+                raise DiagramError("description должно быть строкой")
+            details["description"] = description
+        if performer is not None:
+            if not any(p["id"] == performer for p in self.performers):
+                raise DiagramError(f"set_details: неизвестный исполнитель {performer!r} (добавьте add_performer)")
+            details["performer"] = performer
         self.nodes[target].details = details
         return target
 
@@ -457,5 +480,5 @@ API_METHODS = frozenset({
     "add_exclusive_gateway", "add_parallel_gateway", "add_inclusive_gateway", "add_event_based_gateway",
     "add_start_event", "add_end_event", "add_intermediate_event",
     "add_pool", "add_black_box_pool", "add_group", "add_annotation",
-    "add_link", "add_message_link", "set_details", "add_boundary_timer",
+    "add_link", "add_message_link", "set_details", "add_boundary_timer", "add_performer",
 })

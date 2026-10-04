@@ -75,7 +75,7 @@ def diagram_to_plan(d: Diagram) -> Plan:
         for key in ("duration_min", "wait_min", "sla_hours", "accountable"):
             if details.get(key) is not None:
                 el[key] = details[key]
-        for key in ("consulted", "informed"):
+        for key in ("consulted", "informed", "description", "performer"):
             if details.get(key):
                 el[key] = details[key]
         el["estimate"] = bool(details.get("estimate"))
@@ -94,7 +94,9 @@ def diagram_to_plan(d: Diagram) -> Plan:
     plan = Plan.model_validate({
         "title": d.processes[d.root_process].name or d.name, "organization": organization,
         "participants": participants, "elements": elements, "flows": flows,
-        "message_flows": message_flows, "groups": groups})
+        "message_flows": message_flows, "groups": groups,
+        "performers": [{**p, "role": p.get("role") if p.get("role") in {x["id"] for x in participants} else None}
+                       for p in d.performers]})
     check_plan(plan)
     return plan
 

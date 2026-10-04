@@ -65,6 +65,9 @@ def to_xml(d: Diagram, lay: LayoutResult, exporter_version: str = "1.0") -> str:
         if not has_content and proc.pool is None:
             continue
         pel = etree.SubElement(root, _b("process"), id=proc.id, isExecutable="false")
+        if proc.id == d.root_process and d.performers:     # performers directory travels with the file
+            etree.SubElement(pel, _b("documentation"), textFormat="application/json").text = (
+                "BPMN_AGENT_PERFORMERS:" + json.dumps(d.performers, ensure_ascii=False))
         if proc.name:
             pel.set("name", proc.name)
         if proc.lanes:
@@ -100,9 +103,13 @@ def _emit_container(d: Diagram, parent_el, container: str) -> None:
         default = next((f.id for f in d.outgoing(n.id) if f.default), None)
         if default and n.kind in COND_GATEWAYS:
             el.set("default", default)
-        if n.details:
+        details = dict(n.details or {})
+        description = details.pop("description", "")
+        if description:                                   # plain BPMN documentation, readable by any tool
+            etree.SubElement(el, _b("documentation")).text = description
+        if details:
             etree.SubElement(el, _b("documentation"), textFormat="application/json").text = (
-                "BPMN_AGENT_DETAILS:" + json.dumps(n.details, ensure_ascii=False))
+                "BPMN_AGENT_DETAILS:" + json.dumps(details, ensure_ascii=False))
         for f in d.incoming(n.id):
             etree.SubElement(el, _b("incoming")).text = f.id
         for f in d.outgoing(n.id):
@@ -122,6 +129,9 @@ def _emit_container(d: Diagram, parent_el, container: str) -> None:
         if d.nodes[f.source].container != container:
             continue
         el = etree.SubElement(parent_el, _b("sequenceFlow"), id=f.id, sourceRef=f.source, targetRef=f.target)
+        if f.probability is not None:
+            etree.SubElement(el, _b("documentation"), textFormat="application/json").text = (
+                "BPMN_AGENT_DETAILS:" + json.dumps({"probability": f.probability}))
         if f.name:
             el.set("name", f.name)
             if (d.nodes[f.source].kind in COND_GATEWAYS and len(d.outgoing(f.source)) > 1

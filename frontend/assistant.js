@@ -119,7 +119,8 @@
       if (sourceQuote && sourceQuote !== quote && !state.text.includes(sourceQuote)) {
         $('#detail-status').textContent = 'Новая цитата должна дословно встречаться в описании, по которому построена схема.'; return;
       }
-      const next = { source_quote: sourceQuote, assumption: $('#detail-assumption').value.trim(),
+      // Merge: keep the other details (SLA, durations, performer, RACI) set in the block editor.
+      const next = { ...readDetails(element), source_quote: sourceQuote, assumption: $('#detail-assumption').value.trim(),
         deadline: $('#detail-deadline').value.trim(), documents: $('#detail-documents').value.split('\n').map(s => s.trim()).filter(Boolean) };
       const old = (element.businessObject.documentation || []).filter(d => !(d.text || '').startsWith(PREFIX));
       const doc = modeler.get('moddle').create('bpmn:Documentation', { textFormat: 'application/json', text: PREFIX + JSON.stringify(next) });

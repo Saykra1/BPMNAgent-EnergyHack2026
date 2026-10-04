@@ -31,6 +31,7 @@ def build_sop(plan: Plan) -> list[tuple]:
     """Blocks: ("h1"|"h2"|"p"|"li"|"table", payload)."""
     g = IRGraph.build(plan)
     names = {p.id: p.name for p in plan.participants}
+    people = {p.id: p for p in plan.performers}
     order = [n for c in g.containers() for n in g.topo_order(c) if n in g.elements]
     num = {}
     k = 0
@@ -53,6 +54,10 @@ def build_sop(plan: Plan) -> list[tuple]:
         steps = [num[e.id] for e in plan.elements if e.participant == p.id and e.id in num]
         rows.append([p.name, "внешняя организация" if p.external else "внутренний участник", ", ".join(steps) or "—"])
     blocks.append(("table", rows))
+    if plan.performers:
+        prow = [["Исполнитель", "Должность", "Роль", "Контакты"]]
+        prow += [[p.name, p.position or "—", names.get(p.role, "—"), p.contacts or "—"] for p in plan.performers]
+        blocks.append(("table", prow))
 
     blocks.append(("h2", "3. Порядок выполнения"))
     first = [f.target for f in g.out["start"]] if g.out["start"] else []
@@ -77,6 +82,9 @@ def build_sop(plan: Plan) -> list[tuple]:
                 blocks.append(("li", f"Решение «{e.name or 'условие'}». {kind}: " + "; ".join(variants) + "."))
             continue
         who = names.get(e.participant, "исполнитель не указан")
+        person = people.get(e.performer)
+        if person:
+            who += f" ({person.name}{', ' + person.position if person.position else ''})"
         line = f"{num[n]}. {e.name or e.id} — {who}"
         how = TYPE_RU.get(e.type, "")
         if how:
@@ -86,6 +94,8 @@ def build_sop(plan: Plan) -> list[tuple]:
         elif e.type in ("timer_event", "message_event"):
             line = f"{num[n]}. Ожидание: {e.name}"
         details = []
+        if e.description:
+            details.append(e.description.replace("\n", " "))
         if e.deadline:
             details.append(f"срок: {e.deadline}")
         if e.sla_hours:

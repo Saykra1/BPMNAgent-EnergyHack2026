@@ -28,6 +28,15 @@ class Participant(BaseModel):
     external: bool = Field(False, description="true — отдельная внешняя организация (отдельный пул)")
 
 
+class Performer(BaseModel):
+    """A concrete person in the performers directory; `role` is the participant (lane) he works in."""
+    id: str
+    name: str = Field(description="ФИО или имя исполнителя")
+    role: str | None = Field(None, description="id участника/дорожки (роли)")
+    position: str = ""
+    contacts: str = ""
+
+
 class Element(BaseModel):
     id: str = Field(description="Уникальный латинский id: t1, gw_docs, end_reject")
     type: ElementType
@@ -52,6 +61,9 @@ class Element(BaseModel):
     accountable: str | None = None
     consulted: list[str] = Field(default_factory=list)
     informed: list[str] = Field(default_factory=list)
+    # --- free description and the concrete person (from Plan.performers) ---
+    description: str = Field("", description="Описание шага своими словами")
+    performer: str | None = Field(None, description="id исполнителя из справочника performers")
 
     @field_validator("name", mode="before")
     @classmethod
@@ -84,6 +96,7 @@ class Plan(BaseModel):
     groups: list[GroupSpec] = Field(default_factory=list)
     assumptions: list[str] = Field(default_factory=list)
     questions: list[str] = Field(default_factory=list)
+    performers: list[Performer] = Field(default_factory=list)
 
 
 class PlanError(ValueError):
@@ -296,6 +309,15 @@ def check_plan(plan: Plan) -> None:
                 errors.append(f"элемент {e.id}: у boundary_timer задайте sla_hours (срок в часах)")
         elif e.attached_to:
             errors.append(f"элемент {e.id}: attached_to допустим только у boundary_timer")
+    perf_ids = [p.id for p in plan.performers]
+    if len(set(perf_ids)) != len(perf_ids):
+        errors.append("id исполнителей повторяются")
+    for p in plan.performers:
+        if p.role and p.role not in pids:
+            errors.append(f"исполнитель {p.id}: неизвестная роль {p.role!r}")
+    for e in plan.elements:
+        if e.performer and e.performer not in perf_ids:
+            errors.append(f"элемент {e.id}: неизвестный исполнитель {e.performer!r}")
     if not plan.elements:
         errors.append("в плане нет элементов")
     if errors:
@@ -370,6 +392,9 @@ def compile_plan(plan: Plan, annotate_assumptions: bool = False) -> str:
     for g in plan.groups:
         lines.append(f"{group_vars[g.id]} = DIAGRAM.add_group({q(g.name)}, {default_parent})")
 
+    for p in plan.performers:
+        lines.append(f"DIAGRAM.add_performer({q(p.name)}, {q(p.role)}, {q(p.position)}, {q(p.contacts)}, "
+                     f"id={q(p.id)})")
     var = {"start": "ROOT_START_TASK_ID", "end": "ROOT_END_TASK_ID"}
     # IDs are data, not Python names: punctuation, keywords and collisions are safe.
     var.update({e.id: f"node_{i}" for i, e in enumerate(plan.elements)})
@@ -408,7 +433,8 @@ def compile_plan(plan: Plan, annotate_assumptions: bool = False) -> str:
             continue                                  # emitted after all hosts exist (below)
         extra = {k: getattr(e, k) for k in ("duration_min", "wait_min", "sla_hours", "accountable")
                  if getattr(e, k) is not None}
-        extra.update({k: getattr(e, k) for k in ("consulted", "informed") if getattr(e, k)})
+        extra.update({k: getattr(e, k) for k in ("consulted", "informed", "description", "performer")
+                      if getattr(e, k)})
         if e.estimate:
             extra["estimate"] = True
         if e.source_quote or e.assumption or e.deadline or e.documents or extra:

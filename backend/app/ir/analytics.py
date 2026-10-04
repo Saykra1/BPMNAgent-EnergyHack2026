@@ -313,7 +313,9 @@ def raci(plan: Plan) -> dict:
                     informed.append(mf.target)
             for pid in informed:
                 put(pid, "I")
-            rows.append({"id": n, "step": e.name, "cells": cells, "inferred": sorted(set(inferred))})
+            person = next((p for p in plan.performers if p.id == e.performer), None)
+            rows.append({"id": n, "step": e.name, "cells": cells, "inferred": sorted(set(inferred)),
+                         "performer": person.name if person else ""})
     return {"participants": [{"id": p.id, "name": p.name} for p in parts], "rows": rows,
             "legend": {"R": "исполняет", "A": "отвечает за результат", "C": "консультирует", "I": "информируется"}}
 
@@ -321,9 +323,9 @@ def raci(plan: Plan) -> dict:
 def raci_csv(m: dict) -> str:
     buf = io.StringIO()
     w = csv.writer(buf, delimiter=";")
-    w.writerow(["Шаг"] + [p["name"] for p in m["participants"]])
+    w.writerow(["Шаг", "Исполнитель"] + [p["name"] for p in m["participants"]])
     for r in m["rows"]:
-        w.writerow([r["step"]] + [r["cells"][p["id"]] for p in m["participants"]])
+        w.writerow([r["step"], r.get("performer", "")] + [r["cells"][p["id"]] for p in m["participants"]])
     return buf.getvalue()
 
 
