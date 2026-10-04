@@ -196,8 +196,9 @@ def test_layout_has_complete_di_without_overlaps(name):
             continue
         for (ax, ay), (bx, by) in zip(pts, pts[1:]):
             assert ax == bx or ay == by, edge.get("bpmnElement")
+    lane_ids = {ln.get("id") for ln in root.findall(".//b:lane", NS)}
     lanes = {s.get("bpmnElement"): s.find("dc:Bounds", NS) for s in plane.findall("di:BPMNShape", NS)
-             if s.get("bpmnElement", "").startswith("Lane")}
+             if s.get("bpmnElement") in lane_ids}
     for lane in root.findall(".//b:lane", NS):                 # every node is drawn inside its lane
         lb = lanes[lane.get("id")]
         ly, lh = float(lb.get("y")), float(lb.get("height"))

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from ..bpmn.diagram import Diagram
 from ..bpmn.importer import bpmn_to_code
-from ..llm.plan import Plan, check_plan
+from ..llm.plan import Plan, check_plan, parse_iso_hours
 from ..sandbox import run_code
 
 KIND_TO_TYPE = {
@@ -39,7 +39,10 @@ def diagram_to_plan(d: Diagram) -> Plan:
             for lid in proc.lanes:
                 participants.append({"id": lid, "name": d.lanes[lid].name, "external": pool.id != root_pool})
 
-    skip = {n.id for n in d.nodes.values() if n.auto}
+    # implicit start/end inside subprocesses (added automatically, unnamed) are not part of the IR
+    skip = {n.id for n in d.nodes.values() if n.auto or (
+        n.container not in d.processes and n.kind in ("startEvent", "endEvent") and not n.name
+        and not n.event_definition)}
     reserved = {}
     for rid, kind in ((d.root_start, "startEvent"), (d.root_end, "endEvent")):
         n = d.nodes.get(rid)
@@ -54,6 +57,8 @@ def diagram_to_plan(d: Diagram) -> Plan:
             t = KIND_TO_TYPE[n.kind]
         elif n.kind == "intermediateThrowEvent":
             t = "message_throw_event"
+        elif n.kind == "boundaryEvent":
+            t = "boundary_timer"
         else:
             t = "timer_event" if n.event_definition == "timer" else "message_event"
         in_sub = n.container not in d.processes
@@ -74,6 +79,10 @@ def diagram_to_plan(d: Diagram) -> Plan:
             if details.get(key):
                 el[key] = details[key]
         el["estimate"] = bool(details.get("estimate"))
+        if n.kind == "boundaryEvent":
+            el["attached_to"] = n.attached_to
+            el["interrupting"] = n.interrupting
+            el["sla_hours"] = el.get("sla_hours") or parse_iso_hours(n.timer or "") or 1
         elements.append(el)
     rid = lambda x: reserved.get(x, x)  # noqa: E731
     flows = [{"from": rid(f.source), "to": rid(f.target), "label": f.name or None,

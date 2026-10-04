@@ -20,7 +20,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass, field
 
-from .diagram import SUBPROCESS_KIND, Diagram, Node
+from .diagram import SUBPROCESS_KIND, Diagram, Flow, Node
 
 TASK_W, TASK_H = 120, 80
 GW = 50
@@ -95,6 +95,9 @@ class _Engine:
         self.lane_of = lane_of
         idset = set(node_ids)
         self.seq = [f for f in d.sequence_flows() if f.source in idset and f.target in idset]
+        # boundary events are layered right after their host (virtual edge, never drawn)
+        self.seq += [Flow(f"__att_{n}", d.nodes[n].attached_to, n) for n in node_ids
+                     if d.nodes[n].kind == "boundaryEvent" and d.nodes[n].attached_to in idset]
         self.msg = [f for f in d.message_flows() if f.source in idset and f.target in idset]
         self.back: set[str] = set()
         self.layer: dict[str, int] = {}
@@ -309,6 +312,14 @@ class _PlaneBuilder:
             w, h = node_size(d.nodes[nid])
             cx, cy = center(nid)
             self.p.shapes[nid] = Bounds(cx - w / 2, cy - h / 2, w, h)
+        per_host = defaultdict(int)
+        for nid in self.node_ids:                       # boundary events sit on the host's bottom border
+            n = d.nodes[nid]
+            if n.kind == "boundaryEvent" and n.attached_to in self.p.shapes:
+                host = self.p.shapes[n.attached_to]
+                k = per_host[n.attached_to]
+                per_host[n.attached_to] += 1
+                self.p.shapes[nid] = Bounds(host.right - EV - 8 - k * (EV + 6), host.bottom - EV / 2, EV, EV)
 
         self._route_sequence()
         self._route_messages()
@@ -340,6 +351,9 @@ class _PlaneBuilder:
             w = 96
             lines = max(1, -(-len(n.name) * 6 // w))
             h = 14 * lines
+            if n.kind == "boundaryEvent":
+                self.p.labels[nid] = Bounds(b.right + 2, b.bottom - 4, w, h)
+                continue
             if nid in touch_bottom and nid not in touch_top:
                 self.p.labels[nid] = Bounds(b.cx - w / 2, b.y - h - 6, w, h)
             elif nid in touch_bottom and nid in touch_top:
@@ -376,13 +390,27 @@ class _PlaneBuilder:
         d, eng, S = self.d, self.eng, self.p.shapes
         self.col_nodes = defaultdict(list)
         for nid in self.node_ids:
-            self.col_nodes[eng.layer[nid]].append(nid)
+            if d.nodes[nid].kind != "boundaryEvent":
+                self.col_nodes[eng.layer[nid]].append(nid)
         self.gap_use = defaultdict(int)
         loop_slot = defaultdict(int)
         for f in eng.seq:
+            if f.id.startswith("__att_"):
+                continue
             s, t = S[f.source], S[f.target]
             sg, tg = d.nodes[f.source].is_gateway, d.nodes[f.target].is_gateway
             ls, lt = eng.item_lane[f.source], eng.item_lane[f.target]
+            if d.nodes[f.source].kind == "boundaryEvent" and f.id not in eng.back:
+                yb = s.bottom + 22
+                host_layer = eng.layer.get(d.nodes[f.source].attached_to, eng.layer[f.source])
+                if t.cy > yb and self._col_free(host_layer, s.bottom, t.cy, skip=(d.nodes[f.source].attached_to,)):
+                    pts = [(s.cx, s.bottom), (s.cx, t.cy), (t.x, t.cy)] if t.x > s.cx + 10 else \
+                        [(s.cx, s.bottom), (s.cx, t.y)]
+                else:
+                    mx = self._gap_x(eng.layer[f.target])
+                    pts = [(s.cx, s.bottom), (s.cx, yb), (mx, yb), (mx, t.cy), (t.x, t.cy)]
+                self._set_edge(f, pts)
+                continue
             if f.id in eng.back:
                 key = ls
                 k = loop_slot[key]

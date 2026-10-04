@@ -20,6 +20,7 @@ class IRGraph:
     out: dict[str, list] = field(default_factory=lambda: defaultdict(list))   # id -> [FlowSpec]
     inc: dict[str, list] = field(default_factory=lambda: defaultdict(list))
     container: dict[str, str] = field(default_factory=dict)                    # id -> parent or TOP
+    attached: dict[str, list] = field(default_factory=lambda: defaultdict(list))  # host -> boundary ids
 
     @classmethod
     def build(cls, plan: Plan) -> "IRGraph":
@@ -31,6 +32,9 @@ class IRGraph:
         for f in plan.flows:
             g.out[f.source].append(f)
             g.inc[f.target].append(f)
+        for e in plan.elements:
+            if e.type == "boundary_timer" and e.attached_to:
+                g.attached[e.attached_to].append(e.id)
         return g
 
     # --------------------------------------------------------------- basics
@@ -45,7 +49,11 @@ class IRGraph:
         if nid in ("start", "end"):
             return "Начало" if nid == "start" else "Конец"
         e = self.elements.get(nid)
-        return (e.name or e.id) if e else nid
+        if e and not e.name:
+            return {"parallel_gateway": "параллельный шлюз", "exclusive_gateway": "слияние ветвей",
+                    "inclusive_gateway": "инклюзивный шлюз", "end_event": "завершение",
+                    "start_event": "начало"}.get(e.type, e.id)
+        return e.name if e else nid
 
     def label(self, nid: str) -> str:
         return f"{nid} «{self.name(nid)}»"
@@ -74,7 +82,7 @@ class IRGraph:
     def starts(self, container: str = TOP) -> list[str]:
         nodes = self.nodes_in(container)
         if container != TOP:          # subprocess: implicit start before nodes without incoming
-            return [n for n in nodes if not self.inc[n]]
+            return [n for n in nodes if not self.inc[n] and self.type(n) != "boundary_timer"]
         res = [n for n in nodes if self.type(n) == "start_event" and n != "start"]
         if self.out["start"] or not res:
             res = ["start"] + res
@@ -89,6 +97,7 @@ class IRGraph:
                 continue
             seen.add(cur)
             q.extend(f.target for f in self.out[cur])
+            q.extend(self.attached.get(cur, []))
         return seen
 
     def back_edges(self) -> set[tuple[str, str]]:
@@ -128,6 +137,10 @@ class IRGraph:
         for f in self.plan.flows:
             if f.source in node_set and f.target in node_set and (f.source, f.target) not in back:
                 indeg[f.target] += 1
+        for host, bs in self.attached.items():
+            for b in bs:
+                if b in indeg and host in node_set:
+                    indeg[b] += 1
         order, q = [], deque([n for n in nodes if indeg[n] == 0])
         seen = set()
         while q:
@@ -142,6 +155,11 @@ class IRGraph:
                 indeg[f.target] -= 1
                 if indeg[f.target] <= 0:
                     q.append(f.target)
+            for b in self.attached.get(v, []):
+                if b in indeg:
+                    indeg[b] -= 1
+                    if indeg[b] <= 0:
+                        q.append(b)
         order += [n for n in nodes if n not in seen]
         if "end" in order:                       # the reserved end goes last
             order.remove("end")

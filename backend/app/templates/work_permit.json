@@ -1,0 +1,238 @@
+{
+ "title": "Допуск бригады к работам по наряду-допуску",
+ "organization": "Электросетевая компания",
+ "participants": [
+  {
+   "id": "issuer",
+   "name": "Выдающий наряд"
+  },
+  {
+   "id": "admit",
+   "name": "Допускающий (оперативный персонал)"
+  },
+  {
+   "id": "lead",
+   "name": "Производитель работ"
+  },
+  {
+   "id": "crew",
+   "name": "Бригада"
+  }
+ ],
+ "elements": [
+  {
+   "id": "t_issue",
+   "type": "user_task",
+   "name": "Оформить наряд-допуск",
+   "participant": "issuer",
+   "documents": [
+    "Наряд-допуск"
+   ],
+   "duration_min": 30,
+   "wait_min": 60,
+   "estimate": true
+  },
+  {
+   "id": "gw_p1",
+   "type": "parallel_gateway",
+   "name": "",
+   "participant": "admit"
+  },
+  {
+   "id": "t_switch",
+   "type": "manual_task",
+   "name": "Выполнить отключения и заземления",
+   "participant": "admit",
+   "duration_min": 60,
+   "wait_min": 30,
+   "estimate": true
+  },
+  {
+   "id": "t_tools",
+   "type": "manual_task",
+   "name": "Подготовить инструмент и СИЗ",
+   "participant": "crew",
+   "duration_min": 30,
+   "wait_min": 0,
+   "estimate": true
+  },
+  {
+   "id": "gw_p1j",
+   "type": "parallel_gateway",
+   "name": "",
+   "participant": "admit"
+  },
+  {
+   "id": "t_check",
+   "type": "manual_task",
+   "name": "Проверить подготовку рабочего места",
+   "participant": "lead",
+   "duration_min": 20,
+   "wait_min": 0,
+   "estimate": true
+  },
+  {
+   "id": "gw_ok",
+   "type": "exclusive_gateway",
+   "name": "Рабочее место подготовлено?",
+   "participant": "lead"
+  },
+  {
+   "id": "t_fixplace",
+   "type": "manual_task",
+   "name": "Устранить недостатки подготовки",
+   "participant": "admit",
+   "duration_min": 30,
+   "wait_min": 0,
+   "estimate": true
+  },
+  {
+   "id": "t_brief",
+   "type": "manual_task",
+   "name": "Провести целевой инструктаж",
+   "participant": "admit",
+   "documents": [
+    "Журнал инструктажей"
+   ],
+   "duration_min": 15,
+   "wait_min": 0,
+   "estimate": true
+  },
+  {
+   "id": "t_admit",
+   "type": "user_task",
+   "name": "Допустить бригаду к работе",
+   "participant": "admit",
+   "duration_min": 10,
+   "wait_min": 0,
+   "estimate": true
+  },
+  {
+   "id": "t_work",
+   "type": "manual_task",
+   "name": "Выполнить работы",
+   "participant": "crew",
+   "duration_min": 240,
+   "wait_min": 0,
+   "estimate": true
+  },
+  {
+   "id": "t_finish",
+   "type": "manual_task",
+   "name": "Вывести бригаду и закрыть наряд",
+   "participant": "lead",
+   "documents": [
+    "Наряд-допуск"
+   ],
+   "duration_min": 20,
+   "wait_min": 0,
+   "estimate": true
+  },
+  {
+   "id": "t_unground",
+   "type": "manual_task",
+   "name": "Снять заземления и включить оборудование",
+   "participant": "admit",
+   "duration_min": 40,
+   "wait_min": 10,
+   "estimate": true
+  },
+  {
+   "id": "t_record",
+   "type": "user_task",
+   "name": "Записать в оперативный журнал",
+   "participant": "admit",
+   "documents": [
+    "Оперативный журнал"
+   ],
+   "duration_min": 10,
+   "wait_min": 0,
+   "estimate": true
+  }
+ ],
+ "flows": [
+  {
+   "from": "start",
+   "to": "t_issue"
+  },
+  {
+   "from": "t_issue",
+   "to": "gw_p1"
+  },
+  {
+   "from": "gw_p1",
+   "to": "t_switch"
+  },
+  {
+   "from": "gw_p1",
+   "to": "t_tools"
+  },
+  {
+   "from": "t_switch",
+   "to": "gw_p1j"
+  },
+  {
+   "from": "t_tools",
+   "to": "gw_p1j"
+  },
+  {
+   "from": "gw_p1j",
+   "to": "t_check"
+  },
+  {
+   "from": "t_check",
+   "to": "gw_ok"
+  },
+  {
+   "from": "gw_ok",
+   "to": "t_brief",
+   "label": "Да",
+   "probability": 0.9
+  },
+  {
+   "from": "gw_ok",
+   "to": "t_fixplace",
+   "label": "Нет",
+   "default": true
+  },
+  {
+   "from": "t_fixplace",
+   "to": "t_check"
+  },
+  {
+   "from": "t_brief",
+   "to": "t_admit"
+  },
+  {
+   "from": "t_admit",
+   "to": "t_work"
+  },
+  {
+   "from": "t_work",
+   "to": "t_finish"
+  },
+  {
+   "from": "t_finish",
+   "to": "t_unground"
+  },
+  {
+   "from": "t_unground",
+   "to": "t_record"
+  },
+  {
+   "from": "t_record",
+   "to": "end"
+  }
+ ],
+ "assumptions": [
+  "Шаблон по типовым правилам охраны труда при эксплуатации электроустановок; длительности — оценки."
+ ],
+ "questions": [
+  "Нужен ли наблюдающий при работах в данной электроустановке?"
+ ],
+ "template": {
+  "id": "work_permit",
+  "title": "Допуск бригады по наряду-допуску",
+  "description": "Наряд-допуск, подготовка рабочего места, инструктаж, допуск, окончание работ"
+ }
+}

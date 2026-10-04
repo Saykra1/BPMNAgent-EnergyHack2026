@@ -16,7 +16,7 @@ ElementType = Literal[
     "task", "user_task", "service_task", "script_task", "manual_task", "send_task", "receive_task",
     "business_rule_task", "subprocess",
     "exclusive_gateway", "parallel_gateway", "inclusive_gateway", "event_based_gateway",
-    "start_event", "end_event", "timer_event", "message_event", "message_throw_event",
+    "start_event", "end_event", "timer_event", "message_event", "message_throw_event", "boundary_timer",
 ]
 
 RESERVED = {"start", "end"}
@@ -45,6 +45,9 @@ class Element(BaseModel):
     wait_min: float | None = Field(None, description="Ожидание перед шагом, минут")
     sla_hours: float | None = Field(None, description="Нормативный срок шага, часов")
     estimate: bool = Field(False, description="true — длительности оценены моделью, а не взяты из текста")
+    # --- boundary timer (SLA / escalation) ---
+    attached_to: str | None = Field(None, description="Для boundary_timer: id задачи, к которой прикреплён таймер")
+    interrupting: bool = Field(False, description="Для boundary_timer: прерывает ли задачу (обычно false)")
     # --- RACI (participant ids); responsible = participant ---
     accountable: str | None = None
     consulted: list[str] = Field(default_factory=list)
@@ -274,6 +277,25 @@ def check_plan(plan: Plan) -> None:
         for ref in (f.source, f.target):
             if ref not in known and ref not in pids:
                 errors.append(f"сообщение {f.source}->{f.target}: неизвестный элемент/участник {ref!r}")
+    clash = set(pids) & set(ids)
+    if clash:
+        errors.append(f"id участников совпадают с id элементов: {sorted(clash)}")
+    by_id = {e.id: e for e in plan.elements}
+    targets = {f.target for f in plan.flows}
+    for e in plan.elements:
+        if e.type == "boundary_timer":
+            host = by_id.get(e.attached_to or "")
+            if host is None or host.type not in ("task", "user_task", "service_task", "script_task", "manual_task",
+                                                 "send_task", "receive_task", "business_rule_task", "subprocess"):
+                errors.append(f"элемент {e.id}: boundary_timer должен быть прикреплён (attached_to) к задаче")
+            elif host.parent != e.parent:
+                errors.append(f"элемент {e.id}: таймер и задача {host.id} должны быть в одном контейнере")
+            if e.id in targets:
+                errors.append(f"элемент {e.id}: в граничное событие не могут входить связи")
+            if not e.sla_hours:
+                errors.append(f"элемент {e.id}: у boundary_timer задайте sla_hours (срок в часах)")
+        elif e.attached_to:
+            errors.append(f"элемент {e.id}: attached_to допустим только у boundary_timer")
     if not plan.elements:
         errors.append("в плане нет элементов")
     if errors:
@@ -298,6 +320,25 @@ def _var(s: str) -> str:
     return v
 
 
+def iso_duration(hours: float | None) -> str:
+    """SLA in hours -> ISO 8601 duration for timerEventDefinition (P3D, PT4H, PT90M)."""
+    if not hours:
+        return "PT1H"
+    if hours % 24 == 0:
+        return f"P{int(hours // 24)}D"
+    if float(hours).is_integer():
+        return f"PT{int(hours)}H"
+    return f"PT{int(round(hours * 60))}M"
+
+
+def parse_iso_hours(value: str) -> float | None:
+    m = re.fullmatch(r"P(?:(\d+(?:\.\d+)?)D)?(?:T(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?)?", (value or "").strip())
+    if not m or not any(m.groups()):
+        return None
+    d, h, mi = (float(x) if x else 0.0 for x in m.groups())
+    return d * 24 + h + mi / 60
+
+
 def compile_plan(plan: Plan, annotate_assumptions: bool = False) -> str:
     """Deterministic IR -> DIAGRAM API code (the BPMN builder input). Element ids are preserved,
     so diagram ids == IR ids (stable across edits, used for diffs and highlighting)."""
@@ -311,17 +352,18 @@ def compile_plan(plan: Plan, annotate_assumptions: bool = False) -> str:
         org = plan.organization or plan.title
         if len(internal) >= 1:
             lines.append(f"pool_main, lanes_main = DIAGRAM.add_pool(ROOT_PROCESS_ID, "
-                         f"[{', '.join(q(p.name) for p in internal)}], {q(org)})")
+                         f"[{', '.join(q(p.name) for p in internal)}], {q(org)}, "
+                         f"ids=[{', '.join(q(p.id) for p in internal)}])")
             for i, p in enumerate(internal):
                 container[p.id] = f"lanes_main[{i}]"
         for index, p in enumerate(external):
             pool_var = f"pool_external_{index}"
             if p.id in used_ext:
                 lines.append(f"{pool_var}, lanes_external_{index} = DIAGRAM.add_pool(ROOT_PROCESS_ID, [], "
-                             f"{q(p.name)})")
+                             f"{q(p.name)}, id={q(p.id)})")
                 container[p.id] = pool_var
             else:
-                lines.append(f"{pool_var} = DIAGRAM.add_black_box_pool({q(p.name)})")
+                lines.append(f"{pool_var} = DIAGRAM.add_black_box_pool({q(p.name)}, id={q(p.id)})")
                 container[p.id] = pool_var
     default_parent = container[internal[0].id] if internal else "ROOT_PROCESS_ID"
     group_vars = {g.id: f"group_{i}" for i, g in enumerate(plan.groups)}
@@ -362,6 +404,8 @@ def compile_plan(plan: Plan, annotate_assumptions: bool = False) -> str:
             lines.append(f"{v} = DIAGRAM.add_intermediate_event({q(e.name)}, {parent}, 'message', {ident})")
         elif e.type == "message_throw_event":
             lines.append(f"{v} = DIAGRAM.add_intermediate_event({q(e.name)}, {parent}, 'message', True, {ident})")
+        elif e.type == "boundary_timer":
+            continue                                  # emitted after all hosts exist (below)
         extra = {k: getattr(e, k) for k in ("duration_min", "wait_min", "sla_hours", "accountable")
                  if getattr(e, k) is not None}
         extra.update({k: getattr(e, k) for k in ("consulted", "informed") if getattr(e, k)})
@@ -373,6 +417,13 @@ def compile_plan(plan: Plan, annotate_assumptions: bool = False) -> str:
                          f"{q(e.deadline)}, {e.documents!r}{kw})")
         if annotate_assumptions and e.assumption:
             lines.append(f"DIAGRAM.add_annotation({q('Допущение: ' + e.assumption[:160])}, {v})")
+    for e in plan.elements:
+        if e.type == "boundary_timer":
+            v = var[e.id]
+            lines.append(f"{v} = DIAGRAM.add_boundary_timer({q(e.name)}, {var[e.attached_to]}, "
+                         f"{q(iso_duration(e.sla_hours))}, {e.interrupting!r}, id={q(e.id)})")
+            lines.append(f"DIAGRAM.set_details({v}, {q(e.source_quote)}, {q(e.assumption)}, {q(e.deadline)}, "
+                         f"{e.documents!r}, sla_hours={e.sla_hours!r})")
     for f in plan.flows:
         label = f", {q(f.label)}" if f.label else ""
         if f.default:

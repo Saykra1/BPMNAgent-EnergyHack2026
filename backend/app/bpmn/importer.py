@@ -81,15 +81,17 @@ def bpmn_to_code(xml: str, id_variables: dict | None = None) -> str:
                      if ln.find("b:childLaneSet", NS) is None]
             names = [_name(ln) or f"Дорожка {i + 1}" for i, ln in enumerate(lanes)]
             lv = f"lanes_{pv}"
+            lane_ids = [ln.get("id") for ln in lanes]
+            ids_kw = f", ids={lane_ids!r}" if lanes and all(lane_ids) and len(set(lane_ids)) == len(lane_ids) else ""
             lines.append(f"{pv}, {lv} = DIAGRAM.add_pool(ROOT_PROCESS_ID, [{', '.join(q(n) for n in names)}], "
-                         f"{q(_name(part) or 'Пул')})")
+                         f"{q(_name(part) or 'Пул')}{ids_kw}, id={q(part.get('id'))})")
             for i, ln in enumerate(lanes):
                 for ref in ln.findall("b:flowNodeRef", NS):
                     lane_of_node[ref.text.strip()] = f"{lv}[{i}]"
             proc_parent[pref] = pv
             first = False
         else:
-            lines.append(f"{pv} = DIAGRAM.add_black_box_pool({q(_name(part) or 'Участник')})")
+            lines.append(f"{pv} = DIAGRAM.add_black_box_pool({q(_name(part) or 'Участник')}, id={q(part.get('id'))})")
     for pid in processes:
         if pid not in proc_parent:
             if not first:
@@ -98,6 +100,7 @@ def bpmn_to_code(xml: str, id_variables: dict | None = None) -> str:
             first = False
 
     flows: list[str] = []
+    boundaries: list = []
 
     def emit(container_el, parent_expr: str, in_process: bool):
         for el in container_el:
@@ -117,6 +120,9 @@ def bpmn_to_code(xml: str, id_variables: dict | None = None) -> str:
                 var[el_id] = v
                 lines.append(f"{v} = DIAGRAM.create_subprocess({q(_name(el))}, {parent}, id={q(el_id)})")
                 emit(el, v, False)
+            elif tag == "boundaryEvent" and el.find("b:timerEventDefinition", NS) is not None \
+                    and el.get("attachedToRef"):
+                boundaries.append(el)               # emitted after their hosts exist
             elif tag in ("startEvent", "endEvent", "intermediateCatchEvent", "intermediateThrowEvent",
                          "boundaryEvent"):
                 kind = None
@@ -146,6 +152,18 @@ def bpmn_to_code(xml: str, id_variables: dict | None = None) -> str:
 
     for pid, pexpr in proc_parent.items():
         emit(processes[pid], pexpr, True)
+    for el in boundaries:
+        host = el.get("attachedToRef")
+        if host not in var:
+            continue
+        td = el.find("b:timerEventDefinition/b:timeDuration", NS)
+        dur = (td.text or "").strip() if td is not None else ""
+        if not re.fullmatch(r"P(?:\d+D)?(?:T(?:\d+H)?(?:\d+M)?)?", dur) or dur in ("P", "PT"):
+            dur = "PT1H"
+        v = vname(el.get("id"), "ev")
+        var[el.get("id")] = v
+        lines.append(f"{v} = DIAGRAM.add_boundary_timer({q(_name(el))}, {var[host]}, {q(dur)}, "
+                     f"{el.get('cancelActivity', 'true') != 'false'!r}, id={q(el.get('id'))})")
     for mf in root.findall("b:collaboration/b:messageFlow", NS):
         flows.append(("msg", mf.get("sourceRef"), mf.get("targetRef"), _name(mf), mf.get("id")))
 

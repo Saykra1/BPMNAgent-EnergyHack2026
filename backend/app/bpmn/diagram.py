@@ -15,7 +15,7 @@ TASK_KINDS = {
     "sendTask", "receiveTask", "businessRuleTask",
 }
 GATEWAY_KINDS = {"exclusiveGateway", "parallelGateway", "inclusiveGateway", "eventBasedGateway"}
-EVENT_KINDS = {"startEvent", "endEvent", "intermediateCatchEvent", "intermediateThrowEvent"}
+EVENT_KINDS = {"startEvent", "endEvent", "intermediateCatchEvent", "intermediateThrowEvent", "boundaryEvent"}
 SUBPROCESS_KIND = "subProcess"
 EVENT_DEFINITIONS = {"timer", "message", "error", "signal", "terminate", "escalation", "conditional"}
 
@@ -49,6 +49,9 @@ class Node:
     event_definition: str | None = None
     auto: bool = False        # created by post-processing, not by the model
     details: dict = field(default_factory=dict)
+    attached_to: str | None = None   # boundary event host
+    interrupting: bool = False
+    timer: str | None = None         # ISO 8601 duration for timer events
 
     @property
     def is_task(self) -> bool:
@@ -301,8 +304,22 @@ class Diagram:
         k = "intermediateThrowEvent" if throw else "intermediateCatchEvent"
         return self._add_node(k, self._check_name(name, "add_intermediate_event"), parent, "Event", ed, id=id)
 
-    def add_pool(self, parent, lanes, name=None):
-        """Create a pool (participant) with lanes. Returns (pool_id, [lane_ids])."""
+    def add_boundary_timer(self, name, host, duration="PT1H", interrupting=False, id=None):
+        """Timer attached to a task (SLA): when it fires, its outgoing flow starts an escalation path."""
+        if not isinstance(host, str) or host not in self.nodes or not self.nodes[host].is_task:
+            raise DiagramError("add_boundary_timer: таймер можно прикрепить только к задаче или подпроцессу")
+        if not isinstance(duration, str) or not re.fullmatch(r"P(?:\d+D)?(?:T(?:\d+H)?(?:\d+M)?)?", duration):
+            raise DiagramError("add_boundary_timer: срок в формате ISO 8601, например 'P3D' или 'PT4H'")
+        h = self.nodes[host]
+        nid = self._explicit_id(id) if id is not None else self._id("BoundaryEvent")
+        self.nodes[nid] = Node(nid, "boundaryEvent", self._check_name(name, "add_boundary_timer"), h.container,
+                               h.lane, h.group, "timer", attached_to=host, interrupting=bool(interrupting),
+                               timer=duration)
+        return nid
+
+    def add_pool(self, parent, lanes, name=None, ids=None, id=None):
+        """Create a pool (participant) with lanes. Returns (pool_id, [lane_ids]).
+        Optional `ids` (lane ids) and `id` (pool id) keep the IR participant ids."""
         if isinstance(lanes, str):
             lanes = [lanes]
         if not isinstance(lanes, (list, tuple)) or not all(isinstance(x, str) for x in lanes):
@@ -318,14 +335,16 @@ class Diagram:
             # The process already has a pool: this is another participant with its own process.
             container = self._new_process(pool_name)
             process = self.processes[container]
-        pool_id = self._id("Participant")
+        if ids is not None and (not isinstance(ids, (list, tuple)) or len(ids) != len(lanes)):
+            raise DiagramError("add_pool: ids должен быть списком той же длины, что и дорожки")
+        pool_id = self._explicit_id(id) if id is not None else self._id("Participant")
         self.pools[pool_id] = Pool(pool_id, pool_name, container)
         process.pool = pool_id
         process.name = pool_name
         lane_ids = []
         if len(lanes) > 1 or (len(lanes) == 1 and name):
-            for lname in lanes:
-                lid = self._id("Lane")
+            for i, lname in enumerate(lanes):
+                lid = self._explicit_id(ids[i]) if ids is not None else self._id("Lane")
                 self.lanes[lid] = Lane(lid, lname.strip(), container)
                 process.lanes.append(lid)
                 lane_ids.append(lid)
@@ -334,9 +353,9 @@ class Diagram:
             lane_ids = [pool_id] * len(lanes)
         return pool_id, lane_ids
 
-    def add_black_box_pool(self, name):
+    def add_black_box_pool(self, name, id=None):
         """External participant shown as an empty pool (only message flows go to it)."""
-        pool_id = self._id("Participant")
+        pool_id = self._explicit_id(id) if id is not None else self._id("Participant")
         self.pools[pool_id] = Pool(pool_id, self._check_name(name, "add_black_box_pool"), None)
         return pool_id
 
@@ -438,5 +457,5 @@ API_METHODS = frozenset({
     "add_exclusive_gateway", "add_parallel_gateway", "add_inclusive_gateway", "add_event_based_gateway",
     "add_start_event", "add_end_event", "add_intermediate_event",
     "add_pool", "add_black_box_pool", "add_group", "add_annotation",
-    "add_link", "add_message_link", "set_details",
+    "add_link", "add_message_link", "set_details", "add_boundary_timer",
 })

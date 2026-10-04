@@ -165,6 +165,8 @@ def health():
     return {"ok": True, "llm": p.llm is not None, "provider": s.llm_provider, "llm_error": _state["error"],
             "env_file": s.env_file,
             "model": getattr(p.llm, "model", None), "max_repairs": s.max_repairs,
+            "repair_model": getattr(p.repair_llm, "model", None), "pii_mask": s.pii_mask,
+            "onprem_only": s.llm_onprem_only,
             "jev": s.jev_enabled and s.llm_base_url.rstrip("/") == "https://openrouter.ai/api/v1"}
 
 
@@ -245,12 +247,18 @@ def runs(limit: int = 30):
         for d in sorted(s.runs_dir.iterdir(), reverse=True)[:limit]:
             m = d / "meta.json"
             if m.exists():
-                meta = json.loads(m.read_text("utf-8"))
+                try:
+                    meta = json.loads(m.read_text("utf-8"))
+                except json.JSONDecodeError:
+                    continue
                 meta.pop("events", None)
                 out.append(meta)
     return out
 
 
+from . import tools_api  # noqa: E402
+
+app.include_router(tools_api.bind(_pipeline, get_settings))
 app.mount("/static", StaticFiles(directory=str(FRONTEND)), name="static")
 
 

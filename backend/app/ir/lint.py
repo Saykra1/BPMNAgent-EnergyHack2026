@@ -70,11 +70,16 @@ def lint(plan: Plan) -> list[LintIssue]:
                 if outs:
                     add("error", "E_END_OUTGOING", n, f"У конечного события {g.label(n)} есть исходящие связи.",
                         "Конечное событие завершает ветку — уберите исходящие связи.", fixable=True)
-            elif not outs and is_top:
+            elif not outs and is_top and t != "boundary_timer":
                 add("error", "E_DEAD_END", n, f"Тупик: из {g.label(n)} нет перехода дальше.",
                     "Укажите следующий шаг или завершите ветку конечным событием.", fixable=n in reach,
                     question=f"Что происходит после шага «{g.name(n)}»?", blocking=True)
             if t == "start_event":
+                continue
+            if t == "boundary_timer":
+                if not outs:
+                    add("error", "E_BOUNDARY_NO_PATH", n, f"У таймера {g.label(n)} нет пути эскалации.",
+                        "Свяжите таймер со шагом эскалации (например, «Эскалировать руководителю»).")
                 continue
             if not ins and is_top:
                 add("error", "E_NO_INCOMING", n, f"В {g.label(n)} не ведёт ни одна связь — шаг недостижим.",
@@ -126,7 +131,6 @@ def lint(plan: Plan) -> list[LintIssue]:
                 "Для читаемости разделите его на два шлюза.")
 
     # --- performers, names -------------------------------------------------------------------
-    internal = {p.id for p in plan.participants if not p.external}
     for n, e in g.elements.items():
         if e.type in TASK_TYPES:
             if has_participants and not e.participant and not e.parent:

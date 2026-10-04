@@ -94,6 +94,9 @@ def _emit_container(d: Diagram, parent_el, container: str) -> None:
         el = etree.SubElement(parent_el, _b(n.kind), id=n.id)
         if n.name:
             el.set("name", n.name)
+        if n.kind == "boundaryEvent":
+            el.set("attachedToRef", n.attached_to)
+            el.set("cancelActivity", "true" if n.interrupting else "false")
         default = next((f.id for f in d.outgoing(n.id) if f.default), None)
         if default and n.kind in COND_GATEWAYS:
             el.set("default", default)
@@ -109,6 +112,10 @@ def _emit_container(d: Diagram, parent_el, container: str) -> None:
             if n.event_definition == "conditional":
                 c = etree.SubElement(ed, _b("condition"))
                 c.set(f"{{{XSI}}}type", "bpmn:tFormalExpression")
+            if n.event_definition == "timer" and n.timer:
+                td = etree.SubElement(ed, _b("timeDuration"))
+                td.set(f"{{{XSI}}}type", "bpmn:tFormalExpression")
+                td.text = n.timer
         if n.kind == SUBPROCESS_KIND:
             _emit_container(d, el, n.id)
     for f in d.sequence_flows():

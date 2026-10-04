@@ -117,7 +117,7 @@ def normalize(d: Diagram, lenient: bool = False) -> list[Issue]:
         if not is_sub and not lenient and c == d.root_process:
             continue  # main process: missing start/end goes to the repair loop
         if not any(n.kind == "startEvent" for n in nodes):
-            heads = [n for n in nodes if not d.incoming(n.id) and n.kind not in ("endEvent",)]
+            heads = [n for n in nodes if not d.incoming(n.id) and n.kind not in ("endEvent", "boundaryEvent")]
             if heads:
                 parent = c if is_sub else (heads[0].lane or c)
                 sid = d._add_node("startEvent", "", parent, "StartEvent", auto=True)
@@ -160,6 +160,9 @@ def normalize(d: Diagram, lenient: bool = False) -> list[Issue]:
                     changed = True
         for n in pending:
             n.lane = proc.lanes[0]
+        for n in _flow_nodes(d, pid):
+            if n.kind == "boundaryEvent" and n.attached_to in d.nodes:
+                n.lane = d.nodes[n.attached_to].lane          # boundary events live on their host
 
     # 6. empty lanes / groups
     for pid, proc in d.processes.items():
@@ -194,7 +197,7 @@ def _lenient_fixes(d: Diagram) -> list[Issue]:
         for n in nodes:
             if n.kind == "startEvent":
                 continue
-            if not d.incoming(n.id) and starts and n.kind != "endEvent":
+            if not d.incoming(n.id) and starts and n.kind not in ("endEvent", "boundaryEvent"):
                 d.add_link(starts[0].id, n.id)
                 fixes.append(Issue("fix", "F_LINK_ORPHAN", f"Узел {_label(d, n.id)} без входящих связей "
                                    "подключён к стартовому событию", [n.id]))
@@ -278,6 +281,13 @@ def validate(d: Diagram) -> list[Issue]:
                 if not ins:
                     E("E_DANGLING_IN", f"В конечное событие {_label(d, n.id)} не ведёт ни одна связь", [n.id])
                 continue
+            if n.kind == "boundaryEvent":
+                if ins:
+                    E("E_BOUNDARY_INCOMING", f"В граничное событие {_label(d, n.id)} не могут входить связи", [n.id])
+                if not outs:
+                    E("E_DANGLING_OUT", f"Из граничного события {_label(d, n.id)} не выходит ни одной связи — "
+                                        "укажите шаг эскалации.", [n.id])
+                continue
             if not ins:
                 E("E_DANGLING_IN", f"В узел {_label(d, n.id)} не ведёт ни одна связь — он недостижим", [n.id])
             if not outs:
@@ -316,6 +326,7 @@ def validate(d: Diagram) -> list[Issue]:
                     continue
                 seen.add(cur)
                 q.extend(f.target for f in d.outgoing(cur))
+                q.extend(b.id for b in d.nodes.values() if b.attached_to == cur)
             unreachable = [n for n in nodes if n.id not in seen and d.incoming(n.id)]
             for n in unreachable:
                 E("E_UNREACHABLE", f"Узел {_label(d, n.id)} недостижим из стартового события (замкнутый цикл "

@@ -405,6 +405,118 @@ class Pipeline:
         res.summary = summary_text or describe(d)
         return res
 
+    # ------------------------------------------------------------------ assistant tools (LLM + fallback)
+    def _tool_ask(self, kind: str, prompt: str, payload: str, schema: dict | None) -> tuple[str | None, str]:
+        """One LLM call for an auxiliary tool; returns (answer or None, run_id). Never raises."""
+        log = RunLog(self.runs_dir, kind)
+        if self.llm is None:
+            log.finish(ok=False, error="LLM не настроен")
+            return None, log.id
+        log.prompts(prompts.used(prompt))
+        masked, _ = self._mask(payload)
+        try:
+            answer = self._ask(log, kind, [{"role": "system", "content": prompts.load(prompt)},
+                                           {"role": "user", "content": masked}], schema)
+            log.finish(ok=True)
+            return answer, log.id
+        except LLMError as e:
+            log.finish(ok=False, error=str(e))
+            return None, log.id
+
+    def explain(self, plan: Plan, use_llm: bool = True) -> dict:
+        from .ir.sop import plain_explanation
+        if use_llm:
+            answer, run_id = self._tool_ask("explain", "explain.system",
+                                            plan.model_dump_json(by_alias=True, exclude_defaults=True), None)
+            if answer and len(answer.strip()) > 40:
+                return {"text": answer.strip(), "source": "llm", "run_id": run_id}
+        return {"text": plain_explanation(plan), "source": "rules"}
+
+    def estimate(self, plan: Plan) -> dict:
+        """LLM proposes durations for steps without them; values are marked estimate=true."""
+        from .ir.analytics import TYPICAL
+        from .ir.graph import TASK_TYPES
+        todo = [e for e in plan.elements if (e.type in TASK_TYPES or e.type in ("timer_event", "message_event"))
+                and e.duration_min is None]
+        if not todo:
+            return {"plan": plan, "source": "given", "estimated": [], "comments": {}}
+        payload = json.dumps({"process": plan.title, "steps": [
+            {"id": e.id, "name": e.name, "type": e.type, "performer": e.participant, "deadline": e.deadline}
+            for e in todo]}, ensure_ascii=False)
+        schema = {"type": "object", "properties": {"estimates": {"type": "array", "items": {
+            "type": "object", "properties": {"id": {"type": "string"}, "duration_min": {"type": "number"},
+                                             "wait_min": {"type": "number"}, "comment": {"type": "string"}},
+            "required": ["id", "duration_min"]}}}, "required": ["estimates"]}
+        answer, run_id = self._tool_ask("estimate", "estimate.system", payload, schema)
+        got, comments, source = {}, {}, "typical"
+        if answer:
+            try:
+                for item in json.loads(answer[answer.find("{"):answer.rfind("}") + 1]).get("estimates", []):
+                    d, w = float(item.get("duration_min", -1)), float(item.get("wait_min", 0) or 0)
+                    if item.get("id") and 0 <= d <= 60 * 24 * 365 and 0 <= w <= 60 * 24 * 365:
+                        got[item["id"]] = (d, w)
+                        comments[item["id"]] = str(item.get("comment", ""))[:300]
+                source = "llm" if got else "typical"
+            except (ValueError, TypeError, AttributeError):
+                got = {}
+        data = plan.model_dump(by_alias=True)
+        done = []
+        for e in data["elements"]:
+            if e["id"] in {x.id for x in todo}:
+                d, w = got.get(e["id"], TYPICAL.get(e["type"], (30, 0)))
+                e["duration_min"], e["wait_min"], e["estimate"] = d, w, True
+                done.append(e["id"])
+        return {"plan": Plan.model_validate(data), "source": source, "estimated": done, "comments": comments,
+                "run_id": run_id if answer else None}
+
+    def recommend(self, plan: Plan, analysis: dict, issues: list[LintIssue]) -> dict:
+        sim = analysis["simulation"]
+        top = sorted(analysis["heat"]["values"].items(), key=lambda kv: -kv[1])[:5]
+        g = IRGraph.build(plan)
+        facts = {"process": plan.title, "mean_min": sim["mean_min"], "p90_min": sim["p90_min"],
+                 "critical_path": [g.name(n) for n in analysis["critical_path"]["path"]],
+                 "slowest_steps": [{"id": n, "name": g.name(n), "minutes": v} for n, v in top],
+                 "utilization": sim["utilization"][:5], "branches": sim["branches"][:6],
+                 "lint": [i.message for i in issues if i.level != "info"][:10]}
+        schema = {"type": "object", "properties": {"recommendations": {"type": "array", "items": {
+            "type": "object", "properties": {k: {"type": "string"} for k in ("title", "rationale", "action", "effect")}
+            | {"elements": {"type": "array", "items": {"type": "string"}}}, "required": ["title", "action"]}}},
+            "required": ["recommendations"]}
+        answer, run_id = self._tool_ask("recommend", "recommend.system",
+                                        json.dumps({"ir": plan.model_dump(by_alias=True, exclude_defaults=True),
+                                                    "facts": facts}, ensure_ascii=False), schema)
+        recs = []
+        if answer:
+            try:
+                recs = json.loads(answer[answer.find("{"):answer.rfind("}") + 1]).get("recommendations", [])[:8]
+                recs = [r for r in recs if isinstance(r, dict) and r.get("title")]
+            except (ValueError, AttributeError):
+                recs = []
+        source = "llm" if recs else "rules"
+        if not recs:
+            for n, v in top[:2]:
+                recs.append({"title": f"Сократить время шага «{g.name(n)}»",
+                             "rationale": f"Один из самых долгих шагов (≈{v:.0f} мин с ожиданием).",
+                             "action": "Проверьте причины ожидания: очередь, согласования, нехватка исполнителей.",
+                             "effect": "оценка: сокращение общего времени процесса", "elements": [n]})
+            for b in sim["branches"]:
+                for br in b["branches"]:
+                    loop = any(br["to"] == f.target and (f.source, f.target) in g.back_edges() for f in g.out[b["gateway"]])
+                    if loop and br["share"] > 0.15:
+                        recs.append({"title": f"Снизить долю возвратов на «{b['name']}»",
+                                     "rationale": f"Возврат на доработку в {br['share']:.0%} случаев.",
+                                     "action": "Добавьте чек-лист или проверку на входе, чтобы ошибки находились раньше.",
+                                     "effect": "оценка: меньше повторных циклов", "elements": [b["gateway"]]})
+            if sim["utilization"]:
+                u = sim["utilization"][0]
+                recs.append({"title": f"Разгрузить участника «{u['name']}»",
+                             "rationale": f"Занят {u['share_of_time']:.0%} времени процесса — вероятное узкое место.",
+                             "action": "Перераспределите часть шагов или автоматизируйте рутинные операции.",
+                             "effect": "оценка: снижение p90", "elements": []})
+        for r in recs:
+            r["kind"] = "рекомендация, не факт"
+        return {"recommendations": recs, "source": source, "run_id": run_id if answer else None}
+
     # ------------------------------------------------------------------ legacy: LLM writes DIAGRAM code
     def _code_loop(self, log: RunLog, system: str, messages: list[dict], title: str,
                    attempts: list[dict]) -> tuple[BuildResult, int]:
