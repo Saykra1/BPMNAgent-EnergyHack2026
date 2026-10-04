@@ -259,6 +259,9 @@ def runs(limit: int = 30):
 from . import tools_api  # noqa: E402
 
 app.include_router(tools_api.bind(_pipeline, get_settings))
+from .run import api as run_api  # noqa: E402
+
+app.include_router(run_api.bind(get_settings))
 app.mount("/static", StaticFiles(directory=str(FRONTEND)), name="static")
 
 

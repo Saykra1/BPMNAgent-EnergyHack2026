@@ -192,15 +192,18 @@ def bpmn_to_code(xml: str, id_variables: dict | None = None) -> str:
         flows.append(("msg", mf.get("sourceRef"), mf.get("targetRef"), _name(mf), mf.get("id")))
 
     defaults = {el.get("default") for el in root.iter() if el.get("default")}
-    probability = {}
+    probability, checks = {}, {}
     for sf in root.iter(f"{{{BPMN}}}sequenceFlow"):
         for doc in sf.findall("b:documentation", NS):
             raw = (doc.text or "").strip()
             if raw.startswith("BPMN_AGENT_DETAILS:"):
                 try:
-                    p = json.loads(raw.removeprefix("BPMN_AGENT_DETAILS:")).get("probability")
-                    if isinstance(p, (int, float)) and 0 <= p <= 1:
+                    data = json.loads(raw.removeprefix("BPMN_AGENT_DETAILS:"))
+                    p = data.get("probability")
+                    if isinstance(p, (int, float)) and not isinstance(p, bool) and 0 <= p <= 1:
                         probability[sf.get("id")] = p
+                    if isinstance(data.get("check"), str) and data["check"].strip():
+                        checks[sf.get("id")] = data["check"].strip()
                 except (ValueError, AttributeError):
                     pass
     for kind, s, t, label, fid in flows:
@@ -211,6 +214,8 @@ def bpmn_to_code(xml: str, id_variables: dict | None = None) -> str:
             lab += (", None" if not label else "") + ", default=True"
         if kind == "seq" and fid in probability:
             lab += (", None" if not label and fid not in defaults else "") + f", probability={probability[fid]!r}"
+        if kind == "seq" and fid in checks:
+            lab += f", check={q(checks[fid])}"
         method = "add_link" if kind == "seq" else "add_message_link"
         lines.append(f"DIAGRAM.{method}({var[s]}, {var[t]}{lab})")
 
@@ -256,6 +261,11 @@ def bpmn_to_code(xml: str, id_variables: dict | None = None) -> str:
             extra["description"] = "\n\n".join(description)
         if isinstance(data.get("performer"), str) and data["performer"] in performer_ids:
             extra["performer"] = data["performer"]
+        for k in ("code", "report"):
+            if isinstance(data.get(k), str) and data[k].strip():
+                extra[k] = data[k]
+        if isinstance(data.get("fields"), list) and all(isinstance(v, str) for v in data["fields"]):
+            extra["fields"] = [v for v in data["fields"] if v.strip()]
         kw = "".join(f", {k}={v!r}" for k, v in extra.items())
         lines.append(f"DIAGRAM.set_details({var[el.get('id')]}, "
                      f"{', '.join(repr(v) for v in values)}, {documents!r}{kw})")

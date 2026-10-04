@@ -11,7 +11,20 @@
     ['bpmn:BusinessRuleTask', 'Бизнес-правило']];
   const GATEWAY_TYPES = [['bpmn:ExclusiveGateway', 'Исключающий (одна ветка)'], ['bpmn:ParallelGateway', 'Параллельный (все ветки)'],
     ['bpmn:InclusiveGateway', 'Инклюзивный (одна или несколько)'], ['bpmn:EventBasedGateway', 'По событию']];
+  const AUTO = new Set(['bpmn:ServiceTask', 'bpmn:ScriptTask', 'bpmn:BusinessRuleTask', 'bpmn:SendTask']);
+  const HUMAN = new Set(['bpmn:Task', 'bpmn:UserTask', 'bpmn:ManualTask', 'bpmn:ReceiveTask']);
+  const CODE_HELP = 'Подмножество Python над переменными процесса: присваивания, if/elif/else, for, while, f-строки, ' +
+    'списки и словари. Функции: len, min, max, sum, round, int, float, str, sorted, range, any, all, today(), now(), ' +
+    'add_days(дата, n), add_workdays(дата, n), days_between(a, b), value("имя", по_умолчанию), log(...), fail("причина"). ' +
+    'Без import, def и доступа к файлам и сети. Все переменные шага сохраняются в данных процесса.';
   let gearId = null;
+  const testDataKey = 'bpmn-agent-run-variables';
+  function loadTestData() { try { return localStorage.getItem(testDataKey) || '{}'; } catch { return '{}'; } }
+  function saveTestData(v) { try { localStorage.setItem(testDataKey, v); } catch { /* storage unavailable */ } }
+  function parseTestData(text) {
+    try { const v = JSON.parse(text || '{}'); if (v && typeof v === 'object' && !Array.isArray(v)) return v; } catch { /* below */ }
+    throw new Error('Тестовые данные — JSON-объект, например {"сумма": 1500}');
+  }
 
   const svc = (n) => modeler.get(n);
   const is = (el, t) => el?.businessObject?.$instanceOf?.(t);
@@ -142,7 +155,7 @@
       try { onSave(wrap); closeDialog(); }
       catch (err) { wrap.querySelector('.be-error').textContent = err.message; }
     };
-    setTimeout(() => wrap.querySelector('input, select, textarea')?.focus(), 30);
+    wrap.querySelector('input, select, textarea')?.focus();
     return wrap;
   }
   function closeDialog() { document.getElementById('be-modal')?.remove(); }
@@ -203,15 +216,67 @@
         <div class="be-label">Консультирует (C)</div><div class="be-chips">${checks('consulted')}</div>
         <div class="be-label">Информируется (I)</div><div class="be-chips">${checks('informed')}</div>
       </fieldset>` : ''}
-      ${branches.length ? `<fieldset><legend>Ветки развилки</legend><table class="be-table"><tr><th>Куда</th><th>Условие</th><th title="Ветка «иначе»">Иначе</th><th>Вероятн.</th></tr>
+      ${isTask && !is(el, 'bpmn:SubProcess') ? `<fieldset id="be-exec"><legend>Выполнение и документ о работе</legend>
+        <div class="be-auto-only"><p class="hint">Шаг выполняется автоматически: при запуске процесса код ниже работает с данными процесса.</p>
+          <label>Код шага<textarea id="be-code" class="be-code" rows="7" maxlength="10000" spellcheck="false" placeholder="сумма = sum([p[&quot;цена&quot;] * p[&quot;кол&quot;] for p in позиции])&#10;if сумма > лимит:&#10;    требуется_согласование = True">${esc(d.code || '')}</textarea></label>
+          <details class="be-help"><summary>Что можно писать в коде</summary><p>${esc(CODE_HELP)}</p></details></div>
+        <div class="be-human-only"><p class="hint">Шаг выполняет человек: при запуске он вводит данные, формирует документ о работе или прикрепляет файл.</p>
+          <label>Данные, которые вводит исполнитель — по одному на строку<textarea id="be-fields" rows="2" maxlength="2000" placeholder="решение&#10;номер_акта">${esc((d.fields || []).join('\n'))}</textarea></label></div>
+        <label><span class="be-auto-only">Шаблон документа о работе — подставляются {переменные}</span><span class="be-human-only">Что должно быть в документе — подсказка исполнителю</span>
+          <textarea id="be-report" rows="3" maxlength="8000" placeholder="Рассчитана сумма {сумма} руб. Срок оплаты — {срок}.">${esc(d.report || '')}</textarea></label>
+        <div class="be-row be-auto-only"><label>Тестовые данные (JSON)<input id="be-testdata" class="be-code" value="${esc(loadTestData())}"></label>
+          <button type="button" id="be-try">Проверить код</button></div>
+        <pre id="be-try-out" class="be-out" hidden></pre>
+      </fieldset>` : ''}
+      ${branches.length ? `<fieldset><legend>Ветки развилки</legend><table class="be-table"><tr><th>Куда</th><th>Подпись и проверка</th><th title="Ветка «иначе»">Иначе</th><th>Вероятн.</th></tr>
         ${branches.map(c => `<tr><td>${esc(c.target.businessObject.name || c.target.id)}</td>
-        <td><input data-cond="${esc(c.id)}" value="${esc(c.businessObject.name || '')}" maxlength="150"></td>
+        <td><input data-cond="${esc(c.id)}" value="${esc(c.businessObject.name || '')}" maxlength="150" placeholder="Подпись: Да / Нет">
+          ${is(el, 'bpmn:ParallelGateway') || is(el, 'bpmn:EventBasedGateway') ? '' : `<input data-flowcheck="${esc(c.id)}" class="be-code" value="${esc(readDetails(c.businessObject).check || '')}" maxlength="1000" placeholder="Проверка: сумма &gt; 1000">`}</td>
         <td><input type="radio" name="be-default" value="${esc(c.id)}" ${bo.default === c.businessObject ? 'checked' : ''} ${is(el, 'bpmn:ParallelGateway') ? 'disabled' : ''}></td>
         <td><input data-prob="${esc(c.id)}" inputmode="decimal" value="${readDetails(c.businessObject).probability ?? ''}" placeholder="0–1"></td></tr>`).join('')}
-        </table><label class="be-check"><input type="radio" name="be-default" value="" ${!bo.default ? 'checked' : ''}> Без ветки «иначе»</label></fieldset>` : ''}
+        </table><label class="be-check"><input type="radio" name="be-default" value="" ${!bo.default ? 'checked' : ''}> Без ветки «иначе»</label>
+        ${is(el, 'bpmn:ParallelGateway') || is(el, 'bpmn:EventBasedGateway') ? '<p class="hint">Параллельный шлюз запускает все ветки; у шлюза «по событию» ветку выбирают при запуске.</p>' : `<p class="hint">При запуске процесса: исключающий шлюз идёт по первой ветке с истинной проверкой, иначе — по ветке «иначе»; инклюзивный — по всем истинным. Без проверок ветку выбирают вручную.</p>
+        <div class="be-row"><label>Тестовые данные (JSON)<input id="be-gw-testdata" class="be-code" value="${esc(loadTestData())}"></label><button type="button" id="be-gw-try">Проверить проверки</button></div>
+        <pre id="be-gw-out" class="be-out" hidden></pre>`}</fieldset>` : ''}
       <p class="hint">ID: ${esc(el.id)} · изменения можно отменить Ctrl+Z, предыдущие версии — во вкладке «История».</p>`;
     const w = dialog(`Свойства: ${bo.name || el.id}`, html, (w) => save(el, w, d), `<button type="button" class="be-delete">Удалить блок</button>`);
     w.querySelector('#be-role').onchange = (e) => { w.querySelector('#be-newrole-box').hidden = e.target.value !== '__new'; };
+    const exec = w.querySelector('#be-exec');
+    if (exec) {
+      const sync = () => {
+        const t = w.querySelector('#be-type')?.value || bo.$type;
+        exec.classList.toggle('auto', AUTO.has(t)); exec.classList.toggle('human', !AUTO.has(t));
+      };
+      w.querySelector('#be-type')?.addEventListener('change', sync); sync();
+      w.querySelector('#be-try').onclick = async () => {
+        const out = w.querySelector('#be-try-out'); out.hidden = false; out.className = 'be-out';
+        try {
+          const variables = parseTestData(val(w, '#be-testdata')); saveTestData(val(w, '#be-testdata'));
+          const r = await api('/api/run/code', { code: w.querySelector('#be-code').value, variables });
+          if (!r.ok) { out.classList.add('bad'); out.textContent = r.error; return; }
+          let text = 'Код выполнен. Изменилось: ' + JSON.stringify(r.changed, null, 1);
+          if (r.logs.length) text += '\nЖурнал:\n' + r.logs.join('\n');
+          const tpl = w.querySelector('#be-report').value.trim();
+          if (tpl) text += '\n\nДокумент:\n' + (await api('/api/run/code', { code: tpl, mode: 'template', variables: r.variables })).text;
+          out.textContent = text;
+        } catch (e) { out.classList.add('bad'); out.textContent = e.message; }
+      };
+    }
+    const gwTry = w.querySelector('#be-gw-try');
+    if (gwTry) gwTry.onclick = async () => {
+      const out = w.querySelector('#be-gw-out'); out.hidden = false; out.className = 'be-out';
+      try {
+        const variables = parseTestData(val(w, '#be-gw-testdata')); saveTestData(val(w, '#be-gw-testdata'));
+        const lines = [];
+        for (const i of w.querySelectorAll('[data-flowcheck]')) {
+          const name = i.closest('tr').querySelector('td').textContent;
+          if (!i.value.trim()) { lines.push(`${name}: проверки нет`); continue; }
+          const r = await api('/api/run/code', { code: i.value, mode: 'check', variables });
+          lines.push(`${name}: ${r.ok ? (r.result ? 'ДА — ветка подходит' : 'нет') : 'ошибка — ' + r.error}`);
+        }
+        out.textContent = lines.join('\n');
+      } catch (e) { out.classList.add('bad'); out.textContent = e.message; }
+    };
     w.querySelector('#be-person').onchange = (e) => {
       w.querySelector('#be-newperson').hidden = e.target.value !== '__new';
       const p = people.find(x => x.id === e.target.value);
@@ -243,6 +308,15 @@
     };
     if (details.source_quote && state.text && !state.text.includes(details.source_quote) && details.source_quote !== old.source_quote) {
       throw new Error('Цитата должна дословно встречаться в исходном описании (или оставьте поле пустым).');
+    }
+    if (w.querySelector('#be-exec')) {
+      const t = val(w, '#be-type') || el.businessObject.$type;
+      details.report = w.querySelector('#be-report').value.trim();
+      if (AUTO.has(t)) details.code = w.querySelector('#be-code').value.replace(/\s+$/, '');
+      else {
+        details.fields = val(w, '#be-fields').split('\n').map(s => s.trim().replace(/\s+/g, '_')).filter(Boolean);
+        if (details.fields.some(f => !/^[\p{L}_][\p{L}\p{N}_]*$/u.test(f))) throw new Error('Названия данных — одним словом из букв, цифр и _, например номер_акта');
+      }
     }
     if (w.querySelector('#be-acc')) {
       details.accountable = val(w, '#be-acc') || undefined;
@@ -291,7 +365,9 @@
       const conditional = is(element, 'bpmn:ExclusiveGateway') || is(element, 'bpmn:InclusiveGateway');
       const cond = conditional && label && flow.id !== defaultId
         ? moddle.create('bpmn:FormalExpression', { body: label }) : undefined;
+      const checkInput = w.querySelector(`[data-flowcheck="${CSS.escape(flow.id)}"]`);
       const fd = { ...readDetails(flow.businessObject), probability: probs[flow.id] };
+      if (checkInput) fd.check = checkInput.value.trim();
       modeling.updateProperties(flow, { conditionExpression: cond, documentation: buildDocs(flow.businessObject, fd, readDescription(flow.businessObject)) });
     });
     if (w.querySelector('input[name="be-default"]') && !is(element, 'bpmn:ParallelGateway')) {
@@ -311,6 +387,7 @@
     const html = `<fieldset><legend>Связь «${esc(src.businessObject.name || src.id)}» → «${esc(flow.target.businessObject.name || flow.target.id)}»</legend>
       <label>Подпись / условие<input id="be-flabel" value="${esc(bo.name || '')}" maxlength="150"></label>
       ${conditional ? `<label class="be-check"><input type="checkbox" id="be-fdef" ${src.businessObject.default === bo ? 'checked' : ''}> Ветка по умолчанию («иначе»)</label>` : ''}
+      ${conditional ? `<label>Проверка при запуске (выражение над данными процесса)<input id="be-fcheck" class="be-code" value="${esc(d.check || '')}" maxlength="1000" placeholder="сумма > 1000 and решение == &quot;да&quot;"></label>` : ''}
       <label>Вероятность (0–1, для аналитики)<input id="be-fprob" inputmode="decimal" value="${d.probability ?? ''}"></label>
       <label>Описание<textarea id="be-fdesc" rows="2">${esc(readDescription(bo))}</textarea></label></fieldset>`;
     dialog('Свойства связи', html, (w) => {
@@ -322,7 +399,7 @@
       if (label !== (bo.name || '')) modeling.updateLabel(flow, label);
       const isDefault = conditional && w.querySelector('#be-fdef').checked;
       const cond = conditional && label && !isDefault ? svc('moddle').create('bpmn:FormalExpression', { body: label }) : undefined;
-      modeling.updateProperties(flow, { conditionExpression: cond, documentation: buildDocs(bo, { ...d, probability: p }, val(w, '#be-fdesc')) });
+      modeling.updateProperties(flow, { conditionExpression: cond, documentation: buildDocs(bo, { ...d, probability: p, check: conditional ? val(w, '#be-fcheck') : d.check }, val(w, '#be-fdesc')) });
       if (conditional) {
         const cur = src.businessObject.default === bo;
         if (isDefault !== cur) modeling.updateProperties(src, { default: isDefault ? bo : undefined });

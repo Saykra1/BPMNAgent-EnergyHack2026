@@ -107,30 +107,47 @@ def ir_problems(plan: Plan, result: BuildResult | None, issues: list[LintIssue])
     return out
 
 
-def hide_people(plan: Plan) -> Plan:
-    """Copy of the IR for the model: the performers directory keeps ids and roles, but names,
-    positions and contacts are replaced. Regex PII masking alone would miss names like "Пётр Петров"."""
-    if not plan.performers:
+def for_model(plan: Plan) -> Plan:
+    """Copy of the IR for the model.
+    - The performers directory keeps ids and roles; names, positions and contacts are replaced
+      (regex PII masking alone would miss names like "Пётр Петров").
+    - Block code, document templates, form fields and branch checks are removed: the model does not
+      need them to edit the structure and must not rewrite or lose them."""
+    if not plan.performers and not any(e.code or e.report or e.fields for e in plan.elements) \
+            and not any(f.check for f in plan.flows):
         return plan
     out = plan.model_copy(deep=True)
     for i, person in enumerate(out.performers, 1):
         person.name, person.position, person.contacts = f"Исполнитель {i}", "", ""
+    for e in out.elements:
+        e.code, e.report, e.fields = "", "", []
+    for f in out.flows:
+        f.check = ""
     return out
 
 
-def restore_people(plan: Plan, original: list) -> Plan:
-    """Put the real performer records back (by id) after the model answered."""
-    real = {p.id: p for p in original}
-    if not real and not plan.performers:
-        return plan
+def restore_private(plan: Plan, original: Plan) -> Plan:
+    """After the model answered: real performer records back by id; code, templates and fields back
+    by element id; branch checks back by (from, to)."""
     plan = plan.model_copy(deep=True)
+    real = {p.id: p for p in original.performers}
     plan.performers = [real.get(p.id, p) for p in plan.performers]
     known = {p.id for p in plan.performers}
     plan.performers += [p for pid, p in real.items() if pid not in known and
                         any(e.performer == pid for e in plan.elements)]
+    known = {p.id for p in plan.performers}
+    old = {e.id: e for e in original.elements}
     for e in plan.elements:
-        if e.performer and e.performer not in {p.id for p in plan.performers}:
+        if e.performer and e.performer not in known:
             e.performer = None
+        o = old.get(e.id)
+        if o is not None:
+            e.code = e.code or o.code
+            e.report = e.report or o.report
+            e.fields = e.fields or list(o.fields)
+    checks = {(f.source, f.target): f.check for f in original.flows if f.check}
+    for f in plan.flows:
+        f.check = f.check or checks.get((f.source, f.target), "")
     return plan
 
 
@@ -289,7 +306,7 @@ class Pipeline:
             llm_rounds += 1
             text_errors = "\n".join(f"- {p}" for p in problems)
             log.write(f"errors_{llm_rounds}.txt", text_errors)
-            ir_json = hide_people(plan).model_dump_json(by_alias=True, exclude_defaults=True)
+            ir_json = for_model(plan).model_dump_json(by_alias=True, exclude_defaults=True)
             if masked:
                 ir_json = _remask(ir_json, masked)
             messages = conv[:2] + [{"role": "assistant", "content": ir_json},
@@ -300,7 +317,7 @@ class Pipeline:
                 new_plan = parse_plan(answer)
                 if masked:
                     new_plan = Plan.model_validate(pii.unmask(new_plan.model_dump(by_alias=True), masked))
-                plan, source = restore_people(new_plan, plan.performers), "ir_repaired"
+                plan, source = restore_private(new_plan, plan), "ir_repaired"
                 attempts.append({"stage": f"repair_{llm_rounds}", "ok": True})
             except (PlanError, LLMError) as e:
                 attempts.append({"stage": f"repair_{llm_rounds}", "ok": False, "error": str(e)})
@@ -401,7 +418,7 @@ class Pipeline:
             log.prompts(prompts.used("ir_edit.system", "ir_edit.user", "ir_repair.user"))
             g = IRGraph.build(before)
             steps = "\n".join(f"{i}. {g.name(n)} ({n})" for i, n in g.numbered_steps())
-            ir_json = hide_people(before).model_dump_json(by_alias=True, exclude_defaults=True)
+            ir_json = for_model(before).model_dump_json(by_alias=True, exclude_defaults=True)
             masked_instr, items = self._mask(instruction)
             ir_masked, more = self._mask(_remask(ir_json, items) if items else ir_json)
             items += [m for m in more if m.token not in {x.token for x in items}]
@@ -419,7 +436,7 @@ class Pipeline:
                 after = parse_plan(self._ask(log, "edit_ir_json_repair", messages, ir_json_schema()))
             if items:
                 after = Plan.model_validate(pii.unmask(after.model_dump(by_alias=True), items))
-            after = restore_people(after, before.performers)
+            after = restore_private(after, before)
             attempts.append({"stage": "edit_ir", "ok": True})
         except (InputError, LLMError, PlanError) as e:
             log.finish(ok=False, error=str(e))
@@ -455,7 +472,7 @@ class Pipeline:
         from .ir.sop import plain_explanation
         if use_llm:
             answer, run_id = self._tool_ask("explain", "explain.system",
-                                            hide_people(plan).model_dump_json(by_alias=True, exclude_defaults=True), None)
+                                            for_model(plan).model_dump_json(by_alias=True, exclude_defaults=True), None)
             if answer and len(answer.strip()) > 40:
                 return {"text": answer.strip(), "source": "llm", "run_id": run_id}
         return {"text": plain_explanation(plan), "source": "rules"}
@@ -511,7 +528,7 @@ class Pipeline:
             | {"elements": {"type": "array", "items": {"type": "string"}}}, "required": ["title", "action"]}}},
             "required": ["recommendations"]}
         answer, run_id = self._tool_ask("recommend", "recommend.system",
-                                        json.dumps({"ir": hide_people(plan).model_dump(by_alias=True, exclude_defaults=True),
+                                        json.dumps({"ir": for_model(plan).model_dump(by_alias=True, exclude_defaults=True),
                                                     "facts": facts}, ensure_ascii=False), schema)
         recs = []
         if answer:

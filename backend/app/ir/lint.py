@@ -156,6 +156,31 @@ def lint(plan: Plan) -> list[LintIssue]:
             add("info", "I_DUP_NAME", e.id, f"Название «{e.name}» повторяется у нескольких шагов.",
                 "Если это разные действия — уточните названия; если одно — используйте один шаг с циклом.")
             names[e.name.strip().lower()] = 0          # report once per name
+    # --- execution: block code and branch checks ----------------------------------------------
+    from ..run.script import check_syntax
+    for e in plan.elements:
+        if e.code.strip():
+            msg = check_syntax(e.code)
+            if msg:
+                add("warning", "W_CODE", e.id, f"Код шага {g.label(e.id)} не запустится: {msg}",
+                    "Исправьте код в свойствах блока (⚙) и нажмите «Проверить код».")
+            if e.type not in ("service_task", "script_task", "business_rule_task", "send_task"):
+                add("info", "I_CODE_HUMAN", e.id, f"У шага {g.label(e.id)} есть код, но его выполняет человек: "
+                    "код при запуске не исполняется.", "Смените тип на «Сервисная (автоматически)» или уберите код.")
+    for e in plan.elements:
+        if e.type not in ("exclusive_gateway", "inclusive_gateway") or len(g.out[e.id]) < 2:
+            continue
+        outs = g.out[e.id]
+        for f in outs:
+            if f.check:
+                msg = check_syntax(f.check, "check")
+                if msg:
+                    add("warning", "W_CHECK", e.id, f"Проверка ветки «{f.label or g.name(f.target)}» у {g.label(e.id)} "
+                        f"не запустится: {msg}", "Исправьте проверку в свойствах развилки (⚙).")
+        if any(f.check for f in outs) and not any(f.default for f in outs) and \
+                sum(1 for f in outs if not f.check) != 1:
+            add("info", "I_CHECK_NO_DEFAULT", e.id, f"У развилки {g.label(e.id)} есть проверки, но нет ветки «иначе»: "
+                "если ни одна проверка не выполнится, запуск остановится.", "Отметьте ветку «иначе».")
     return issues
 
 

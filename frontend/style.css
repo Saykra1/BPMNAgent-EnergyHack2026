@@ -429,3 +429,39 @@ body.tour-open #canvas .djs-context-pad { display: none !important; }
 .be-delete { color: var(--danger); border-color: var(--danger); }
 @media (max-width: 560px) { .be-table th:nth-child(4), .be-table td:nth-child(4) { display: none; } }
 .djs-overlay-block-editor { z-index: 5; }
+
+/* Block execution: code, checks (block-editor.js) */
+.be-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px !important; }
+textarea.be-code { tab-size: 4; white-space: pre; }
+.be-table input.be-code { margin-top: 4px; }
+#be-exec.auto .be-human-only, #be-exec.human .be-auto-only { display: none; }
+.be-help summary { cursor: pointer; color: var(--accent); font-size: 12px; }
+.be-help p { font-size: 12px; color: var(--muted); margin: 6px 0; }
+.be-out { margin: 8px 0 0; padding: 10px 12px; max-height: 220px; overflow: auto; border-radius: 9px; background: #f4f8f5; border: 1px solid var(--line); font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.be-out.bad { background: #fdf0ee; border-color: #efc6c1; color: var(--danger); }
+
+/* Process run panel (process-run.js) */
+#run-panel { position: fixed; top: 64px; right: 0; bottom: 0; z-index: 26; display: flex; flex-direction: column; width: min(460px, 100vw); border-left: 1px solid var(--line); background: #fff; box-shadow: -12px 0 40px rgba(23, 48, 32, .14); transform: translateX(105%); visibility: hidden; transition: transform .22s ease, visibility .22s; }
+body.run-open #run-panel { transform: translateX(0); visibility: visible; }
+.run-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 20px 12px; border-bottom: 1px solid var(--line); }
+.run-head h2 { margin: 3px 0 0; font-size: 20px; }
+.run-body { overflow-y: auto; padding: 12px 20px 24px; }
+.run-body h3 { font-size: 14px; margin: 18px 0 8px; }
+.run-body label { display: block; margin: 8px 0; font-size: 12px; color: var(--muted); }
+.run-body label > input, .run-body label > textarea { margin-top: 4px; color: var(--ink); font-size: 14px; }
+.run-body .be-check { display: inline-flex; color: var(--ink); font-size: 14px; }
+.run-status { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.run-card { border: 1px solid var(--line-strong); border-left: 4px solid var(--warn); border-radius: 10px; padding: 12px 14px; margin: 12px 0; background: #fffdf8; }
+.run-card.ok { border-left-color: var(--good); background: #f6fbf8; }
+.run-card.bad { border-left-color: var(--danger); background: #fdf6f5; }
+.run-card p { margin: 6px 0; font-size: 13px; }
+.run-docs { padding-left: 18px; margin: 0 0 10px; font-size: 13px; }
+.run-docs li { margin: 6px 0; }
+.run-text { white-space: pre-wrap; font-size: 13px; }
+.run-log { padding-left: 18px; font-size: 12px; }
+.run-log li { margin: 4px 0; }
+.run-log li.error { color: var(--danger); }
+.run-log .quiet { font-size: 12px; padding: 0; }
+.djs-element.run-done .djs-visual > :first-child { fill: #e3f4ea !important; }
+.djs-element.run-waiting .djs-visual > :first-child { fill: #fff1d6 !important; stroke: #c98a1c !important; stroke-width: 3px !important; }
+.djs-element.run-error .djs-visual > :first-child { fill: #fde4e1 !important; stroke: var(--danger) !important; stroke-width: 3px !important; }

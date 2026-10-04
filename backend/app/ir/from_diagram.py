@@ -75,7 +75,7 @@ def diagram_to_plan(d: Diagram) -> Plan:
         for key in ("duration_min", "wait_min", "sla_hours", "accountable"):
             if details.get(key) is not None:
                 el[key] = details[key]
-        for key in ("consulted", "informed", "description", "performer"):
+        for key in ("consulted", "informed", "description", "performer", "code", "report", "fields"):
             if details.get(key):
                 el[key] = details[key]
         el["estimate"] = bool(details.get("estimate"))
@@ -86,7 +86,7 @@ def diagram_to_plan(d: Diagram) -> Plan:
         elements.append(el)
     rid = lambda x: reserved.get(x, x)  # noqa: E731
     flows = [{"from": rid(f.source), "to": rid(f.target), "label": f.name or None,
-              "default": f.default, "probability": f.probability}
+              "default": f.default, "probability": f.probability, "check": f.check}
              for f in d.sequence_flows() if f.source not in skip and f.target not in skip]
     message_flows = [{"from": rid(f.source), "to": rid(f.target), "label": f.name or None}
                      for f in d.message_flows()]

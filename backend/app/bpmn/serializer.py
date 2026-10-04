@@ -129,9 +129,10 @@ def _emit_container(d: Diagram, parent_el, container: str) -> None:
         if d.nodes[f.source].container != container:
             continue
         el = etree.SubElement(parent_el, _b("sequenceFlow"), id=f.id, sourceRef=f.source, targetRef=f.target)
-        if f.probability is not None:
+        flow_details = {k: v for k, v in (("probability", f.probability), ("check", f.check)) if v not in (None, "")}
+        if flow_details:
             etree.SubElement(el, _b("documentation"), textFormat="application/json").text = (
-                "BPMN_AGENT_DETAILS:" + json.dumps({"probability": f.probability}))
+                "BPMN_AGENT_DETAILS:" + json.dumps(flow_details, ensure_ascii=False))
         if f.name:
             el.set("name", f.name)
             if (d.nodes[f.source].kind in COND_GATEWAYS and len(d.outgoing(f.source)) > 1

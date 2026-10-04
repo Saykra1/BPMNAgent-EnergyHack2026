@@ -64,6 +64,10 @@ class Element(BaseModel):
     # --- free description and the concrete person (from Plan.performers) ---
     description: str = Field("", description="Описание шага своими словами")
     performer: str | None = Field(None, description="id исполнителя из справочника performers")
+    # --- execution (заполняет аналитик в свойствах блока; модель эти поля не заполняет) ---
+    code: str = Field("", description="Код автоматического шага (подмножество Python над переменными процесса)")
+    report: str = Field("", description="Шаблон документа о выполненной работе ({переменная}) или подсказка исполнителю")
+    fields: list[str] = Field(default_factory=list, description="Данные, которые вводит исполнитель-человек")
 
     @field_validator("name", mode="before")
     @classmethod
@@ -77,6 +81,7 @@ class FlowSpec(BaseModel):
     label: str | None = Field(None, description="Условие ветви шлюза («Да», «Документы неполные»)")
     default: bool = Field(False, description="Ветка «иначе» исключающего/инклюзивного шлюза")
     probability: float | None = Field(None, ge=0, le=1, description="Вероятность ветви (для аналитики)")
+    check: str = Field("", description="Проверка ветки при запуске процесса: выражение над переменными")
 
     model_config = {"populate_by_name": True}
 
@@ -433,8 +438,8 @@ def compile_plan(plan: Plan, annotate_assumptions: bool = False) -> str:
             continue                                  # emitted after all hosts exist (below)
         extra = {k: getattr(e, k) for k in ("duration_min", "wait_min", "sla_hours", "accountable")
                  if getattr(e, k) is not None}
-        extra.update({k: getattr(e, k) for k in ("consulted", "informed", "description", "performer")
-                      if getattr(e, k)})
+        extra.update({k: getattr(e, k) for k in ("consulted", "informed", "description", "performer",
+                                                 "code", "report", "fields") if getattr(e, k)})
         if e.estimate:
             extra["estimate"] = True
         if e.source_quote or e.assumption or e.deadline or e.documents or extra:
@@ -456,6 +461,8 @@ def compile_plan(plan: Plan, annotate_assumptions: bool = False) -> str:
             label += (", None" if not f.label else "") + ", default=True"
         if f.probability is not None:
             label += f", probability={f.probability!r}"
+        if f.check:
+            label += f", check={q(f.check)}"
         lines.append(f"DIAGRAM.add_link({var[f.source]}, {var[f.target]}{label})")
     for f in plan.message_flows:
         src = var.get(f.source) or container.get(f.source)

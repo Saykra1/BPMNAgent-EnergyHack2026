@@ -83,3 +83,24 @@ def test_dialog_edit_never_sends_people_to_model(tmp_path):
     back = xml_to_plan(res.xml)
     assert back.performers[0].name == "Пётр Иванов" and back.performers[0].contacts == "+7 900 000-00-00"
     assert next(e for e in back.elements if e.id == sid).performer == "ivanov"
+
+
+def test_dialog_edit_keeps_code_and_checks_without_sending_them(tmp_path):
+    data, sid = plan_with_people()
+    step = next(e for e in data["elements"] if e["id"] == sid)
+    step.update(type="service_task", code='секрет_кода = 42', report="Отчёт {секрет_кода}")
+    flow = next(f for f in data["flows"] if sum(1 for g in data["flows"] if g["from"] == f["from"]) > 1)
+    flow["check"] = "проверка_ветки > 0"
+    xml = build_ir(parse_plan(data)).xml
+    answer = json.loads(json.dumps(data))                # the model returns the IR without these fields
+    for e in answer["elements"]:
+        e.pop("code", None), e.pop("report", None)
+    for f in answer["flows"]:
+        f.pop("check", None)
+    llm = ScriptedClient([json.dumps(answer, ensure_ascii=False)])
+    res = Pipeline(llm, tmp_path, 3).refine("", "переименуй шаг", xml=xml)
+    sent = json.dumps([c["messages"] for c in llm.calls], ensure_ascii=False)
+    assert "секрет_кода" not in sent and "проверка_ветки" not in sent
+    back = xml_to_plan(res.xml)
+    assert next(e for e in back.elements if e.id == sid).code == "секрет_кода = 42"
+    assert any(f.check == "проверка_ветки > 0" for f in back.flows)

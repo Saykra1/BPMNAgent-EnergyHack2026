@@ -75,6 +75,7 @@ class Flow:
     kind: str = "sequence"  # "sequence" | "message"
     default: bool = False    # default ("otherwise") branch of an exclusive/inclusive gateway
     probability: float | None = None
+    check: str = ""          # branch check evaluated when the process is run
 
 
 @dataclass
@@ -152,7 +153,8 @@ class Diagram:
 
     def set_details(self, target, source_quote="", assumption="", deadline="", documents=None,
                     duration_min=None, wait_min=None, sla_hours=None, estimate=False,
-                    accountable=None, consulted=None, informed=None, description="", performer=None):
+                    accountable=None, consulted=None, informed=None, description="", performer=None,
+                    code="", report="", fields=None):
         if target not in self.nodes:
             raise DiagramError("Карточку можно добавить только к шагу, шлюзу или событию")
         if not all(isinstance(v, str) for v in (source_quote, assumption, deadline)):
@@ -186,6 +188,15 @@ class Diagram:
             if not any(p["id"] == performer for p in self.performers):
                 raise DiagramError(f"set_details: неизвестный исполнитель {performer!r} (добавьте add_performer)")
             details["performer"] = performer
+        for key, value in (("code", code), ("report", report)):
+            if value:
+                if not isinstance(value, str):
+                    raise DiagramError(f"{key} должен быть строкой")
+                details[key] = value
+        if fields:
+            if not isinstance(fields, list) or not all(isinstance(v, str) for v in fields):
+                raise DiagramError("fields должен быть списком строк")
+            details["fields"] = fields
         self.nodes[target].details = details
         return target
 
@@ -403,7 +414,7 @@ class Diagram:
                 hint = " Это id контейнера, а связывать можно только узлы (задачи, шлюзы, события)."
             raise DiagramError(f"add_link: {what} {ref!r} не является узлом диаграммы.{hint}")
 
-    def add_link(self, source, target, name=None, default=False, probability=None):
+    def add_link(self, source, target, name=None, default=False, probability=None, check=None):
         """Sequence flow. default=True marks the gateway's default ("иначе") branch;
         probability (0..1) is used only by analytics / simulation."""
         self._check_endpoint(source, "источник")
@@ -417,9 +428,12 @@ class Diagram:
             raise DiagramError("add_link: probability должна быть числом от 0 до 1")
         if default and any(f.default for f in self.outgoing(source)):
             raise DiagramError(f"add_link: у шлюза {source} уже есть ветка по умолчанию")
+        if check is not None and not isinstance(check, str):
+            raise DiagramError("add_link: check должна быть строкой")
         label = name.strip() if isinstance(name, str) else ""
         fid = self._id("Flow")
-        self.flows[fid] = Flow(fid, source, target, label, "sequence", bool(default), probability)
+        self.flows[fid] = Flow(fid, source, target, label, "sequence", bool(default), probability,
+                               (check or "").strip())
         return fid
 
     def add_message_link(self, source, target, name=None):
