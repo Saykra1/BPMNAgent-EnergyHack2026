@@ -163,7 +163,15 @@
           const score = result.branches.find(item => item.id === node.dataset.route);
           if (score) node.insertAdjacentHTML('beforeend', scoreFor(score.id, 'branches'));
         });
-        output.textContent = `Jev проверил ${result.gaps.length} фрагментов и ${result.branches.length} ветвей. Оценки показаны на карточках.`;
+        const currentView = mount.querySelector('[data-audit-view].active')?.dataset.auditView;
+        const targetView = currentView === 'gaps' && result.gaps.length ? 'gaps' :
+          currentView === 'branches' && result.branches.length ? 'branches' :
+          result.branches.length ? 'branches' : 'gaps';
+        mount.querySelector(`[data-audit-view="${targetView}"]`)?.click();
+        output.textContent = `Jev проверил ${result.gaps.length} фрагментов текста и ${result.branches.length} ветвей. ` +
+          (targetView === 'branches' ? 'Проценты видны у каждой проверенной ветви во вкладке «Развилки».' :
+            'Проценты видны у проверенных фрагментов во вкладке «Текст».');
+        mount.querySelector(`#audit-${targetView} .audit-score`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       } catch (error) { output.textContent = 'Jev недоступен: ' + error.message; }
       finally { if (button.isConnected) button.disabled = false; }
     };

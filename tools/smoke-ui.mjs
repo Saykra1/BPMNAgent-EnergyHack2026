@@ -144,6 +144,19 @@ try {
   assert.equal(await demoPage.locator('#process-audit').isVisible(), true);
   await demoPage.locator('[data-audit-view="branches"]').click();
   assert.equal(await demoPage.locator('.branch-card').count() > 0, true);
+  let reviewedBranches = 0;
+  await demoPage.route('**/api/jev-audit', route => {
+    const request = route.request().postDataJSON();
+    reviewedBranches = request.branches.length;
+    return route.fulfill({ json: { ok: true, gaps: [],
+      branches: request.branches.map(item => ({ id: item.id, support: 0.72 })) } });
+  });
+  await demoPage.locator('[data-audit-view="gaps"]').click();
+  await demoPage.locator('#jev-audit').click();
+  await demoPage.waitForFunction(() => document.querySelector('#jev-audit-result')?.textContent.includes('Jev проверил'));
+  assert.equal(await demoPage.locator('[data-audit-view="branches"]').getAttribute('class'), 'active');
+  assert.equal(await demoPage.locator('#audit-branches .audit-score').count(), reviewedBranches);
+  assert.match(await demoPage.locator('#jev-audit-result').innerText(), /во вкладке «Развилки»/);
   if (process.env.SCREENSHOT_DIR) {
     await demoPage.screenshot({ path: `${process.env.SCREENSHOT_DIR}/audit.png` });
   }
