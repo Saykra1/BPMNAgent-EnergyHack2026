@@ -43,6 +43,22 @@ try {
   assert.equal(Date.now() - introStarted >= 1200, true);
   await page.reload();
   assert.equal(await page.locator('#intro-screen').count(), 0);
+  const quizAudit = await page.evaluate(() => {
+    window.waitQuiz.start();
+    const seen = new Set();
+    for (let i = 0; i < 35; i++) {
+      seen.add(document.querySelector('#wait-quiz-question').textContent);
+      const buttons = [...document.querySelectorAll('.wait-quiz-option')];
+      if (buttons.length !== 3) throw new Error(`Question ${i + 1} does not have three options`);
+      buttons[0].click();
+      if (document.querySelectorAll('.wait-quiz-option.is-correct').length !== 1) throw new Error(`Question ${i + 1} has no unique answer`);
+      if (!document.querySelector('#wait-quiz-feedback a')?.href.startsWith('https://')) throw new Error(`Question ${i + 1} has no source`);
+      document.querySelector('#wait-quiz-next').click();
+    }
+    return { unique: seen.size, progress: document.querySelector('#wait-quiz-progress').textContent };
+  });
+  assert.equal(quizAudit.unique, 35);
+  assert.match(quizAudit.progress, /1 \/ 35/);
   assert.equal(await page.locator('#right').isVisible(), false);
   assert.equal(await page.locator('#open-demo').isVisible(), true);
   assert.equal(await page.locator('#dl-bpmn').isDisabled(), true);
@@ -79,7 +95,7 @@ try {
     await page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/wait-quiz.png` });
   }
   await page.locator('#wait-quiz-next').click();
-  assert.match(await page.locator('#wait-quiz-progress').innerText(), /2 \/ 5/);
+  assert.match(await page.locator('#wait-quiz-progress').innerText(), /2 \/ 35/);
   await page.locator('#answer-0').fill('Заявку закрывают и уведомляют заявителя.');
   assert.equal(await page.locator('#loading').isVisible(), false);
   await page.locator('#answer-apply').click();
