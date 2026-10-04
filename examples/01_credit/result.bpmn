@@ -1,0 +1,423 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="BPMN Agent" exporterVersion="1.0" name="Выдача потребительского кредита">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_1" name="Банк" processRef="Process_1"/>
+    <bpmn:participant id="bki" name="Бюро кредитных историй"/>
+    <bpmn:messageFlow id="MessageFlow_1" sourceRef="history" targetRef="bki" name="Запрос кредитной истории"/>
+  </bpmn:collaboration>
+  <bpmn:process id="Process_1" isExecutable="false" name="Банк">
+    <bpmn:laneSet id="LaneSet_Process_1">
+      <bpmn:lane id="client" name="Клиент">
+        <bpmn:flowNodeRef>start</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>submit</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>fill</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>sign</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="system" name="Банковская система">
+        <bpmn:flowNodeRef>check_form</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>gw_full</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>req_more</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>par_split</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>history</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>notify_reject</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>end_reject</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="sec" name="Служба безопасности">
+        <bpmn:flowNodeRef>blacklist</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="manager" name="Кредитный менеджер">
+        <bpmn:flowNodeRef>par_join</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>assess</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>gw_sum</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>manager_decide</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>gw_dec_join</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>gw_approved</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>contract</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="committee" name="Кредитный комитет">
+        <bpmn:flowNodeRef>committee_decide</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="acc" name="Бухгалтерия">
+        <bpmn:flowNodeRef>end</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>transfer</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="start" name="Начало">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end" name="Конец">
+      <bpmn:incoming>Flow_24</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="submit" name="Подать заявку на кредит">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="check_form" name="Проверить полноту анкеты">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="gw_full" name="Анкета заполнена?" default="Flow_5">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sendTask id="req_more" name="Запросить недостающие данные">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:userTask id="fill" name="Дополнить анкету">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:parallelGateway id="par_split">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:task id="blacklist" name="Проверить по чёрным спискам">
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:serviceTask id="history" name="Запросить кредитную историю">
+      <bpmn:incoming>Flow_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:parallelGateway id="par_join">
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_12</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:userTask id="assess" name="Оценить платёжеспособность">
+      <bpmn:incoming>Flow_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_13</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_sum" name="Сумма больше 1 млн?" default="Flow_15">
+      <bpmn:incoming>Flow_13</bpmn:incoming>
+      <bpmn:outgoing>Flow_14</bpmn:outgoing>
+      <bpmn:outgoing>Flow_15</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="committee_decide" name="Принять решение комитетом">
+      <bpmn:incoming>Flow_14</bpmn:incoming>
+      <bpmn:outgoing>Flow_16</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:userTask id="manager_decide" name="Принять решение по кредиту">
+      <bpmn:incoming>Flow_15</bpmn:incoming>
+      <bpmn:outgoing>Flow_17</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_dec_join">
+      <bpmn:incoming>Flow_16</bpmn:incoming>
+      <bpmn:incoming>Flow_17</bpmn:incoming>
+      <bpmn:outgoing>Flow_18</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_approved" name="Кредит одобрен?" default="Flow_20">
+      <bpmn:incoming>Flow_18</bpmn:incoming>
+      <bpmn:outgoing>Flow_19</bpmn:outgoing>
+      <bpmn:outgoing>Flow_20</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sendTask id="notify_reject" name="Уведомить об отказе">
+      <bpmn:incoming>Flow_20</bpmn:incoming>
+      <bpmn:outgoing>Flow_21</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:endEvent id="end_reject" name="Кредит не выдан">
+      <bpmn:incoming>Flow_21</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="contract" name="Подготовить договор">
+      <bpmn:incoming>Flow_19</bpmn:incoming>
+      <bpmn:outgoing>Flow_22</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="sign" name="Подписать договор">
+      <bpmn:incoming>Flow_22</bpmn:incoming>
+      <bpmn:outgoing>Flow_23</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:task id="transfer" name="Перечислить деньги на счёт">
+      <bpmn:incoming>Flow_23</bpmn:incoming>
+      <bpmn:outgoing>Flow_24</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="start" targetRef="submit"/>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="submit" targetRef="check_form"/>
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="check_form" targetRef="gw_full"/>
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="gw_full" targetRef="par_split" name="Да">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Да</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="gw_full" targetRef="req_more" name="Нет"/>
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="req_more" targetRef="fill"/>
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="fill" targetRef="check_form"/>
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="par_split" targetRef="blacklist"/>
+    <bpmn:sequenceFlow id="Flow_9" sourceRef="par_split" targetRef="history"/>
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="blacklist" targetRef="par_join"/>
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="history" targetRef="par_join"/>
+    <bpmn:sequenceFlow id="Flow_12" sourceRef="par_join" targetRef="assess"/>
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="assess" targetRef="gw_sum"/>
+    <bpmn:sequenceFlow id="Flow_14" sourceRef="gw_sum" targetRef="committee_decide" name="Да">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Да</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_15" sourceRef="gw_sum" targetRef="manager_decide" name="Нет"/>
+    <bpmn:sequenceFlow id="Flow_16" sourceRef="committee_decide" targetRef="gw_dec_join"/>
+    <bpmn:sequenceFlow id="Flow_17" sourceRef="manager_decide" targetRef="gw_dec_join"/>
+    <bpmn:sequenceFlow id="Flow_18" sourceRef="gw_dec_join" targetRef="gw_approved"/>
+    <bpmn:sequenceFlow id="Flow_19" sourceRef="gw_approved" targetRef="contract" name="Да">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Да</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_20" sourceRef="gw_approved" targetRef="notify_reject" name="Нет"/>
+    <bpmn:sequenceFlow id="Flow_21" sourceRef="notify_reject" targetRef="end_reject"/>
+    <bpmn:sequenceFlow id="Flow_22" sourceRef="contract" targetRef="sign"/>
+    <bpmn:sequenceFlow id="Flow_23" sourceRef="sign" targetRef="transfer"/>
+    <bpmn:sequenceFlow id="Flow_24" sourceRef="transfer" targetRef="end"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true">
+        <dc:Bounds x="60" y="60" width="2572" height="984"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="bki_di" bpmnElement="bki" isHorizontal="true">
+        <dc:Bounds x="60" y="1094" width="2572" height="70"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="client_di" bpmnElement="client" isHorizontal="true">
+        <dc:Bounds x="90" y="60" width="2542" height="144"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_di" bpmnElement="system" isHorizontal="true">
+        <dc:Bounds x="90" y="204" width="2542" height="264"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="sec_di" bpmnElement="sec" isHorizontal="true">
+        <dc:Bounds x="90" y="468" width="2542" height="144"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="manager_di" bpmnElement="manager" isHorizontal="true">
+        <dc:Bounds x="90" y="612" width="2542" height="144"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="committee_di" bpmnElement="committee" isHorizontal="true">
+        <dc:Bounds x="90" y="756" width="2542" height="144"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="acc_di" bpmnElement="acc" isHorizontal="true">
+        <dc:Bounds x="90" y="900" width="2542" height="144"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_di" bpmnElement="start">
+        <dc:Bounds x="150" y="117" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="120" y="159" width="96" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_di" bpmnElement="end">
+        <dc:Bounds x="2566" y="957" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2536" y="999" width="96" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="submit_di" bpmnElement="submit">
+        <dc:Bounds x="256" y="95" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="check_form_di" bpmnElement="check_form">
+        <dc:Bounds x="446" y="239" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_full_di" bpmnElement="gw_full">
+        <dc:Bounds x="636" y="254" width="50" height="50"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="613" y="220" width="96" height="28"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="req_more_di" bpmnElement="req_more">
+        <dc:Bounds x="756" y="349" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="fill_di" bpmnElement="fill">
+        <dc:Bounds x="946" y="95" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="par_split_di" bpmnElement="par_split">
+        <dc:Bounds x="791" y="254" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="blacklist_di" bpmnElement="blacklist">
+        <dc:Bounds x="946" y="503" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="history_di" bpmnElement="history">
+        <dc:Bounds x="946" y="239" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="par_join_di" bpmnElement="par_join">
+        <dc:Bounds x="1136" y="662" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="assess_di" bpmnElement="assess">
+        <dc:Bounds x="1256" y="647" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_sum_di" bpmnElement="gw_sum">
+        <dc:Bounds x="1446" y="662" width="50" height="50"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1423" y="628" width="96" height="28"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="committee_decide_di" bpmnElement="committee_decide">
+        <dc:Bounds x="1566" y="791" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="manager_decide_di" bpmnElement="manager_decide">
+        <dc:Bounds x="1566" y="647" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_dec_join_di" bpmnElement="gw_dec_join">
+        <dc:Bounds x="1756" y="662" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_approved_di" bpmnElement="gw_approved">
+        <dc:Bounds x="1876" y="662" width="50" height="50"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1853" y="718" width="96" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="notify_reject_di" bpmnElement="notify_reject">
+        <dc:Bounds x="1996" y="239" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_reject_di" bpmnElement="end_reject">
+        <dc:Bounds x="2228" y="261" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2198" y="303" width="96" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="contract_di" bpmnElement="contract">
+        <dc:Bounds x="1996" y="647" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="sign_di" bpmnElement="sign">
+        <dc:Bounds x="2186" y="95" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="transfer_di" bpmnElement="transfer">
+        <dc:Bounds x="2376" y="935" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="186" y="135"/>
+        <di:waypoint x="256" y="135"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="376" y="135"/>
+        <di:waypoint x="411" y="135"/>
+        <di:waypoint x="411" y="279"/>
+        <di:waypoint x="446" y="279"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="566" y="279"/>
+        <di:waypoint x="636" y="279"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="686" y="279"/>
+        <di:waypoint x="791" y="279"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="692" y="262" width="24" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="661" y="304"/>
+        <di:waypoint x="661" y="389"/>
+        <di:waypoint x="756" y="389"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="669" y="372" width="24" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="876" y="389"/>
+        <di:waypoint x="911" y="389"/>
+        <di:waypoint x="911" y="135"/>
+        <di:waypoint x="946" y="135"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="1066" y="135"/>
+        <di:waypoint x="1080" y="135"/>
+        <di:waypoint x="1080" y="193"/>
+        <di:waypoint x="432" y="193"/>
+        <di:waypoint x="432" y="279"/>
+        <di:waypoint x="446" y="279"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <di:waypoint x="841" y="279"/>
+        <di:waypoint x="903" y="279"/>
+        <di:waypoint x="903" y="543"/>
+        <di:waypoint x="946" y="543"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <di:waypoint x="841" y="279"/>
+        <di:waypoint x="946" y="279"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <di:waypoint x="1066" y="543"/>
+        <di:waypoint x="1161" y="543"/>
+        <di:waypoint x="1161" y="662"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <di:waypoint x="1066" y="279"/>
+        <di:waypoint x="1161" y="279"/>
+        <di:waypoint x="1161" y="662"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12">
+        <di:waypoint x="1186" y="687"/>
+        <di:waypoint x="1256" y="687"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_13_di" bpmnElement="Flow_13">
+        <di:waypoint x="1376" y="687"/>
+        <di:waypoint x="1446" y="687"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_14_di" bpmnElement="Flow_14">
+        <di:waypoint x="1471" y="712"/>
+        <di:waypoint x="1471" y="831"/>
+        <di:waypoint x="1566" y="831"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1479" y="814" width="24" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_15_di" bpmnElement="Flow_15">
+        <di:waypoint x="1496" y="687"/>
+        <di:waypoint x="1566" y="687"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1502" y="670" width="24" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_16_di" bpmnElement="Flow_16">
+        <di:waypoint x="1686" y="831"/>
+        <di:waypoint x="1781" y="831"/>
+        <di:waypoint x="1781" y="712"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_17_di" bpmnElement="Flow_17">
+        <di:waypoint x="1686" y="687"/>
+        <di:waypoint x="1756" y="687"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_18_di" bpmnElement="Flow_18">
+        <di:waypoint x="1806" y="687"/>
+        <di:waypoint x="1876" y="687"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_19_di" bpmnElement="Flow_19">
+        <di:waypoint x="1926" y="687"/>
+        <di:waypoint x="1996" y="687"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1932" y="670" width="24" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_20_di" bpmnElement="Flow_20">
+        <di:waypoint x="1901" y="662"/>
+        <di:waypoint x="1901" y="279"/>
+        <di:waypoint x="1996" y="279"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1909" y="262" width="24" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_21_di" bpmnElement="Flow_21">
+        <di:waypoint x="2116" y="279"/>
+        <di:waypoint x="2228" y="279"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_22_di" bpmnElement="Flow_22">
+        <di:waypoint x="2116" y="687"/>
+        <di:waypoint x="2151" y="687"/>
+        <di:waypoint x="2151" y="135"/>
+        <di:waypoint x="2186" y="135"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_23_di" bpmnElement="Flow_23">
+        <di:waypoint x="2306" y="135"/>
+        <di:waypoint x="2341" y="135"/>
+        <di:waypoint x="2341" y="975"/>
+        <di:waypoint x="2376" y="975"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_24_di" bpmnElement="Flow_24">
+        <di:waypoint x="2496" y="975"/>
+        <di:waypoint x="2566" y="975"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_1_di" bpmnElement="MessageFlow_1">
+        <di:waypoint x="1006" y="319"/>
+        <di:waypoint x="1006" y="331"/>
+        <di:waypoint x="1101" y="331"/>
+        <di:waypoint x="1101" y="1094"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1107" y="698" width="120" height="28"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

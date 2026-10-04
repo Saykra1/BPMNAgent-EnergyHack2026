@@ -1,0 +1,335 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="BPMN Agent" exporterVersion="1.0" name="Обработка заказа интернет-магазина">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_1" name="Интернет-магазин" processRef="Process_1"/>
+    <bpmn:participant id="bank" name="Платёжный шлюз банка"/>
+    <bpmn:messageFlow id="MessageFlow_1" sourceRef="pay" targetRef="bank" name="Платёж"/>
+    <bpmn:messageFlow id="MessageFlow_2" sourceRef="bank" targetRef="confirm" name="Подтверждение оплаты"/>
+  </bpmn:collaboration>
+  <bpmn:process id="Process_1" isExecutable="false" name="Интернет-магазин">
+    <bpmn:laneSet id="LaneSet_Process_1">
+      <bpmn:lane id="buyer" name="Покупатель">
+        <bpmn:flowNodeRef>start</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>end</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>order</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>gw_pay</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>pay</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>receive</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>gw_accept</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="manager" name="Менеджер">
+        <bpmn:flowNodeRef>gw_pay_join</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>confirm</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>p_split</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="warehouse" name="Склад">
+        <bpmn:flowNodeRef>pick</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>process_return</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>end_return</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="acc" name="Бухгалтерия">
+        <bpmn:flowNodeRef>docs</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="delivery" name="Служба доставки">
+        <bpmn:flowNodeRef>p_join</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>deliver</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>return_goods</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="start" name="Начало">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end" name="Конец">
+      <bpmn:incoming>Flow_15</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="order" name="Оформить заказ">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_pay" name="Способ оплаты?">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="pay" name="Оплатить заказ онлайн">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_pay_join">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="confirm" name="Подтвердить заказ">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:parallelGateway id="p_split">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:manualTask id="pick" name="Собрать заказ">
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:serviceTask id="docs" name="Сформировать чек и документы">
+      <bpmn:incoming>Flow_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:parallelGateway id="p_join">
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_12</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:manualTask id="deliver" name="Доставить заказ">
+      <bpmn:incoming>Flow_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_13</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:task id="receive" name="Получить заказ">
+      <bpmn:incoming>Flow_13</bpmn:incoming>
+      <bpmn:outgoing>Flow_14</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="gw_accept" name="Покупатель принял заказ?" default="Flow_16">
+      <bpmn:incoming>Flow_14</bpmn:incoming>
+      <bpmn:outgoing>Flow_15</bpmn:outgoing>
+      <bpmn:outgoing>Flow_16</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:manualTask id="return_goods" name="Вернуть товар на склад">
+      <bpmn:incoming>Flow_16</bpmn:incoming>
+      <bpmn:outgoing>Flow_17</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:task id="process_return" name="Оформить возврат">
+      <bpmn:incoming>Flow_17</bpmn:incoming>
+      <bpmn:outgoing>Flow_18</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="end_return" name="Заказ возвращён">
+      <bpmn:incoming>Flow_18</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="start" targetRef="order"/>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="order" targetRef="gw_pay"/>
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="gw_pay" targetRef="pay" name="Картой онлайн">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Картой онлайн</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="gw_pay" targetRef="gw_pay_join" name="При получении">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">При получении</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="pay" targetRef="gw_pay_join"/>
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="gw_pay_join" targetRef="confirm"/>
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="confirm" targetRef="p_split"/>
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="p_split" targetRef="pick"/>
+    <bpmn:sequenceFlow id="Flow_9" sourceRef="p_split" targetRef="docs"/>
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="pick" targetRef="p_join"/>
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="docs" targetRef="p_join"/>
+    <bpmn:sequenceFlow id="Flow_12" sourceRef="p_join" targetRef="deliver"/>
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="deliver" targetRef="receive"/>
+    <bpmn:sequenceFlow id="Flow_14" sourceRef="receive" targetRef="gw_accept"/>
+    <bpmn:sequenceFlow id="Flow_15" sourceRef="gw_accept" targetRef="end" name="Да">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Да</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_16" sourceRef="gw_accept" targetRef="return_goods" name="Нет"/>
+    <bpmn:sequenceFlow id="Flow_17" sourceRef="return_goods" targetRef="process_return"/>
+    <bpmn:sequenceFlow id="Flow_18" sourceRef="process_return" targetRef="end_return"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true">
+        <dc:Bounds x="60" y="60" width="2382" height="830"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="bank_di" bpmnElement="bank" isHorizontal="true">
+        <dc:Bounds x="60" y="940" width="2382" height="70"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="buyer_di" bpmnElement="buyer" isHorizontal="true">
+        <dc:Bounds x="90" y="60" width="2352" height="254"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="manager_di" bpmnElement="manager" isHorizontal="true">
+        <dc:Bounds x="90" y="314" width="2352" height="144"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="warehouse_di" bpmnElement="warehouse" isHorizontal="true">
+        <dc:Bounds x="90" y="458" width="2352" height="144"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="acc_di" bpmnElement="acc" isHorizontal="true">
+        <dc:Bounds x="90" y="602" width="2352" height="144"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="delivery_di" bpmnElement="delivery" isHorizontal="true">
+        <dc:Bounds x="90" y="746" width="2352" height="144"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_di" bpmnElement="start">
+        <dc:Bounds x="150" y="117" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="120" y="159" width="96" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_di" bpmnElement="end">
+        <dc:Bounds x="2038" y="117" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2008" y="159" width="96" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="order_di" bpmnElement="order">
+        <dc:Bounds x="256" y="95" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_pay_di" bpmnElement="gw_pay">
+        <dc:Bounds x="446" y="110" width="50" height="50"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="423" y="90" width="96" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pay_di" bpmnElement="pay">
+        <dc:Bounds x="566" y="95" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_pay_join_di" bpmnElement="gw_pay_join">
+        <dc:Bounds x="756" y="364" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="confirm_di" bpmnElement="confirm">
+        <dc:Bounds x="876" y="349" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="p_split_di" bpmnElement="p_split">
+        <dc:Bounds x="1066" y="364" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pick_di" bpmnElement="pick">
+        <dc:Bounds x="1186" y="493" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="docs_di" bpmnElement="docs">
+        <dc:Bounds x="1186" y="637" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="p_join_di" bpmnElement="p_join">
+        <dc:Bounds x="1376" y="796" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="deliver_di" bpmnElement="deliver">
+        <dc:Bounds x="1496" y="781" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="receive_di" bpmnElement="receive">
+        <dc:Bounds x="1686" y="95" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_accept_di" bpmnElement="gw_accept">
+        <dc:Bounds x="1876" y="110" width="50" height="50"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1853" y="76" width="96" height="28"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="return_goods_di" bpmnElement="return_goods">
+        <dc:Bounds x="1996" y="781" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="process_return_di" bpmnElement="process_return">
+        <dc:Bounds x="2186" y="493" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_return_di" bpmnElement="end_return">
+        <dc:Bounds x="2376" y="515" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2346" y="557" width="96" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="186" y="135"/>
+        <di:waypoint x="256" y="135"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="376" y="135"/>
+        <di:waypoint x="446" y="135"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="496" y="135"/>
+        <di:waypoint x="566" y="135"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="502" y="118" width="91" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="471" y="160"/>
+        <di:waypoint x="471" y="245"/>
+        <di:waypoint x="781" y="245"/>
+        <di:waypoint x="781" y="364"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="479" y="228" width="91" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="686" y="135"/>
+        <di:waypoint x="781" y="135"/>
+        <di:waypoint x="781" y="364"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="806" y="389"/>
+        <di:waypoint x="876" y="389"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="996" y="389"/>
+        <di:waypoint x="1066" y="389"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <di:waypoint x="1091" y="414"/>
+        <di:waypoint x="1091" y="533"/>
+        <di:waypoint x="1186" y="533"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <di:waypoint x="1091" y="414"/>
+        <di:waypoint x="1091" y="677"/>
+        <di:waypoint x="1186" y="677"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <di:waypoint x="1306" y="533"/>
+        <di:waypoint x="1401" y="533"/>
+        <di:waypoint x="1401" y="796"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <di:waypoint x="1306" y="677"/>
+        <di:waypoint x="1401" y="677"/>
+        <di:waypoint x="1401" y="796"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12">
+        <di:waypoint x="1426" y="821"/>
+        <di:waypoint x="1496" y="821"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_13_di" bpmnElement="Flow_13">
+        <di:waypoint x="1616" y="821"/>
+        <di:waypoint x="1651" y="821"/>
+        <di:waypoint x="1651" y="135"/>
+        <di:waypoint x="1686" y="135"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_14_di" bpmnElement="Flow_14">
+        <di:waypoint x="1806" y="135"/>
+        <di:waypoint x="1876" y="135"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_15_di" bpmnElement="Flow_15">
+        <di:waypoint x="1926" y="135"/>
+        <di:waypoint x="2038" y="135"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1932" y="118" width="24" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_16_di" bpmnElement="Flow_16">
+        <di:waypoint x="1901" y="160"/>
+        <di:waypoint x="1901" y="821"/>
+        <di:waypoint x="1996" y="821"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1909" y="804" width="24" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_17_di" bpmnElement="Flow_17">
+        <di:waypoint x="2116" y="821"/>
+        <di:waypoint x="2151" y="821"/>
+        <di:waypoint x="2151" y="533"/>
+        <di:waypoint x="2186" y="533"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_18_di" bpmnElement="Flow_18">
+        <di:waypoint x="2306" y="533"/>
+        <di:waypoint x="2376" y="533"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_1_di" bpmnElement="MessageFlow_1">
+        <di:waypoint x="626" y="175"/>
+        <di:waypoint x="626" y="940"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="632" y="550" width="42" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_2_di" bpmnElement="MessageFlow_2">
+        <di:waypoint x="936" y="940"/>
+        <di:waypoint x="936" y="429"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="942" y="670" width="120" height="28"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

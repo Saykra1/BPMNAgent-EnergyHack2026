@@ -1,0 +1,325 @@
+"""FastAPI backend + static web UI."""
+from __future__ import annotations
+
+import json
+from typing import Annotated, Literal
+
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import AfterValidator, BaseModel, Field
+
+from .bpmn.importer import ImportErrorBPMN, bpmn_to_code
+from .bpmn.xsd import validate_xsd
+from .config import ROOT, find_env_file, get_settings
+from .llm.client import make_client
+from .pipeline import InputError, Pipeline, check_text
+from .llm.plan import parse_plan, PlanError
+from .sandbox import SandboxError
+from .collab.routes import guard as collab_guard, router as collab_router
+from .insights import inspect_xml
+from .privacy import clean_text, ner_available, preview
+from .jev import JevReviewError, review_source_links, review_audit_items
+from lxml import etree
+
+FRONTEND = ROOT / "frontend"
+EXAMPLES = ROOT / "examples"
+
+app = FastAPI(title="BPMN Agent", version="1.0")
+app.include_router(collab_router)
+app.middleware("http")(collab_guard)
+
+
+_state: dict = {"key": None, "pipeline": None, "error": None, "settings": None}
+
+
+def _env_key():
+    path = find_env_file()
+    return (str(path), path.stat().st_mtime) if path else None
+
+
+def _pipeline() -> Pipeline:
+    """Built once and rebuilt automatically when the .env file changes (no restart needed)."""
+    key = _env_key()
+    if _state["pipeline"] is not None and _state["key"] == key:
+        return _state["pipeline"]
+    s = get_settings()
+    error = None
+    repair = None
+    try:
+        llm = make_client(s)
+        if s.llm_repair_model:
+            repair = make_client(s, role="repair")
+        if hasattr(llm, "verbose"):
+            llm.verbose = True        # log every Gemini attempt / fallback to the server console
+        print(f"[bpmn-agent] .env: {s.env_file or 'не найден'} · LLM: {s.llm_provider} · {getattr(llm, 'model', '')}")
+    except Exception as e:  # noqa: BLE001 - missing key / package: UI still works without LLM
+        llm = None
+        where = f"файл настроек: {s.env_file}" if s.env_file else (
+            f"файл .env не найден — создайте его в {ROOT} (copy .env.example .env)")
+        error = f"{e} [LLM_PROVIDER={s.llm_provider}; {where}]"
+        print(f"[bpmn-agent] LLM недоступен: {error}")
+    p = Pipeline(llm, s.runs_dir, s.max_repairs, settings=s, repair_llm=repair)
+    p.llm_error = error
+    _state.update(key=key, pipeline=p, error=error, settings=s)
+    return p
+
+
+def _require_llm() -> Pipeline:
+    pipeline = _pipeline()
+    if pipeline.llm is None:
+        raise HTTPException(503, "Генерация недоступна: " + (
+            pipeline.llm_error or "задайте LLM_PROVIDER и LLM_API_KEY в файле .env"))
+    return pipeline
+
+
+class PrivacyOptions(BaseModel):
+    """Analyst overrides: fragments to hide by hand and uncertain findings to send anyway."""
+    hide: list[str] = Field(default_factory=list, max_length=100)
+    show: list[str] = Field(default_factory=list, max_length=200)
+    trusted: list[str] = Field(default_factory=list, max_length=100)   # the analyst's own edits and answers
+
+
+# Invisible characters never reach the pipeline (zero-width, bidi, Unicode tag smuggling).
+CleanText = Annotated[str, AfterValidator(lambda value: clean_text(value)[0])]
+
+
+class Resolution(BaseModel):
+    """Analyst decision on a self-contradicting description: which rule is senior."""
+    topic: str = Field(default="", max_length=300)
+    rule_a: str = Field(min_length=1, max_length=3000)
+    rule_b: str = Field(min_length=1, max_length=3000)
+    chosen: Literal["a", "b", "both"]
+
+
+class GenerateRequest(BaseModel):
+    text: CleanText = Field(default="", max_length=200_000)
+    mode: str = "ir"                 # ir (IR → deterministic builder) | two_stage | direct (LLM writes code)
+    ask: bool = False                # True: return clarifying questions instead of guessing
+    resolutions: list[Resolution] = Field(default_factory=list, max_length=20)
+    privacy: PrivacyOptions = Field(default_factory=PrivacyOptions)
+
+
+class RefineRequest(BaseModel):
+    instruction: CleanText = Field(default="", max_length=4000)
+    code: str = ""
+    xml: str | None = None           # current (possibly hand-edited) diagram
+    plan: dict | None = None         # current IR (if no xml)
+    text: CleanText = ""
+    resolutions: list[Resolution] = Field(default_factory=list, max_length=20)   # footnotes to keep
+    privacy: PrivacyOptions = Field(default_factory=PrivacyOptions)
+
+
+class CodeRequest(BaseModel):
+    code: str
+
+
+class XmlRequest(BaseModel):
+    xml: str
+
+
+class PlanRequest(BaseModel):
+    plan: dict
+    text: CleanText = Field(default="", max_length=200_000)
+    resolutions: list[Resolution] = Field(default_factory=list, max_length=20)
+
+
+class InspectRequest(XmlRequest):
+    text: CleanText = Field(default="", max_length=200_000)
+    privacy: PrivacyOptions = Field(default_factory=PrivacyOptions)
+
+
+class PrivacyRequest(BaseModel):
+    text: str = Field(default="", max_length=200_000)
+    privacy: PrivacyOptions = Field(default_factory=PrivacyOptions)
+
+
+class AuditGap(BaseModel):
+    id: str = Field(max_length=100)
+    fragment: str = Field(max_length=1000)
+    candidates: list[str] = Field(default_factory=list, max_length=4)
+
+
+class AuditBranch(BaseModel):
+    id: str = Field(max_length=100)
+    excerpt: str = Field(max_length=1200)
+    gateway: str = Field(max_length=180)
+    condition: str = Field(max_length=180)
+    destination: str = Field(max_length=180)
+
+
+class JevAuditRequest(BaseModel):
+    gaps: list[AuditGap] = Field(default_factory=list, max_length=12)
+    branches: list[AuditBranch] = Field(default_factory=list, max_length=12)
+    privacy: PrivacyOptions = Field(default_factory=PrivacyOptions)
+
+
+@app.post("/api/privacy")
+def privacy_preview(req: PrivacyRequest):
+    """What the model will see. Runs locally: no request leaves the server."""
+    text, invisible = clean_text(req.text)
+    return {**preview(text, req.privacy.hide, req.privacy.show, req.privacy.trusted), "invisible": invisible,
+            "clean_text": text}
+
+
+@app.post("/api/prepare")
+def prepare(req: GenerateRequest):
+    return _require_llm().prepare(req.text, [r.model_dump() for r in req.resolutions], req.privacy.model_dump())
+
+
+@app.post("/api/from-plan")
+def from_plan(req: PlanRequest):
+    try:
+        return _pipeline().from_plan(parse_plan(req.plan), req.text,
+                                     [r.model_dump() for r in req.resolutions]).to_dict()
+    except (PlanError, KeyError, ValueError) as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/inspect")
+def inspect(req: InspectRequest):
+    try:
+        return inspect_xml(req.xml, req.text)
+    except (ImportErrorBPMN, SandboxError, etree.XMLSyntaxError, ValueError) as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/jev-review")
+def jev_review(req: InspectRequest):
+    try:
+        return review_source_links(req.xml, req.text, get_settings(), privacy=req.privacy.model_dump())
+    except JevReviewError as e:
+        raise HTTPException(503, str(e))
+    except (ImportErrorBPMN, SandboxError, etree.XMLSyntaxError, ValueError) as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/jev-audit")
+def jev_audit(req: JevAuditRequest):
+    try:
+        return review_audit_items([item.model_dump() for item in req.gaps],
+                                  [item.model_dump() for item in req.branches], get_settings(),
+                                  privacy=req.privacy.model_dump())
+    except JevReviewError as e:
+        raise HTTPException(503, str(e))
+
+
+@app.get("/api/health")
+def health():
+    p = _pipeline()
+    s = _state["settings"]
+    return {"ok": True, "llm": p.llm is not None, "provider": s.llm_provider, "llm_error": _state["error"],
+            "env_file": s.env_file,
+            "model": getattr(p.llm, "model", None), "max_repairs": s.max_repairs,
+            "repair_model": getattr(p.repair_llm, "model", None), "onprem_only": s.llm_onprem_only,
+            "jev": s.jev_enabled and s.llm_base_url.rstrip("/") == "https://openrouter.ai/api/v1",
+            "privacy": {"ner": ner_available()}}
+
+
+@app.get("/api/examples")
+def examples():
+    out = []
+    for d in sorted(EXAMPLES.glob("*/")):
+        f = d / "input.txt"
+        if not f.exists():
+            continue
+        meta = json.loads((d / "meta.json").read_text("utf-8")) if (d / "meta.json").exists() else {}
+        out.append({"id": d.name, "title": meta.get("title", d.name), "text": f.read_text("utf-8"),
+                    "has_result": (d / "result.bpmn").exists()})
+    return out
+
+
+@app.get("/api/examples/{ex_id}")
+def example_result(ex_id: str):
+    d = EXAMPLES / ex_id
+    if not (d / "result.bpmn").exists() or "/" in ex_id or ".." in ex_id:
+        raise HTTPException(404, "Нет сохранённого результата")
+    read = lambda n: (d / n).read_text("utf-8") if (d / n).exists() else None  # noqa: E731
+    plan = read("plan.json")
+    return {"xml": read("result.bpmn"), "code": read("code.py") or "", "plan": json.loads(plan) if plan else None,
+            "text": read("input.txt"), "report": json.loads(read("report.json") or "{}")}
+
+
+@app.post("/api/generate")
+def generate(req: GenerateRequest):
+    try:
+        check_text(req.text)
+    except InputError as e:
+        raise HTTPException(400, str(e))
+    res = _require_llm().generate(req.text, req.mode, ask=req.ask,
+                                  resolutions=[r.model_dump() for r in req.resolutions],
+                                  privacy=req.privacy.model_dump())
+    return res.to_dict()
+
+
+@app.post("/api/refine")
+def refine(req: RefineRequest):
+    pipeline = _require_llm()
+    plan = None
+    if req.plan and not req.xml:
+        try:
+            plan = parse_plan(req.plan)
+        except PlanError as e:
+            raise HTTPException(400, str(e))
+    try:
+        return pipeline.refine(req.text, req.instruction, plan=plan, xml=req.xml, code=req.code,
+                               resolutions=[r.model_dump() for r in req.resolutions],
+                               privacy=req.privacy.model_dump()).to_dict()
+    except (ImportErrorBPMN, SandboxError) as e:
+        raise HTTPException(400, f"Не удалось прочитать текущую схему: {e}")
+
+
+@app.post("/api/build")
+def build_code(req: CodeRequest):
+    return _pipeline().from_code(req.code, "manual_code").to_dict()
+
+
+@app.post("/api/import")
+def import_bpmn(req: XmlRequest):
+    try:
+        code = bpmn_to_code(req.xml)
+    except ImportErrorBPMN as e:
+        raise HTTPException(400, str(e))
+    return _pipeline().from_code(code, "import").to_dict()
+
+
+@app.post("/api/validate")
+def validate(req: XmlRequest):
+    errs = validate_xsd(req.xml)
+    return {"xsd_valid": not errs, "xsd_errors": errs}
+
+
+@app.get("/api/runs")
+def runs(limit: int = 30):
+    s = get_settings()
+    out = []
+    if s.runs_dir.exists():
+        for d in sorted(s.runs_dir.iterdir(), reverse=True)[:limit]:
+            m = d / "meta.json"
+            if m.exists():
+                try:
+                    meta = json.loads(m.read_text("utf-8"))
+                except json.JSONDecodeError:
+                    continue
+                meta.pop("events", None)
+                out.append(meta)
+    return out
+
+
+from . import tools_api  # noqa: E402
+
+app.include_router(tools_api.bind(_pipeline, get_settings))
+from .run import api as run_api  # noqa: E402
+
+app.include_router(run_api.bind(get_settings))
+app.mount("/static", StaticFiles(directory=str(FRONTEND)), name="static")
+
+
+@app.get("/")
+def index():
+    return FileResponse(FRONTEND / "index.html")
+
+
+@app.get("/join/{token}")
+def join_page(token: str):
+    return FileResponse(FRONTEND / "index.html")

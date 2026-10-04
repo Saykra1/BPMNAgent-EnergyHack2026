@@ -1,0 +1,35 @@
+services:
+  app:
+    build:
+      context: .
+      args:
+        # PyPI is unreachable from some networks; override with PIP_INDEX_URL when needed.
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}
+    env_file:
+      - path: .env
+        required: false
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:8000"
+    volumes:
+      - bpmn_team_data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=5)"]
+      interval: 15s
+      timeout: 6s
+      start_period: 30s
+      retries: 5
+    restart: unless-stopped
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    profiles: ["share"]
+    command: ["http", "app:8000", "--log=stdout"]
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  bpmn_team_data:

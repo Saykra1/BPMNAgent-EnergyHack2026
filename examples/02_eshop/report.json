@@ -1,0 +1,50 @@
+{
+  "source": "reference_plan+deterministic_builder",
+  "issues": [],
+  "xsd_errors": [],
+  "stats": {
+    "nodes": 17,
+    "sequence_flows": 18,
+    "message_flows": 2,
+    "pools": 2,
+    "lanes": 5,
+    "by_kind": {
+      "startEvent": 1,
+      "endEvent": 2,
+      "userTask": 3,
+      "exclusiveGateway": 3,
+      "parallelGateway": 2,
+      "manualTask": 3,
+      "serviceTask": 1,
+      "task": 2
+    }
+  },
+  "assumptions": [
+    "Подтверждение платежа банком поступает менеджеру перед подтверждением заказа"
+  ],
+  "questions": [
+    "Что происходит, если ни одно из условий шлюза «Способ оплаты?» не выполнено?",
+    "Что делать, если оплата картой не прошла?",
+    "Нужна ли проверка наличия товара перед подтверждением заказа?"
+  ],
+  "lint": [
+    {
+      "level": "info",
+      "code": "I_NO_DEFAULT",
+      "element": "gw_pay",
+      "message": "У шлюза gw_pay «Способ оплаты?» нет ветки по умолчанию («иначе»).",
+      "hint": "Отметьте ветку, которая выбирается, если ни одно условие не выполнено.",
+      "fixable": false,
+      "question": "Что происходит, если ни одно из условий шлюза «Способ оплаты?» не выполнено?",
+      "blocking": false
+    }
+  ],
+  "lint_summary": {
+    "errors": 0,
+    "warnings": 0,
+    "info": 1,
+    "fixable": 0
+  },
+  "fixes": [],
+  "residual": []
+}

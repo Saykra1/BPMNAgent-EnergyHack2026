@@ -1,0 +1,366 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="BPMN Agent" exporterVersion="1.0" name="Подбор сотрудника">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_1" name="Компания" processRef="Process_1"/>
+  </bpmn:collaboration>
+  <bpmn:process id="Process_1" isExecutable="false" name="Компания">
+    <bpmn:laneSet id="LaneSet_Process_1">
+      <bpmn:lane id="head" name="Руководитель подразделения">
+        <bpmn:flowNodeRef>start</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>request</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>tech</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>decide</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>gw_checks</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="hr" name="HR-менеджер">
+        <bpmn:flowNodeRef>end</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>publish</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>screen</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>interview</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>gw_fit</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>reject</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>gw_checks_join</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>offer</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>hire</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="cand" name="Кандидат">
+        <bpmn:flowNodeRef>test</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>gw_offer</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>end_no</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="sec" name="Служба безопасности">
+        <bpmn:flowNodeRef>sb</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="dir" name="Директор">
+        <bpmn:flowNodeRef>approve</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="start" name="Начало">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end" name="Конец">
+      <bpmn:incoming>Flow_21</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="request" name="Создать заявку на подбор">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="publish" name="Опубликовать вакансию">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="screen" name="Отобрать резюме">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:task id="interview" name="Провести первичное интервью">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="gw_fit" name="Кандидат подходит?" default="Flow_7">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sendTask id="reject" name="Отправить отказ кандидату">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:task id="test" name="Выполнить тестовое задание">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="tech" name="Провести техническое интервью">
+      <bpmn:incoming>Flow_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:userTask id="decide" name="Принять решение по кандидату">
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:inclusiveGateway id="gw_checks" name="Нужные проверки?" default="Flow_14">
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_12</bpmn:outgoing>
+      <bpmn:outgoing>Flow_13</bpmn:outgoing>
+      <bpmn:outgoing>Flow_14</bpmn:outgoing>
+    </bpmn:inclusiveGateway>
+    <bpmn:task id="sb" name="Проверить кандидата">
+      <bpmn:incoming>Flow_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_15</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:userTask id="approve" name="Согласовать кандидата">
+      <bpmn:incoming>Flow_13</bpmn:incoming>
+      <bpmn:outgoing>Flow_16</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:inclusiveGateway id="gw_checks_join">
+      <bpmn:incoming>Flow_14</bpmn:incoming>
+      <bpmn:incoming>Flow_15</bpmn:incoming>
+      <bpmn:incoming>Flow_16</bpmn:incoming>
+      <bpmn:outgoing>Flow_17</bpmn:outgoing>
+    </bpmn:inclusiveGateway>
+    <bpmn:sendTask id="offer" name="Направить оффер">
+      <bpmn:incoming>Flow_17</bpmn:incoming>
+      <bpmn:outgoing>Flow_18</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:exclusiveGateway id="gw_offer" name="Оффер принят?" default="Flow_20">
+      <bpmn:incoming>Flow_18</bpmn:incoming>
+      <bpmn:outgoing>Flow_19</bpmn:outgoing>
+      <bpmn:outgoing>Flow_20</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="hire" name="Оформить на работу">
+      <bpmn:incoming>Flow_19</bpmn:incoming>
+      <bpmn:outgoing>Flow_21</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="end_no" name="Кандидат отказался">
+      <bpmn:incoming>Flow_20</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="start" targetRef="request"/>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="request" targetRef="publish"/>
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="publish" targetRef="screen"/>
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="screen" targetRef="interview"/>
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="interview" targetRef="gw_fit"/>
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="gw_fit" targetRef="test" name="Да">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Да</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="gw_fit" targetRef="reject" name="Нет"/>
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="reject" targetRef="screen"/>
+    <bpmn:sequenceFlow id="Flow_9" sourceRef="test" targetRef="tech"/>
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="tech" targetRef="decide"/>
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="decide" targetRef="gw_checks"/>
+    <bpmn:sequenceFlow id="Flow_12" sourceRef="gw_checks" targetRef="sb" name="Нужна проверка СБ">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Нужна проверка СБ</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="gw_checks" targetRef="approve" name="Нужно согласование">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Нужно согласование</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_14" sourceRef="gw_checks" targetRef="gw_checks_join" name="Проверки не нужны"/>
+    <bpmn:sequenceFlow id="Flow_15" sourceRef="sb" targetRef="gw_checks_join"/>
+    <bpmn:sequenceFlow id="Flow_16" sourceRef="approve" targetRef="gw_checks_join"/>
+    <bpmn:sequenceFlow id="Flow_17" sourceRef="gw_checks_join" targetRef="offer"/>
+    <bpmn:sequenceFlow id="Flow_18" sourceRef="offer" targetRef="gw_offer"/>
+    <bpmn:sequenceFlow id="Flow_19" sourceRef="gw_offer" targetRef="hire" name="Да">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Да</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_20" sourceRef="gw_offer" targetRef="end_no" name="Нет"/>
+    <bpmn:sequenceFlow id="Flow_21" sourceRef="hire" targetRef="end"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true">
+        <dc:Bounds x="60" y="60" width="2642" height="730"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="head_di" bpmnElement="head" isHorizontal="true">
+        <dc:Bounds x="90" y="60" width="2612" height="144"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="hr_di" bpmnElement="hr" isHorizontal="true">
+        <dc:Bounds x="90" y="204" width="2612" height="154"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="cand_di" bpmnElement="cand" isHorizontal="true">
+        <dc:Bounds x="90" y="358" width="2612" height="144"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="sec_di" bpmnElement="sec" isHorizontal="true">
+        <dc:Bounds x="90" y="502" width="2612" height="144"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="dir_di" bpmnElement="dir" isHorizontal="true">
+        <dc:Bounds x="90" y="646" width="2612" height="144"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_di" bpmnElement="start">
+        <dc:Bounds x="150" y="117" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="120" y="159" width="96" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_di" bpmnElement="end">
+        <dc:Bounds x="2636" y="261" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2606" y="303" width="96" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="request_di" bpmnElement="request">
+        <dc:Bounds x="256" y="95" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="publish_di" bpmnElement="publish">
+        <dc:Bounds x="446" y="239" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="screen_di" bpmnElement="screen">
+        <dc:Bounds x="636" y="239" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="interview_di" bpmnElement="interview">
+        <dc:Bounds x="826" y="239" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_fit_di" bpmnElement="gw_fit">
+        <dc:Bounds x="1016" y="254" width="50" height="50"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="993" y="220" width="96" height="28"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="reject_di" bpmnElement="reject">
+        <dc:Bounds x="1136" y="239" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="test_di" bpmnElement="test">
+        <dc:Bounds x="1136" y="393" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="tech_di" bpmnElement="tech">
+        <dc:Bounds x="1326" y="95" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="decide_di" bpmnElement="decide">
+        <dc:Bounds x="1516" y="95" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_checks_di" bpmnElement="gw_checks">
+        <dc:Bounds x="1706" y="110" width="50" height="50"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1683" y="90" width="96" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="sb_di" bpmnElement="sb">
+        <dc:Bounds x="1826" y="537" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="approve_di" bpmnElement="approve">
+        <dc:Bounds x="1826" y="681" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_checks_join_di" bpmnElement="gw_checks_join">
+        <dc:Bounds x="2016" y="254" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="offer_di" bpmnElement="offer">
+        <dc:Bounds x="2136" y="239" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_offer_di" bpmnElement="gw_offer">
+        <dc:Bounds x="2326" y="408" width="50" height="50"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2303" y="464" width="96" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="hire_di" bpmnElement="hire">
+        <dc:Bounds x="2446" y="239" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_no_di" bpmnElement="end_no">
+        <dc:Bounds x="2488" y="415" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2458" y="457" width="96" height="28"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="186" y="135"/>
+        <di:waypoint x="256" y="135"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="376" y="135"/>
+        <di:waypoint x="411" y="135"/>
+        <di:waypoint x="411" y="279"/>
+        <di:waypoint x="446" y="279"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="566" y="279"/>
+        <di:waypoint x="636" y="279"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="756" y="279"/>
+        <di:waypoint x="826" y="279"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="946" y="279"/>
+        <di:waypoint x="1016" y="279"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="1041" y="304"/>
+        <di:waypoint x="1041" y="433"/>
+        <di:waypoint x="1136" y="433"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1049" y="416" width="24" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="1066" y="279"/>
+        <di:waypoint x="1136" y="279"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1072" y="262" width="24" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <di:waypoint x="1256" y="279"/>
+        <di:waypoint x="1270" y="279"/>
+        <di:waypoint x="1270" y="347"/>
+        <di:waypoint x="622" y="347"/>
+        <di:waypoint x="622" y="279"/>
+        <di:waypoint x="636" y="279"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <di:waypoint x="1256" y="433"/>
+        <di:waypoint x="1291" y="433"/>
+        <di:waypoint x="1291" y="135"/>
+        <di:waypoint x="1326" y="135"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <di:waypoint x="1446" y="135"/>
+        <di:waypoint x="1516" y="135"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <di:waypoint x="1636" y="135"/>
+        <di:waypoint x="1706" y="135"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12">
+        <di:waypoint x="1731" y="160"/>
+        <di:waypoint x="1731" y="577"/>
+        <di:waypoint x="1826" y="577"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1739" y="546" width="81" height="28"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_13_di" bpmnElement="Flow_13">
+        <di:waypoint x="1731" y="160"/>
+        <di:waypoint x="1731" y="721"/>
+        <di:waypoint x="1826" y="721"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1739" y="690" width="81" height="28"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_14_di" bpmnElement="Flow_14">
+        <di:waypoint x="1756" y="135"/>
+        <di:waypoint x="2041" y="135"/>
+        <di:waypoint x="2041" y="254"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1762" y="118" width="119" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_15_di" bpmnElement="Flow_15">
+        <di:waypoint x="1946" y="577"/>
+        <di:waypoint x="2041" y="577"/>
+        <di:waypoint x="2041" y="304"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_16_di" bpmnElement="Flow_16">
+        <di:waypoint x="1946" y="721"/>
+        <di:waypoint x="2041" y="721"/>
+        <di:waypoint x="2041" y="304"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_17_di" bpmnElement="Flow_17">
+        <di:waypoint x="2066" y="279"/>
+        <di:waypoint x="2136" y="279"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_18_di" bpmnElement="Flow_18">
+        <di:waypoint x="2256" y="279"/>
+        <di:waypoint x="2351" y="279"/>
+        <di:waypoint x="2351" y="408"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_19_di" bpmnElement="Flow_19">
+        <di:waypoint x="2351" y="408"/>
+        <di:waypoint x="2351" y="279"/>
+        <di:waypoint x="2446" y="279"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2359" y="262" width="24" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_20_di" bpmnElement="Flow_20">
+        <di:waypoint x="2376" y="433"/>
+        <di:waypoint x="2488" y="433"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2382" y="416" width="24" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_21_di" bpmnElement="Flow_21">
+        <di:waypoint x="2566" y="279"/>
+        <di:waypoint x="2636" y="279"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

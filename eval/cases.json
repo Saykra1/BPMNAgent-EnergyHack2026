@@ -1,0 +1,18 @@
+[
+  {"id": "01_credit", "input": "examples/01_credit/input.txt", "reference_plan": "examples/01_credit/plan.json",
+   "expect": {"participants": ["Клиент", "безопасност", "менеджер", "комитет", "Бухгалтер"], "kinds": ["exclusiveGateway", "parallelGateway"], "min_tasks": 10, "loop": true}},
+  {"id": "02_eshop", "input": "examples/02_eshop/input.txt", "reference_plan": "examples/02_eshop/plan.json",
+   "expect": {"participants": ["Покупатель", "Менеджер", "Склад", "Бухгалтер", "доставк"], "kinds": ["exclusiveGateway", "parallelGateway"], "min_tasks": 9}},
+  {"id": "03_grid_connection", "input": "examples/03_grid_connection/input.txt", "reference_plan": "examples/03_grid_connection/plan.json",
+   "expect": {"participants": ["Заявитель", "клиент", "Технический", "инженер", "Оперативн"], "kinds": ["exclusiveGateway", "parallelGateway"], "min_tasks": 14, "loop": true}},
+  {"id": "04_hiring", "input": "examples/04_hiring/input.txt", "reference_plan": "examples/04_hiring/plan.json",
+   "expect": {"participants": ["Руководител", "HR", "Кандидат", "безопасност", "Директор"], "kinds": ["exclusiveGateway"], "min_tasks": 10, "loop": true}},
+  {"id": "05_outage", "input": "examples/05_outage/input.txt", "reference_plan": "examples/05_outage/plan.json",
+   "expect": {"participants": ["Абонент", "Диспетчер", "бригад"], "kinds": ["exclusiveGateway", "parallelGateway"], "min_tasks": 10, "loop": true}},
+  {"id": "06_vacation", "text": "Сотрудник оформляет заявление на отпуск. Руководитель согласует заявление. Если руководитель не согласовал, сотрудник получает уведомление и может изменить даты и подать заявление снова. После согласования кадровик формирует приказ, а бухгалтер рассчитывает отпускные. Когда приказ подписан и отпускные рассчитаны, бухгалтер перечисляет деньги сотруднику.",
+   "expect": {"participants": ["Сотрудник", "Руководител", "Кадр", "Бухгалтер"], "kinds": ["exclusiveGateway", "parallelGateway"], "min_tasks": 5, "loop": true}},
+  {"id": "07_meter", "text": "Ежемесячно до 25 числа абонент передаёт показания счётчика через личный кабинет. Система проверяет показания на аномальное потребление. Если показания аномальные, инспектор выезжает для контрольного снятия показаний. Затем система начисляет плату и формирует квитанцию, которая отправляется абоненту на электронную почту.",
+   "expect": {"participants": ["Абонент", "Систем", "Инспектор"], "kinds": ["exclusiveGateway"], "min_tasks": 4}},
+  {"id": "08_purchase", "text": "Инициатор создаёт заявку на закупку. Если сумма закупки до 100 тысяч рублей, заявку согласует руководитель отдела; если больше — финансовый директор. Затем отдел закупок запрашивает коммерческие предложения у поставщиков, выбирает лучшее и заключает договор. Поставщик поставляет товар, склад принимает товар, бухгалтерия оплачивает счёт.",
+   "expect": {"participants": ["Инициатор", "Руководител", "Финансов", "закуп", "Склад", "Бухгалтер"], "kinds": ["exclusiveGateway"], "min_tasks": 6}}
+]

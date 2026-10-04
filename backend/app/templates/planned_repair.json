@@ -1,0 +1,286 @@
+{
+ "title": "Плановый ремонт оборудования",
+ "organization": "Электросетевая компания",
+ "participants": [
+  {
+   "id": "plan",
+   "name": "Служба ТОиР"
+  },
+  {
+   "id": "disp",
+   "name": "Диспетчер"
+  },
+  {
+   "id": "store",
+   "name": "Склад"
+  },
+  {
+   "id": "crew",
+   "name": "Ремонтная бригада"
+  },
+  {
+   "id": "qc",
+   "name": "Служба испытаний"
+  }
+ ],
+ "elements": [
+  {
+   "id": "t_req",
+   "type": "user_task",
+   "name": "Подать заявку на вывод в ремонт",
+   "participant": "plan",
+   "documents": [
+    "Заявка на вывод в ремонт"
+   ],
+   "duration_min": 30,
+   "wait_min": 0,
+   "estimate": true
+  },
+  {
+   "id": "t_approve",
+   "type": "user_task",
+   "name": "Рассмотреть заявку на вывод",
+   "participant": "disp",
+   "duration_min": 30,
+   "wait_min": 1440,
+   "estimate": true
+  },
+  {
+   "id": "gw_appr",
+   "type": "exclusive_gateway",
+   "name": "Вывод согласован?",
+   "participant": "disp"
+  },
+  {
+   "id": "t_resched",
+   "type": "user_task",
+   "name": "Перенести сроки ремонта",
+   "participant": "plan",
+   "duration_min": 60,
+   "wait_min": 2880,
+   "estimate": true
+  },
+  {
+   "id": "gw_p",
+   "type": "parallel_gateway",
+   "name": "",
+   "participant": "plan"
+  },
+  {
+   "id": "t_mat",
+   "type": "manual_task",
+   "name": "Выдать материалы и запчасти",
+   "participant": "store",
+   "documents": [
+    "Требование-накладная"
+   ],
+   "duration_min": 60,
+   "wait_min": 480,
+   "estimate": true
+  },
+  {
+   "id": "t_permit",
+   "type": "user_task",
+   "name": "Оформить наряд-допуск",
+   "participant": "crew",
+   "duration_min": 30,
+   "wait_min": 60,
+   "estimate": true
+  },
+  {
+   "id": "gw_pj",
+   "type": "parallel_gateway",
+   "name": "",
+   "participant": "crew"
+  },
+  {
+   "id": "t_out",
+   "type": "manual_task",
+   "name": "Вывести оборудование в ремонт",
+   "participant": "disp",
+   "duration_min": 60,
+   "wait_min": 60,
+   "estimate": true
+  },
+  {
+   "id": "t_repair",
+   "type": "manual_task",
+   "name": "Выполнить ремонт",
+   "participant": "crew",
+   "sla_hours": 48,
+   "duration_min": 960,
+   "wait_min": 0,
+   "estimate": true
+  },
+  {
+   "id": "t_test",
+   "type": "manual_task",
+   "name": "Провести испытания",
+   "participant": "qc",
+   "documents": [
+    "Протокол испытаний"
+   ],
+   "duration_min": 180,
+   "wait_min": 120,
+   "estimate": true
+  },
+  {
+   "id": "gw_test",
+   "type": "exclusive_gateway",
+   "name": "Испытания пройдены?",
+   "participant": "qc"
+  },
+  {
+   "id": "t_defects",
+   "type": "manual_task",
+   "name": "Устранить дефекты",
+   "participant": "crew",
+   "duration_min": 240,
+   "wait_min": 0,
+   "estimate": true
+  },
+  {
+   "id": "t_in",
+   "type": "manual_task",
+   "name": "Ввести оборудование в работу",
+   "participant": "disp",
+   "duration_min": 60,
+   "wait_min": 30,
+   "estimate": true
+  },
+  {
+   "id": "t_close",
+   "type": "user_task",
+   "name": "Закрыть заявку и внести в паспорт",
+   "participant": "plan",
+   "documents": [
+    "Паспорт оборудования"
+   ],
+   "duration_min": 30,
+   "wait_min": 480,
+   "estimate": true
+  },
+  {
+   "id": "bt_rep",
+   "type": "boundary_timer",
+   "name": "Ремонт дольше 48 ч",
+   "attached_to": "t_repair",
+   "sla_hours": 48
+  },
+  {
+   "id": "t_esc",
+   "type": "send_task",
+   "name": "Уведомить главного инженера о задержке",
+   "participant": "plan"
+  },
+  {
+   "id": "end_esc",
+   "type": "end_event",
+   "name": "Главный инженер уведомлён",
+   "participant": "plan"
+  }
+ ],
+ "flows": [
+  {
+   "from": "start",
+   "to": "t_req"
+  },
+  {
+   "from": "t_req",
+   "to": "t_approve"
+  },
+  {
+   "from": "t_approve",
+   "to": "gw_appr"
+  },
+  {
+   "from": "gw_appr",
+   "to": "gw_p",
+   "label": "Да",
+   "probability": 0.8
+  },
+  {
+   "from": "gw_appr",
+   "to": "t_resched",
+   "label": "Нет",
+   "default": true
+  },
+  {
+   "from": "t_resched",
+   "to": "t_req"
+  },
+  {
+   "from": "gw_p",
+   "to": "t_mat"
+  },
+  {
+   "from": "gw_p",
+   "to": "t_permit"
+  },
+  {
+   "from": "t_mat",
+   "to": "gw_pj"
+  },
+  {
+   "from": "t_permit",
+   "to": "gw_pj"
+  },
+  {
+   "from": "gw_pj",
+   "to": "t_out"
+  },
+  {
+   "from": "t_out",
+   "to": "t_repair"
+  },
+  {
+   "from": "t_repair",
+   "to": "t_test"
+  },
+  {
+   "from": "t_test",
+   "to": "gw_test"
+  },
+  {
+   "from": "gw_test",
+   "to": "t_in",
+   "label": "Да",
+   "probability": 0.85
+  },
+  {
+   "from": "gw_test",
+   "to": "t_defects",
+   "label": "Нет",
+   "default": true
+  },
+  {
+   "from": "t_defects",
+   "to": "t_test"
+  },
+  {
+   "from": "t_in",
+   "to": "t_close"
+  },
+  {
+   "from": "t_close",
+   "to": "end"
+  },
+  {
+   "from": "bt_rep",
+   "to": "t_esc"
+  },
+  {
+   "from": "t_esc",
+   "to": "end_esc"
+  }
+ ],
+ "assumptions": [
+  "Длительности — оценки шаблона."
+ ],
+ "questions": [],
+ "template": {
+  "id": "planned_repair",
+  "title": "Плановый ремонт оборудования",
+  "description": "Вывод в ремонт, ТМЦ и наряд параллельно, ремонт, испытания, ввод в работу"
+ }
+}

@@ -1,0 +1,323 @@
+{
+ "title": "Закупка товарно-материальных ценностей (ТМЦ)",
+ "organization": "Энергокомпания",
+ "participants": [
+  {
+   "id": "init",
+   "name": "Инициатор"
+  },
+  {
+   "id": "head",
+   "name": "Руководитель подразделения"
+  },
+  {
+   "id": "proc",
+   "name": "Отдел закупок"
+  },
+  {
+   "id": "store",
+   "name": "Склад"
+  },
+  {
+   "id": "acc",
+   "name": "Бухгалтерия"
+  },
+  {
+   "id": "supp",
+   "name": "Поставщик",
+   "external": true
+  }
+ ],
+ "elements": [
+  {
+   "id": "t_need",
+   "type": "user_task",
+   "name": "Создать заявку на закупку",
+   "participant": "init",
+   "documents": [
+    "Заявка на закупку"
+   ],
+   "duration_min": 30,
+   "wait_min": 0,
+   "estimate": true
+  },
+  {
+   "id": "t_head",
+   "type": "user_task",
+   "name": "Согласовать заявку",
+   "participant": "head",
+   "duration_min": 15,
+   "wait_min": 1440,
+   "estimate": true
+  },
+  {
+   "id": "gw_head",
+   "type": "exclusive_gateway",
+   "name": "Заявка согласована?",
+   "participant": "head"
+  },
+  {
+   "id": "end_rej",
+   "type": "end_event",
+   "name": "Заявка отклонена",
+   "participant": "head"
+  },
+  {
+   "id": "gw_sum",
+   "type": "exclusive_gateway",
+   "name": "Сумма больше 500 тыс. руб.?",
+   "participant": "proc"
+  },
+  {
+   "id": "t_tender",
+   "type": "subprocess",
+   "name": "Провести конкурентную закупку",
+   "participant": "proc",
+   "duration_min": 2400,
+   "wait_min": 14400,
+   "estimate": true
+  },
+  {
+   "id": "t_tender_1",
+   "type": "user_task",
+   "name": "Опубликовать извещение",
+   "participant": "proc",
+   "parent": "t_tender"
+  },
+  {
+   "id": "t_tender_2",
+   "type": "user_task",
+   "name": "Оценить заявки участников",
+   "participant": "proc",
+   "parent": "t_tender"
+  },
+  {
+   "id": "t_kp",
+   "type": "user_task",
+   "name": "Запросить коммерческие предложения",
+   "participant": "proc",
+   "duration_min": 120,
+   "wait_min": 4320,
+   "estimate": true
+  },
+  {
+   "id": "gw_sumj",
+   "type": "exclusive_gateway",
+   "name": "",
+   "participant": "proc"
+  },
+  {
+   "id": "t_contract",
+   "type": "user_task",
+   "name": "Заключить договор",
+   "participant": "proc",
+   "documents": [
+    "Договор поставки"
+   ],
+   "duration_min": 240,
+   "wait_min": 2880,
+   "estimate": true
+  },
+  {
+   "id": "t_wait",
+   "type": "receive_task",
+   "name": "Получить поставку",
+   "participant": "store",
+   "duration_min": 0,
+   "wait_min": 14400,
+   "estimate": true
+  },
+  {
+   "id": "t_incheck",
+   "type": "manual_task",
+   "name": "Провести входной контроль",
+   "participant": "store",
+   "duration_min": 120,
+   "wait_min": 240,
+   "estimate": true
+  },
+  {
+   "id": "gw_q",
+   "type": "exclusive_gateway",
+   "name": "ТМЦ соответствуют?",
+   "participant": "store"
+  },
+  {
+   "id": "t_claim",
+   "type": "send_task",
+   "name": "Направить претензию поставщику",
+   "participant": "proc",
+   "duration_min": 60,
+   "wait_min": 0,
+   "estimate": true
+  },
+  {
+   "id": "end_claim",
+   "type": "end_event",
+   "name": "Претензия направлена",
+   "participant": "proc"
+  },
+  {
+   "id": "gw_p",
+   "type": "parallel_gateway",
+   "name": "",
+   "participant": "store"
+  },
+  {
+   "id": "t_accept",
+   "type": "manual_task",
+   "name": "Оприходовать ТМЦ",
+   "participant": "store",
+   "documents": [
+    "Приходный ордер"
+   ],
+   "duration_min": 60,
+   "wait_min": 0,
+   "estimate": true
+  },
+  {
+   "id": "t_pay",
+   "type": "user_task",
+   "name": "Оплатить счёт",
+   "participant": "acc",
+   "documents": [
+    "Счёт"
+   ],
+   "duration_min": 30,
+   "wait_min": 2880,
+   "estimate": true
+  },
+  {
+   "id": "gw_pj",
+   "type": "parallel_gateway",
+   "name": "",
+   "participant": "acc"
+  }
+ ],
+ "flows": [
+  {
+   "from": "start",
+   "to": "t_need"
+  },
+  {
+   "from": "t_need",
+   "to": "t_head"
+  },
+  {
+   "from": "t_head",
+   "to": "gw_head"
+  },
+  {
+   "from": "gw_head",
+   "to": "gw_sum",
+   "label": "Да",
+   "probability": 0.9
+  },
+  {
+   "from": "gw_head",
+   "to": "end_rej",
+   "label": "Нет",
+   "default": true
+  },
+  {
+   "from": "gw_sum",
+   "to": "t_tender",
+   "label": "Да",
+   "probability": 0.3
+  },
+  {
+   "from": "gw_sum",
+   "to": "t_kp",
+   "label": "Нет",
+   "default": true
+  },
+  {
+   "from": "t_tender",
+   "to": "gw_sumj"
+  },
+  {
+   "from": "t_kp",
+   "to": "gw_sumj"
+  },
+  {
+   "from": "gw_sumj",
+   "to": "t_contract"
+  },
+  {
+   "from": "t_contract",
+   "to": "t_wait"
+  },
+  {
+   "from": "t_wait",
+   "to": "t_incheck"
+  },
+  {
+   "from": "t_incheck",
+   "to": "gw_q"
+  },
+  {
+   "from": "gw_q",
+   "to": "gw_p",
+   "label": "Да",
+   "probability": 0.9
+  },
+  {
+   "from": "gw_q",
+   "to": "t_claim",
+   "label": "Нет",
+   "default": true
+  },
+  {
+   "from": "t_claim",
+   "to": "end_claim"
+  },
+  {
+   "from": "gw_p",
+   "to": "t_accept"
+  },
+  {
+   "from": "gw_p",
+   "to": "t_pay"
+  },
+  {
+   "from": "t_accept",
+   "to": "gw_pj"
+  },
+  {
+   "from": "t_pay",
+   "to": "gw_pj"
+  },
+  {
+   "from": "gw_pj",
+   "to": "end"
+  },
+  {
+   "from": "t_tender_1",
+   "to": "t_tender_2"
+  }
+ ],
+ "message_flows": [
+  {
+   "from": "t_contract",
+   "to": "supp",
+   "label": "Договор"
+  },
+  {
+   "from": "supp",
+   "to": "t_wait",
+   "label": "Поставка ТМЦ"
+  }
+ ],
+ "assumptions": [
+  "Порог конкурентной закупки 500 тыс. руб. — пример, задайте по положению о закупках.",
+  "Длительности — оценки шаблона."
+ ],
+ "questions": [
+  "Какой порог суммы для конкурентной закупки установлен в положении о закупках?"
+ ],
+ "template": {
+  "id": "procurement",
+  "title": "Закупка ТМЦ",
+  "description": "Заявка, согласование, конкурентная закупка или КП, договор, поставка, входной контроль, оплата"
+ }
+}

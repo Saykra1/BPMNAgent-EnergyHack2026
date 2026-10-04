@@ -1,0 +1,580 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="BPMN Agent" exporterVersion="1.0" name="Технологическое присоединение к электрическим сетям">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_1" name="Сетевая организация" processRef="Process_1"/>
+    <bpmn:participant id="contractor" name="Подрядная организация"/>
+    <bpmn:messageFlow id="MessageFlow_1" sourceRef="build" targetRef="contractor" name="Заказ на строительство"/>
+  </bpmn:collaboration>
+  <bpmn:process id="Process_1" isExecutable="false" name="Сетевая организация">
+    <bpmn:laneSet id="LaneSet_Process_1">
+      <bpmn:lane id="applicant" name="Заявитель">
+        <bpmn:flowNodeRef>start</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>apply</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>add_docs</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>sign_pay</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>own_side</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>fix</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="clients" name="Отдел по работе с клиентами">
+        <bpmn:flowNodeRef>end</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>check_docs</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>gw_docs</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>notify_docs</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>fee</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>p1_join</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>send_contract</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>act</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="tech" name="Технический отдел">
+        <bpmn:flowNodeRef>build</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>check_power</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>gw_power</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>plan_upgrade</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>gw_power_join</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>p1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>tu</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>p2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>p2_join</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>inspect</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>gw_remarks</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="chief" name="Главный инженер">
+        <bpmn:flowNodeRef>approve_upgrade</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="ops" name="Оперативный персонал">
+        <bpmn:flowNodeRef>connect</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="start" name="Начало">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end" name="Конец">
+      <bpmn:incoming>Flow_31</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:subProcess id="build" name="Построить сетевые объекты">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "подрядная организация строит сетевые объекты", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
+      <bpmn:incoming>Flow_21</bpmn:incoming>
+      <bpmn:outgoing>Flow_23</bpmn:outgoing>
+      <bpmn:task id="b1" name="Выполнить проектирование">
+        <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "", "assumption": "Детализация строительства из эталонного плана; в исходном описании этот шаг отдельно не указан.", "deadline": "", "documents": []}</bpmn:documentation>
+        <bpmn:incoming>Flow_34</bpmn:incoming>
+        <bpmn:outgoing>Flow_32</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:task id="b2" name="Выполнить строительно-монтажные работы">
+        <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "", "assumption": "Детализация строительства из эталонного плана; в исходном описании этот шаг отдельно не указан.", "deadline": "", "documents": []}</bpmn:documentation>
+        <bpmn:incoming>Flow_32</bpmn:incoming>
+        <bpmn:outgoing>Flow_33</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:task id="b3" name="Сдать объекты сетевой организации">
+        <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "", "assumption": "Детализация строительства из эталонного плана; в исходном описании этот шаг отдельно не указан.", "deadline": "", "documents": []}</bpmn:documentation>
+        <bpmn:incoming>Flow_33</bpmn:incoming>
+        <bpmn:outgoing>Flow_35</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:startEvent id="StartEvent_1">
+        <bpmn:outgoing>Flow_34</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:endEvent id="EndEvent_1">
+        <bpmn:incoming>Flow_35</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Flow_32" sourceRef="b1" targetRef="b2"/>
+      <bpmn:sequenceFlow id="Flow_33" sourceRef="b2" targetRef="b3"/>
+      <bpmn:sequenceFlow id="Flow_34" sourceRef="StartEvent_1" targetRef="b1"/>
+      <bpmn:sequenceFlow id="Flow_35" sourceRef="b3" targetRef="EndEvent_1"/>
+    </bpmn:subProcess>
+    <bpmn:userTask id="apply" name="Подать заявку на присоединение">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "Заявитель подаёт заявку на технологическое присоединение через личный кабинет сетевой организации.", "assumption": "", "deadline": "", "documents": ["Заявка на технологическое присоединение"]}</bpmn:documentation>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="check_docs" name="Проверить комплектность документов">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "Специалист отдела по работе с клиентами проверяет комплектность документов.", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_docs" name="Документы в порядке?" default="Flow_5">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "Если документов не хватает", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sendTask id="notify_docs" name="Уведомить о недостающих документах">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "заявителю направляется уведомление", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:userTask id="add_docs" name="Дополнить документы">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "Если документов не хватает, заявителю направляется уведомление, и у него есть 20 рабочих дней на их предоставление; заявитель дополняет документы, и проверка повторяется.", "assumption": "В описании не определены точка отсчёта срока и исход при просрочке.", "deadline": "20 рабочих дней; точку отсчёта необходимо уточнить", "documents": ["Недостающие документы"]}</bpmn:documentation>
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:task id="check_power" name="Проверить свободную мощность">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "технический отдел проверяет наличие свободной мощности на центре питания", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="gw_power" name="Мощности достаточно?" default="Flow_10">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "Если мощности недостаточно", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="plan_upgrade" name="Разработать мероприятие по увеличению мощности">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "разрабатывается мероприятие по увеличению мощности", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:userTask id="approve_upgrade" name="Согласовать мероприятие">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "которое согласует главный инженер", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_12</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_power_join">
+      <bpmn:incoming>Flow_9</bpmn:incoming>
+      <bpmn:incoming>Flow_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_13</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:parallelGateway id="p1">
+      <bpmn:incoming>Flow_13</bpmn:incoming>
+      <bpmn:outgoing>Flow_14</bpmn:outgoing>
+      <bpmn:outgoing>Flow_15</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:task id="tu" name="Подготовить технические условия">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "Затем технический отдел готовит технические условия", "assumption": "", "deadline": "", "documents": ["Технические условия"]}</bpmn:documentation>
+      <bpmn:incoming>Flow_14</bpmn:incoming>
+      <bpmn:outgoing>Flow_16</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:serviceTask id="fee" name="Рассчитать плату за присоединение">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "отдел по работе с клиентами параллельно рассчитывает плату за присоединение", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
+      <bpmn:incoming>Flow_15</bpmn:incoming>
+      <bpmn:outgoing>Flow_17</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:parallelGateway id="p1_join">
+      <bpmn:incoming>Flow_16</bpmn:incoming>
+      <bpmn:incoming>Flow_17</bpmn:incoming>
+      <bpmn:outgoing>Flow_18</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:sendTask id="send_contract" name="Направить договор и ТУ">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "После этого заявителю направляется договор с техническими условиями.", "assumption": "", "deadline": "", "documents": ["Договор", "Технические условия"]}</bpmn:documentation>
+      <bpmn:incoming>Flow_18</bpmn:incoming>
+      <bpmn:outgoing>Flow_19</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:userTask id="sign_pay" name="Подписать договор и оплатить">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "Заявитель подписывает договор и оплачивает услугу.", "assumption": "", "deadline": "", "documents": ["Договор"]}</bpmn:documentation>
+      <bpmn:incoming>Flow_19</bpmn:incoming>
+      <bpmn:outgoing>Flow_20</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:parallelGateway id="p2">
+      <bpmn:incoming>Flow_20</bpmn:incoming>
+      <bpmn:outgoing>Flow_21</bpmn:outgoing>
+      <bpmn:outgoing>Flow_22</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:manualTask id="own_side" name="Выполнить мероприятия на своей стороне">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "заявитель выполняет мероприятия на своей стороне", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
+      <bpmn:incoming>Flow_22</bpmn:incoming>
+      <bpmn:outgoing>Flow_24</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:parallelGateway id="p2_join">
+      <bpmn:incoming>Flow_23</bpmn:incoming>
+      <bpmn:incoming>Flow_24</bpmn:incoming>
+      <bpmn:outgoing>Flow_25</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:manualTask id="inspect" name="Провести осмотр электроустановки">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "После этого инспектор проводит осмотр электроустановки.", "assumption": "Инспектор отнесён к техническому отделу — организационную принадлежность нужно подтвердить.", "deadline": "", "documents": []}</bpmn:documentation>
+      <bpmn:incoming>Flow_25</bpmn:incoming>
+      <bpmn:incoming>Flow_28</bpmn:incoming>
+      <bpmn:outgoing>Flow_26</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:exclusiveGateway id="gw_remarks" name="Есть замечания?" default="Flow_29">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "Если выявлены замечания", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
+      <bpmn:incoming>Flow_26</bpmn:incoming>
+      <bpmn:outgoing>Flow_27</bpmn:outgoing>
+      <bpmn:outgoing>Flow_29</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:manualTask id="fix" name="Устранить замечания">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "заявитель их устраняет и осмотр повторяется", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
+      <bpmn:incoming>Flow_27</bpmn:incoming>
+      <bpmn:outgoing>Flow_28</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="connect" name="Подать напряжение">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "оперативный персонал выполняет фактическое присоединение и подача напряжения", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
+      <bpmn:incoming>Flow_29</bpmn:incoming>
+      <bpmn:outgoing>Flow_30</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:sendTask id="act" name="Оформить и направить акт о присоединении">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "отдел по работе с клиентами оформляет акт об осуществлении технологического присоединения и направляет его заявителю", "assumption": "", "deadline": "", "documents": ["Акт об осуществлении технологического присоединения"]}</bpmn:documentation>
+      <bpmn:incoming>Flow_30</bpmn:incoming>
+      <bpmn:outgoing>Flow_31</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="start" targetRef="apply"/>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="apply" targetRef="check_docs"/>
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="check_docs" targetRef="gw_docs"/>
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="gw_docs" targetRef="check_power" name="Да">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Да</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="gw_docs" targetRef="notify_docs" name="Нет"/>
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="notify_docs" targetRef="add_docs"/>
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="add_docs" targetRef="check_docs"/>
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="check_power" targetRef="gw_power"/>
+    <bpmn:sequenceFlow id="Flow_9" sourceRef="gw_power" targetRef="gw_power_join" name="Да">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Да</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="gw_power" targetRef="plan_upgrade" name="Нет"/>
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="plan_upgrade" targetRef="approve_upgrade"/>
+    <bpmn:sequenceFlow id="Flow_12" sourceRef="approve_upgrade" targetRef="gw_power_join"/>
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="gw_power_join" targetRef="p1"/>
+    <bpmn:sequenceFlow id="Flow_14" sourceRef="p1" targetRef="tu"/>
+    <bpmn:sequenceFlow id="Flow_15" sourceRef="p1" targetRef="fee"/>
+    <bpmn:sequenceFlow id="Flow_16" sourceRef="tu" targetRef="p1_join"/>
+    <bpmn:sequenceFlow id="Flow_17" sourceRef="fee" targetRef="p1_join"/>
+    <bpmn:sequenceFlow id="Flow_18" sourceRef="p1_join" targetRef="send_contract"/>
+    <bpmn:sequenceFlow id="Flow_19" sourceRef="send_contract" targetRef="sign_pay"/>
+    <bpmn:sequenceFlow id="Flow_20" sourceRef="sign_pay" targetRef="p2"/>
+    <bpmn:sequenceFlow id="Flow_21" sourceRef="p2" targetRef="build"/>
+    <bpmn:sequenceFlow id="Flow_22" sourceRef="p2" targetRef="own_side"/>
+    <bpmn:sequenceFlow id="Flow_23" sourceRef="build" targetRef="p2_join"/>
+    <bpmn:sequenceFlow id="Flow_24" sourceRef="own_side" targetRef="p2_join"/>
+    <bpmn:sequenceFlow id="Flow_25" sourceRef="p2_join" targetRef="inspect"/>
+    <bpmn:sequenceFlow id="Flow_26" sourceRef="inspect" targetRef="gw_remarks"/>
+    <bpmn:sequenceFlow id="Flow_27" sourceRef="gw_remarks" targetRef="fix" name="Да">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Да</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_28" sourceRef="fix" targetRef="inspect"/>
+    <bpmn:sequenceFlow id="Flow_29" sourceRef="gw_remarks" targetRef="connect" name="Нет"/>
+    <bpmn:sequenceFlow id="Flow_30" sourceRef="connect" targetRef="act"/>
+    <bpmn:sequenceFlow id="Flow_31" sourceRef="act" targetRef="end"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true">
+        <dc:Bounds x="60" y="60" width="3572" height="850"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="contractor_di" bpmnElement="contractor" isHorizontal="true">
+        <dc:Bounds x="60" y="960" width="3572" height="70"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="applicant_di" bpmnElement="applicant" isHorizontal="true">
+        <dc:Bounds x="90" y="60" width="3542" height="144"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="clients_di" bpmnElement="clients" isHorizontal="true">
+        <dc:Bounds x="90" y="204" width="3542" height="154"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="tech_di" bpmnElement="tech" isHorizontal="true">
+        <dc:Bounds x="90" y="358" width="3542" height="264"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="chief_di" bpmnElement="chief" isHorizontal="true">
+        <dc:Bounds x="90" y="622" width="3542" height="144"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ops_di" bpmnElement="ops" isHorizontal="true">
+        <dc:Bounds x="90" y="766" width="3542" height="144"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_di" bpmnElement="start">
+        <dc:Bounds x="150" y="117" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="120" y="159" width="96" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_di" bpmnElement="end">
+        <dc:Bounds x="3566" y="261" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3536" y="303" width="96" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="build_di" bpmnElement="build" isExpanded="false">
+        <dc:Bounds x="2566" y="393" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="apply_di" bpmnElement="apply">
+        <dc:Bounds x="256" y="95" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="check_docs_di" bpmnElement="check_docs">
+        <dc:Bounds x="446" y="239" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_docs_di" bpmnElement="gw_docs">
+        <dc:Bounds x="636" y="254" width="50" height="50"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="613" y="220" width="96" height="28"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="notify_docs_di" bpmnElement="notify_docs">
+        <dc:Bounds x="756" y="239" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="add_docs_di" bpmnElement="add_docs">
+        <dc:Bounds x="946" y="95" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="check_power_di" bpmnElement="check_power">
+        <dc:Bounds x="756" y="393" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_power_di" bpmnElement="gw_power">
+        <dc:Bounds x="981" y="408" width="50" height="50"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="958" y="374" width="96" height="28"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="plan_upgrade_di" bpmnElement="plan_upgrade">
+        <dc:Bounds x="1136" y="503" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="approve_upgrade_di" bpmnElement="approve_upgrade">
+        <dc:Bounds x="1326" y="657" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_power_join_di" bpmnElement="gw_power_join">
+        <dc:Bounds x="1516" y="408" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="p1_di" bpmnElement="p1">
+        <dc:Bounds x="1636" y="408" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="tu_di" bpmnElement="tu">
+        <dc:Bounds x="1756" y="393" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="fee_di" bpmnElement="fee">
+        <dc:Bounds x="1756" y="239" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="p1_join_di" bpmnElement="p1_join">
+        <dc:Bounds x="1946" y="254" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="send_contract_di" bpmnElement="send_contract">
+        <dc:Bounds x="2066" y="239" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="sign_pay_di" bpmnElement="sign_pay">
+        <dc:Bounds x="2256" y="95" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="p2_di" bpmnElement="p2">
+        <dc:Bounds x="2446" y="408" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="own_side_di" bpmnElement="own_side">
+        <dc:Bounds x="2566" y="95" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="p2_join_di" bpmnElement="p2_join">
+        <dc:Bounds x="2756" y="408" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="inspect_di" bpmnElement="inspect">
+        <dc:Bounds x="2876" y="393" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_remarks_di" bpmnElement="gw_remarks">
+        <dc:Bounds x="3066" y="408" width="50" height="50"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3120" y="394" width="96" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="fix_di" bpmnElement="fix">
+        <dc:Bounds x="3186" y="95" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="connect_di" bpmnElement="connect">
+        <dc:Bounds x="3186" y="801" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_di" bpmnElement="act">
+        <dc:Bounds x="3376" y="239" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="186" y="135"/>
+        <di:waypoint x="256" y="135"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="376" y="135"/>
+        <di:waypoint x="411" y="135"/>
+        <di:waypoint x="411" y="279"/>
+        <di:waypoint x="446" y="279"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="566" y="279"/>
+        <di:waypoint x="636" y="279"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="661" y="304"/>
+        <di:waypoint x="661" y="433"/>
+        <di:waypoint x="756" y="433"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="669" y="416" width="24" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="686" y="279"/>
+        <di:waypoint x="756" y="279"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="692" y="262" width="24" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="876" y="279"/>
+        <di:waypoint x="911" y="279"/>
+        <di:waypoint x="911" y="135"/>
+        <di:waypoint x="946" y="135"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="1066" y="135"/>
+        <di:waypoint x="1080" y="135"/>
+        <di:waypoint x="1080" y="193"/>
+        <di:waypoint x="432" y="193"/>
+        <di:waypoint x="432" y="279"/>
+        <di:waypoint x="446" y="279"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <di:waypoint x="876" y="433"/>
+        <di:waypoint x="981" y="433"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <di:waypoint x="1031" y="433"/>
+        <di:waypoint x="1516" y="433"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1037" y="416" width="24" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <di:waypoint x="1006" y="458"/>
+        <di:waypoint x="1006" y="543"/>
+        <di:waypoint x="1136" y="543"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1014" y="526" width="24" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <di:waypoint x="1256" y="543"/>
+        <di:waypoint x="1291" y="543"/>
+        <di:waypoint x="1291" y="697"/>
+        <di:waypoint x="1326" y="697"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12">
+        <di:waypoint x="1446" y="697"/>
+        <di:waypoint x="1541" y="697"/>
+        <di:waypoint x="1541" y="458"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_13_di" bpmnElement="Flow_13">
+        <di:waypoint x="1566" y="433"/>
+        <di:waypoint x="1636" y="433"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_14_di" bpmnElement="Flow_14">
+        <di:waypoint x="1686" y="433"/>
+        <di:waypoint x="1756" y="433"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_15_di" bpmnElement="Flow_15">
+        <di:waypoint x="1661" y="408"/>
+        <di:waypoint x="1661" y="279"/>
+        <di:waypoint x="1756" y="279"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_16_di" bpmnElement="Flow_16">
+        <di:waypoint x="1876" y="433"/>
+        <di:waypoint x="1971" y="433"/>
+        <di:waypoint x="1971" y="304"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_17_di" bpmnElement="Flow_17">
+        <di:waypoint x="1876" y="279"/>
+        <di:waypoint x="1946" y="279"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_18_di" bpmnElement="Flow_18">
+        <di:waypoint x="1996" y="279"/>
+        <di:waypoint x="2066" y="279"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_19_di" bpmnElement="Flow_19">
+        <di:waypoint x="2186" y="279"/>
+        <di:waypoint x="2221" y="279"/>
+        <di:waypoint x="2221" y="135"/>
+        <di:waypoint x="2256" y="135"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_20_di" bpmnElement="Flow_20">
+        <di:waypoint x="2376" y="135"/>
+        <di:waypoint x="2471" y="135"/>
+        <di:waypoint x="2471" y="408"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_21_di" bpmnElement="Flow_21">
+        <di:waypoint x="2496" y="433"/>
+        <di:waypoint x="2566" y="433"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_22_di" bpmnElement="Flow_22">
+        <di:waypoint x="2471" y="408"/>
+        <di:waypoint x="2471" y="135"/>
+        <di:waypoint x="2566" y="135"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_23_di" bpmnElement="Flow_23">
+        <di:waypoint x="2686" y="433"/>
+        <di:waypoint x="2756" y="433"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_24_di" bpmnElement="Flow_24">
+        <di:waypoint x="2686" y="135"/>
+        <di:waypoint x="2781" y="135"/>
+        <di:waypoint x="2781" y="408"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_25_di" bpmnElement="Flow_25">
+        <di:waypoint x="2806" y="433"/>
+        <di:waypoint x="2876" y="433"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_26_di" bpmnElement="Flow_26">
+        <di:waypoint x="2996" y="433"/>
+        <di:waypoint x="3066" y="433"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_27_di" bpmnElement="Flow_27">
+        <di:waypoint x="3091" y="408"/>
+        <di:waypoint x="3091" y="135"/>
+        <di:waypoint x="3186" y="135"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3099" y="118" width="24" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_28_di" bpmnElement="Flow_28">
+        <di:waypoint x="3306" y="135"/>
+        <di:waypoint x="3326" y="135"/>
+        <di:waypoint x="3326" y="183"/>
+        <di:waypoint x="2856" y="183"/>
+        <di:waypoint x="2856" y="433"/>
+        <di:waypoint x="2876" y="433"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_29_di" bpmnElement="Flow_29">
+        <di:waypoint x="3091" y="458"/>
+        <di:waypoint x="3091" y="841"/>
+        <di:waypoint x="3186" y="841"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3099" y="824" width="24" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_30_di" bpmnElement="Flow_30">
+        <di:waypoint x="3306" y="841"/>
+        <di:waypoint x="3341" y="841"/>
+        <di:waypoint x="3341" y="279"/>
+        <di:waypoint x="3376" y="279"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_31_di" bpmnElement="Flow_31">
+        <di:waypoint x="3496" y="279"/>
+        <di:waypoint x="3566" y="279"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_1_di" bpmnElement="MessageFlow_1">
+        <di:waypoint x="2626" y="473"/>
+        <di:waypoint x="2626" y="960"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2632" y="702" width="120" height="28"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_2">
+    <bpmndi:BPMNPlane id="BPMNPlane_2" bpmnElement="build">
+      <bpmndi:BPMNShape id="b1_di" bpmnElement="b1">
+        <dc:Bounds x="196" y="95" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="b2_di" bpmnElement="b2">
+        <dc:Bounds x="386" y="95" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="b3_di" bpmnElement="b3">
+        <dc:Bounds x="576" y="95" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="90" y="117" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <dc:Bounds x="766" y="117" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_32_di" bpmnElement="Flow_32">
+        <di:waypoint x="316" y="135"/>
+        <di:waypoint x="386" y="135"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_33_di" bpmnElement="Flow_33">
+        <di:waypoint x="506" y="135"/>
+        <di:waypoint x="576" y="135"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_34_di" bpmnElement="Flow_34">
+        <di:waypoint x="126" y="135"/>
+        <di:waypoint x="196" y="135"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_35_di" bpmnElement="Flow_35">
+        <di:waypoint x="696" y="135"/>
+        <di:waypoint x="766" y="135"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,232 @@
+{
+  "title": "Подбор сотрудника",
+  "organization": "Компания",
+  "participants": [
+    {
+      "id": "head",
+      "name": "Руководитель подразделения"
+    },
+    {
+      "id": "hr",
+      "name": "HR-менеджер"
+    },
+    {
+      "id": "cand",
+      "name": "Кандидат"
+    },
+    {
+      "id": "sec",
+      "name": "Служба безопасности"
+    },
+    {
+      "id": "dir",
+      "name": "Директор"
+    }
+  ],
+  "elements": [
+    {
+      "id": "request",
+      "type": "user_task",
+      "name": "Создать заявку на подбор",
+      "participant": "head"
+    },
+    {
+      "id": "publish",
+      "type": "user_task",
+      "name": "Опубликовать вакансию",
+      "participant": "hr"
+    },
+    {
+      "id": "screen",
+      "type": "user_task",
+      "name": "Отобрать резюме",
+      "participant": "hr"
+    },
+    {
+      "id": "interview",
+      "type": "task",
+      "name": "Провести первичное интервью",
+      "participant": "hr"
+    },
+    {
+      "id": "gw_fit",
+      "type": "exclusive_gateway",
+      "name": "Кандидат подходит?",
+      "participant": "hr"
+    },
+    {
+      "id": "reject",
+      "type": "send_task",
+      "name": "Отправить отказ кандидату",
+      "participant": "hr"
+    },
+    {
+      "id": "test",
+      "type": "task",
+      "name": "Выполнить тестовое задание",
+      "participant": "cand"
+    },
+    {
+      "id": "tech",
+      "type": "task",
+      "name": "Провести техническое интервью",
+      "participant": "head"
+    },
+    {
+      "id": "decide",
+      "type": "user_task",
+      "name": "Принять решение по кандидату",
+      "participant": "head"
+    },
+    {
+      "id": "gw_checks",
+      "type": "inclusive_gateway",
+      "name": "Нужные проверки?",
+      "participant": "head"
+    },
+    {
+      "id": "sb",
+      "type": "task",
+      "name": "Проверить кандидата",
+      "participant": "sec"
+    },
+    {
+      "id": "approve",
+      "type": "user_task",
+      "name": "Согласовать кандидата",
+      "participant": "dir"
+    },
+    {
+      "id": "gw_checks_join",
+      "type": "inclusive_gateway",
+      "participant": "hr"
+    },
+    {
+      "id": "offer",
+      "type": "send_task",
+      "name": "Направить оффер",
+      "participant": "hr"
+    },
+    {
+      "id": "gw_offer",
+      "type": "exclusive_gateway",
+      "name": "Оффер принят?",
+      "participant": "cand"
+    },
+    {
+      "id": "hire",
+      "type": "user_task",
+      "name": "Оформить на работу",
+      "participant": "hr"
+    },
+    {
+      "id": "end_no",
+      "type": "end_event",
+      "name": "Кандидат отказался",
+      "participant": "cand"
+    }
+  ],
+  "flows": [
+    {
+      "from": "start",
+      "to": "request"
+    },
+    {
+      "from": "request",
+      "to": "publish"
+    },
+    {
+      "from": "publish",
+      "to": "screen"
+    },
+    {
+      "from": "screen",
+      "to": "interview"
+    },
+    {
+      "from": "interview",
+      "to": "gw_fit"
+    },
+    {
+      "from": "gw_fit",
+      "to": "test",
+      "label": "Да"
+    },
+    {
+      "from": "gw_fit",
+      "to": "reject",
+      "label": "Нет",
+      "default": true
+    },
+    {
+      "from": "reject",
+      "to": "screen"
+    },
+    {
+      "from": "test",
+      "to": "tech"
+    },
+    {
+      "from": "tech",
+      "to": "decide"
+    },
+    {
+      "from": "decide",
+      "to": "gw_checks"
+    },
+    {
+      "from": "gw_checks",
+      "to": "sb",
+      "label": "Нужна проверка СБ"
+    },
+    {
+      "from": "gw_checks",
+      "to": "approve",
+      "label": "Нужно согласование"
+    },
+    {
+      "from": "gw_checks",
+      "to": "gw_checks_join",
+      "label": "Проверки не нужны",
+      "default": true
+    },
+    {
+      "from": "sb",
+      "to": "gw_checks_join"
+    },
+    {
+      "from": "approve",
+      "to": "gw_checks_join"
+    },
+    {
+      "from": "gw_checks_join",
+      "to": "offer"
+    },
+    {
+      "from": "offer",
+      "to": "gw_offer"
+    },
+    {
+      "from": "gw_offer",
+      "to": "hire",
+      "label": "Да"
+    },
+    {
+      "from": "gw_offer",
+      "to": "end_no",
+      "label": "Нет",
+      "default": true
+    },
+    {
+      "from": "hire",
+      "to": "end"
+    }
+  ],
+  "assumptions": [
+    "Решение руководителя после технического интервью считается положительным; отказ на этом этапе в описании не указан"
+  ],
+  "questions": [
+    "Что происходит при отрицательном решении руководителя после технического интервью?",
+    "Кто решает, какие проверки нужны для должности?"
+  ]
+}

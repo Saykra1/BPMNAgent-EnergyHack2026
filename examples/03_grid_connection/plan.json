@@ -1,0 +1,399 @@
+{
+  "title": "Технологическое присоединение к электрическим сетям",
+  "organization": "Сетевая организация",
+  "participants": [
+    {
+      "id": "applicant",
+      "name": "Заявитель"
+    },
+    {
+      "id": "clients",
+      "name": "Отдел по работе с клиентами"
+    },
+    {
+      "id": "tech",
+      "name": "Технический отдел"
+    },
+    {
+      "id": "chief",
+      "name": "Главный инженер"
+    },
+    {
+      "id": "ops",
+      "name": "Оперативный персонал"
+    },
+    {
+      "id": "contractor",
+      "name": "Подрядная организация",
+      "external": true
+    }
+  ],
+  "elements": [
+    {
+      "id": "apply",
+      "type": "user_task",
+      "name": "Подать заявку на присоединение",
+      "participant": "applicant",
+      "source_quote": "Заявитель подаёт заявку на технологическое присоединение через личный кабинет сетевой организации.",
+      "documents": [
+        "Заявка на технологическое присоединение"
+      ]
+    },
+    {
+      "id": "check_docs",
+      "type": "user_task",
+      "name": "Проверить комплектность документов",
+      "participant": "clients",
+      "source_quote": "Специалист отдела по работе с клиентами проверяет комплектность документов."
+    },
+    {
+      "id": "gw_docs",
+      "type": "exclusive_gateway",
+      "name": "Документы в порядке?",
+      "participant": "clients",
+      "source_quote": "Если документов не хватает"
+    },
+    {
+      "id": "notify_docs",
+      "type": "send_task",
+      "name": "Уведомить о недостающих документах",
+      "participant": "clients",
+      "source_quote": "заявителю направляется уведомление"
+    },
+    {
+      "id": "add_docs",
+      "type": "user_task",
+      "name": "Дополнить документы",
+      "participant": "applicant",
+      "source_quote": "Если документов не хватает, заявителю направляется уведомление, и у него есть 20 рабочих дней на их предоставление; заявитель дополняет документы, и проверка повторяется.",
+      "assumption": "В описании не определены точка отсчёта срока и исход при просрочке.",
+      "deadline": "20 рабочих дней; точку отсчёта необходимо уточнить",
+      "documents": [
+        "Недостающие документы"
+      ]
+    },
+    {
+      "id": "check_power",
+      "type": "task",
+      "name": "Проверить свободную мощность",
+      "participant": "tech",
+      "source_quote": "технический отдел проверяет наличие свободной мощности на центре питания"
+    },
+    {
+      "id": "gw_power",
+      "type": "exclusive_gateway",
+      "name": "Мощности достаточно?",
+      "participant": "tech",
+      "source_quote": "Если мощности недостаточно"
+    },
+    {
+      "id": "plan_upgrade",
+      "type": "task",
+      "name": "Разработать мероприятие по увеличению мощности",
+      "participant": "tech",
+      "source_quote": "разрабатывается мероприятие по увеличению мощности"
+    },
+    {
+      "id": "approve_upgrade",
+      "type": "user_task",
+      "name": "Согласовать мероприятие",
+      "participant": "chief",
+      "source_quote": "которое согласует главный инженер"
+    },
+    {
+      "id": "gw_power_join",
+      "type": "exclusive_gateway",
+      "participant": "tech"
+    },
+    {
+      "id": "p1",
+      "type": "parallel_gateway",
+      "participant": "tech"
+    },
+    {
+      "id": "tu",
+      "type": "task",
+      "name": "Подготовить технические условия",
+      "participant": "tech",
+      "source_quote": "Затем технический отдел готовит технические условия",
+      "documents": [
+        "Технические условия"
+      ]
+    },
+    {
+      "id": "fee",
+      "type": "service_task",
+      "name": "Рассчитать плату за присоединение",
+      "participant": "clients",
+      "source_quote": "отдел по работе с клиентами параллельно рассчитывает плату за присоединение"
+    },
+    {
+      "id": "p1_join",
+      "type": "parallel_gateway",
+      "participant": "clients"
+    },
+    {
+      "id": "send_contract",
+      "type": "send_task",
+      "name": "Направить договор и ТУ",
+      "participant": "clients",
+      "source_quote": "После этого заявителю направляется договор с техническими условиями.",
+      "documents": [
+        "Договор",
+        "Технические условия"
+      ]
+    },
+    {
+      "id": "sign_pay",
+      "type": "user_task",
+      "name": "Подписать договор и оплатить",
+      "participant": "applicant",
+      "source_quote": "Заявитель подписывает договор и оплачивает услугу.",
+      "documents": [
+        "Договор"
+      ]
+    },
+    {
+      "id": "p2",
+      "type": "parallel_gateway",
+      "participant": "tech"
+    },
+    {
+      "id": "build",
+      "type": "subprocess",
+      "name": "Построить сетевые объекты",
+      "participant": "tech",
+      "source_quote": "подрядная организация строит сетевые объекты"
+    },
+    {
+      "id": "b1",
+      "type": "task",
+      "name": "Выполнить проектирование",
+      "parent": "build",
+      "assumption": "Детализация строительства из эталонного плана; в исходном описании этот шаг отдельно не указан."
+    },
+    {
+      "id": "b2",
+      "type": "task",
+      "name": "Выполнить строительно-монтажные работы",
+      "parent": "build",
+      "assumption": "Детализация строительства из эталонного плана; в исходном описании этот шаг отдельно не указан."
+    },
+    {
+      "id": "b3",
+      "type": "task",
+      "name": "Сдать объекты сетевой организации",
+      "parent": "build",
+      "assumption": "Детализация строительства из эталонного плана; в исходном описании этот шаг отдельно не указан."
+    },
+    {
+      "id": "own_side",
+      "type": "manual_task",
+      "name": "Выполнить мероприятия на своей стороне",
+      "participant": "applicant",
+      "source_quote": "заявитель выполняет мероприятия на своей стороне"
+    },
+    {
+      "id": "p2_join",
+      "type": "parallel_gateway",
+      "participant": "tech"
+    },
+    {
+      "id": "inspect",
+      "type": "manual_task",
+      "name": "Провести осмотр электроустановки",
+      "participant": "tech",
+      "source_quote": "После этого инспектор проводит осмотр электроустановки.",
+      "assumption": "Инспектор отнесён к техническому отделу — организационную принадлежность нужно подтвердить."
+    },
+    {
+      "id": "gw_remarks",
+      "type": "exclusive_gateway",
+      "name": "Есть замечания?",
+      "participant": "tech",
+      "source_quote": "Если выявлены замечания"
+    },
+    {
+      "id": "fix",
+      "type": "manual_task",
+      "name": "Устранить замечания",
+      "participant": "applicant",
+      "source_quote": "заявитель их устраняет и осмотр повторяется"
+    },
+    {
+      "id": "connect",
+      "type": "manual_task",
+      "name": "Подать напряжение",
+      "participant": "ops",
+      "source_quote": "оперативный персонал выполняет фактическое присоединение и подача напряжения"
+    },
+    {
+      "id": "act",
+      "type": "send_task",
+      "name": "Оформить и направить акт о присоединении",
+      "participant": "clients",
+      "source_quote": "отдел по работе с клиентами оформляет акт об осуществлении технологического присоединения и направляет его заявителю",
+      "documents": [
+        "Акт об осуществлении технологического присоединения"
+      ]
+    }
+  ],
+  "flows": [
+    {
+      "from": "start",
+      "to": "apply"
+    },
+    {
+      "from": "apply",
+      "to": "check_docs"
+    },
+    {
+      "from": "check_docs",
+      "to": "gw_docs"
+    },
+    {
+      "from": "gw_docs",
+      "to": "check_power",
+      "label": "Да"
+    },
+    {
+      "from": "gw_docs",
+      "to": "notify_docs",
+      "label": "Нет",
+      "default": true
+    },
+    {
+      "from": "notify_docs",
+      "to": "add_docs"
+    },
+    {
+      "from": "add_docs",
+      "to": "check_docs"
+    },
+    {
+      "from": "check_power",
+      "to": "gw_power"
+    },
+    {
+      "from": "gw_power",
+      "to": "gw_power_join",
+      "label": "Да"
+    },
+    {
+      "from": "gw_power",
+      "to": "plan_upgrade",
+      "label": "Нет",
+      "default": true
+    },
+    {
+      "from": "plan_upgrade",
+      "to": "approve_upgrade"
+    },
+    {
+      "from": "approve_upgrade",
+      "to": "gw_power_join"
+    },
+    {
+      "from": "gw_power_join",
+      "to": "p1"
+    },
+    {
+      "from": "p1",
+      "to": "tu"
+    },
+    {
+      "from": "p1",
+      "to": "fee"
+    },
+    {
+      "from": "tu",
+      "to": "p1_join"
+    },
+    {
+      "from": "fee",
+      "to": "p1_join"
+    },
+    {
+      "from": "p1_join",
+      "to": "send_contract"
+    },
+    {
+      "from": "send_contract",
+      "to": "sign_pay"
+    },
+    {
+      "from": "sign_pay",
+      "to": "p2"
+    },
+    {
+      "from": "p2",
+      "to": "build"
+    },
+    {
+      "from": "p2",
+      "to": "own_side"
+    },
+    {
+      "from": "build",
+      "to": "p2_join"
+    },
+    {
+      "from": "own_side",
+      "to": "p2_join"
+    },
+    {
+      "from": "p2_join",
+      "to": "inspect"
+    },
+    {
+      "from": "inspect",
+      "to": "gw_remarks"
+    },
+    {
+      "from": "gw_remarks",
+      "to": "fix",
+      "label": "Да"
+    },
+    {
+      "from": "fix",
+      "to": "inspect"
+    },
+    {
+      "from": "gw_remarks",
+      "to": "connect",
+      "label": "Нет",
+      "default": true
+    },
+    {
+      "from": "connect",
+      "to": "act"
+    },
+    {
+      "from": "act",
+      "to": "end"
+    },
+    {
+      "from": "b1",
+      "to": "b2"
+    },
+    {
+      "from": "b2",
+      "to": "b3"
+    }
+  ],
+  "message_flows": [
+    {
+      "from": "build",
+      "to": "contractor",
+      "label": "Заказ на строительство"
+    }
+  ],
+  "assumptions": [
+    "Строительство показано свёрнутым подпроцессом, выполняемым с привлечением подрядчика",
+    "Осмотр проводит инспектор технического отдела"
+  ],
+  "questions": [
+    "Что происходит, если заявитель не предоставил документы за 20 рабочих дней — заявка аннулируется?",
+    "Нужна ли оплата до начала строительства или допускается рассрочка?"
+  ]
+}

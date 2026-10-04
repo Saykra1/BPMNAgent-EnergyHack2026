@@ -1,0 +1,37 @@
+{
+  "source": "reference_plan+deterministic_builder",
+  "issues": [],
+  "xsd_errors": [],
+  "stats": {
+    "nodes": 19,
+    "sequence_flows": 21,
+    "message_flows": 0,
+    "pools": 1,
+    "lanes": 5,
+    "by_kind": {
+      "startEvent": 1,
+      "endEvent": 2,
+      "userTask": 6,
+      "task": 4,
+      "exclusiveGateway": 2,
+      "sendTask": 2,
+      "inclusiveGateway": 2
+    }
+  },
+  "assumptions": [
+    "Решение руководителя после технического интервью считается положительным; отказ на этом этапе в описании не указан"
+  ],
+  "questions": [
+    "Что происходит при отрицательном решении руководителя после технического интервью?",
+    "Кто решает, какие проверки нужны для должности?"
+  ],
+  "lint": [],
+  "lint_summary": {
+    "errors": 0,
+    "warnings": 0,
+    "info": 0,
+    "fixable": 0
+  },
+  "fixes": [],
+  "residual": []
+}
