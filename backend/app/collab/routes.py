@@ -1,7 +1,7 @@
 """HTTP API: registration and login, teams, configurable roles, invitations, shared projects.
 
 Plus an access guard for the rest of the API (installed as middleware in main):
-- with REQUIRE_LOGIN (default on) every /api call except login/registration needs a session;
+- with REQUIRE_LOGIN=true every /api call except login/registration needs a session;
 - calls made inside a team project (header X-Project-Id) are checked against the member's roles:
   LLM endpoints need "generate", process-run actions need "run".
 """
@@ -65,7 +65,7 @@ RUN_ACTIONS = ("/start", "/complete", "/choose", "/retry")
 
 def require_login() -> bool:
     from .. import main
-    return bool(getattr(main.get_settings(), "require_login", True))
+    return bool(getattr(main.get_settings(), "require_login", False))
 
 
 def required_permission(path: str, method: str) -> str | None:

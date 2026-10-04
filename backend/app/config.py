@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     max_repairs: int = 3
     llm_onprem_only: bool = False          # refuse any non-local LLM endpoint
     runs_dir: Path = ROOT / "runs"
-    require_login: bool = True             # registration/login required for the whole API (teams always need it)
+    require_login: bool = False            # public editor by default; teams and shared projects still require login
     prompt_versions: str = ""              # pin prompt versions: "ir_extract.system=1,ir_edit.system=2"
     env_file: str | None = None            # which file the settings came from (diagnostics)
 

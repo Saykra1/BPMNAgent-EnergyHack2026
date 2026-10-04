@@ -110,6 +110,14 @@ def test_api_requires_login_when_enabled(client):
     assert client.get("/api/examples", headers=H(u)).status_code == 200
 
 
+def test_guest_can_use_editor_but_not_teams_by_default(client, monkeypatch, tmp_path):
+    assert Settings.model_fields["require_login"].default is False
+    monkeypatch.setattr(main, "get_settings", lambda: Settings(runs_dir=tmp_path, require_login=False))
+    assert client.get("/api/auth/config").json()["require_login"] is False
+    assert client.get("/api/examples").status_code == 200
+    assert client.post("/api/teams", json={"name": "Команда"}).status_code == 401
+
+
 def test_change_password_closes_other_sessions(client):
     u = register(client, "dina")
     other = client.post("/api/auth/login", json={"login": "dina", "password": "secret-pass-1"}).json()
