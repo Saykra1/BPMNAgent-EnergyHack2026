@@ -130,6 +130,8 @@ RULES: list[tuple[str, re.Pattern, int, object]] = [
     ("snils", re.compile(r"(?i)СНИЛС\s*[:№]?\s*(\d{11})(?!\d)"), 1, None),
     ("passport", re.compile(r"(?i)сери[яи]\s*\d{2}\s?\d{2}\s*(?:№|номер|N)\s*\d{6}(?!\d)"), 0, None),
     ("passport", re.compile(r"(?i)код\w*\s+подразделени\w*\s*:?\s*(\d{3}[-\s]?\d{3})(?!\d)"), 1, None),
+    ("passport", re.compile(r"(?i)дат\w*\s+выдачи\s*:?\s*(\d{1,2}[./]\d{1,2}[./]\d{2,4}(?:\s*г\.)?)"), 1,
+     lambda m, t: _near(t, m.start(), r"паспорт", 150)),
     ("passport", re.compile(r"(?<!\d)\d{2}\s?\d{2}\s?(?:№\s?)?\d{6}(?!\d)"), 0,
      lambda m, t: _near(t, m.start(), r"паспорт")),
     ("inn", re.compile(r"(?i)ИНН\s*[:№]?\s*(\d{12}|\d{10})(?!\d)"), 1, None),
@@ -162,11 +164,16 @@ ROLE_WORDS = set("""заявитель заявителя специалист �
 контролер электромонтёр электромонтер монтёр монтер курьер кассир секретарь агент представитель собственник
 владелец арендатор покупатель продавец юрисконсульт экономист аналитик техник электрик водитель бригадир прораб
 заместитель председатель член эксперт куратор координатор администратор""".split())
+SURNAME = (r"[А-ЯЁ][а-яё]*(?:(?:ов|ев|ёв|ин|ын)(?:а|у|ым|ом|е|ой|ою|ых)?"
+           r"|(?:ск|цк)(?:ий|ого|ому|им|ом|ая|ой|ую|ою))")
 PERSON_RULES = [
     re.compile(r"(?<![\w.])[А-ЯЁ][а-яё]+(?:-[А-ЯЁ][а-яё]+)?\s+[А-ЯЁ]\.\s?(?:[А-ЯЁ]\.)?"),
     re.compile(r"(?<![\w.])[А-ЯЁ]\.\s?(?:[А-ЯЁ]\.\s?)?[А-ЯЁ][а-яё]{2,}(?:-[А-ЯЁ][а-яё]+)?"),
-    re.compile(r"(?<![\w])(?:[А-ЯЁ][а-яё]+\s+)?[А-ЯЁ][а-яё]+\s+[А-ЯЁ][а-яё]+(?:ович|евич|ьич|овна|евна|ична|инична)"
-               r"(?:а|у|ем|е|ым|ой|ы|ом)?(?:\s+[А-ЯЁ][а-яё]+(?:ов|ев|ёв|ин|ын|ский|цкий|ова|ева|ёва|ина|ына|ская|цкая)"
+    # «Иван Сергеевич», «Анне Владимировне», «Петрову Ивану Сергеевичу»: the patronymic in every case.
+    # A word in front is taken only when it looks like a surname, so «Позвонить Анне Владимировне» keeps the verb.
+    re.compile(r"(?<![\w])(?:" + SURNAME + r"\s+)?[А-ЯЁ][а-яё]+\s+[А-ЯЁ][а-яё]+"
+               r"(?:(?:ович|евич|ьич)(?:а|у|ем|е)?|(?:овн|евн|ичн|иничн)(?:а|ы|е|у|ой|ою))"
+               r"(?:\s+[А-ЯЁ][а-яё]+(?:ов|ев|ёв|ин|ын|ский|цкий|ова|ева|ёва|ина|ына|ская|цкая)"
                r"(?:а|у|ым|ом|е|ой|ую)?)?(?![\w])"),
 ]
 PERSON_CONTEXT = re.compile(r"(?<![\w-])(?:[Гг]ражданин\w*|г-н|г-жа|[Гг]осподин\w*|[Гг]оспож\w*|ИП|тов\.)\s+"
@@ -176,6 +183,11 @@ NOT_PERSON = re.compile(r"(?i)(энерго|сет[ьи]|сбыт|банк|ст�
 # Addresses: a chain of components; masked when it has a street, or a house number together with
 # another component («д. 5, кв. 12»). A lone «участок 5» or «дом 3» is not an address.
 HOUSE_NUMBER = r"(?:,?\s*\d+[а-яА-Я]?(?:[/\-]\d+[а-яА-Я]?)?(?![\d\w.,]*\s*(?:раз|час|дн|кВ|кв\.\s*м|%)))?"
+STREET_CASES = (r"(?:улиц(?:е|у|ы|ей)|проспект(?:а|е|у|ом)|переул(?:ка|ке|ку|ком)|бульвар(?:а|е|у|ом)|"
+                r"площад(?:и|ью)|набережн(?:ой|ую)|проезд(?:а|е|у|ом)|микрорайон(?:а|е|у|ом)|тупик(?:а|е|у|ом)|"
+                r"алле(?:и|е|ю|ей)|шоссе)")
+PLACE_NAME = r"[А-ЯЁ][а-яё][\wё\-]*"           # «Мира», «Дружбы»; not an abbreviation like «ПС», «РЭС»
+CROSS_NAMES = r"(?:улиц\w*\s+|проспект\w*\s+)?[А-ЯЁа-яё][а-яё\-]{2,}(?:\s+" + PLACE_NAME + r")?"
 ADDRESS_PARTS = [
     ("postal", re.compile(r"(?<!\d)\d{6}(?!\d)")),
     ("region", re.compile(r"[А-ЯЁ][а-яё\-]+(?:ая|ий|ой|ый)\s+(?:обл\.|область|край|р-н|район)"
@@ -188,6 +200,18 @@ ADDRESS_PARTS = [
                           r"аллея)\s*(?:\d+-?[яйо]\s+)?[А-ЯЁ0-9][\wё\-.]*(?:\s+[А-ЯЁ][\wё\-]*)?" + HOUSE_NUMBER +
                           r"|[А-ЯЁ][\wё\-]+\s+(?:улица|проспект|переулок|шоссе|бульвар|проезд|набережная|площадь|"
                           r"ул\.|пр-т|просп\.|пер\.|ш\.|б-р|наб\.|пл\.)" + HOUSE_NUMBER)),
+    # Case forms («по улице Дружбы», «на Садовой улице»): only with a capitalised name, so that
+    # «на улице выполняются работы», «на площади 50 м²» or «площади ПС» stay process text.
+    ("street", re.compile(r"(?<![\w])" + STREET_CASES + r"\s+(?:\d+-?[яйо]\s+)?" + PLACE_NAME +
+                          r"(?:\s+" + PLACE_NAME + r")?" + HOUSE_NUMBER +
+                          r"|(?<![\w])" + PLACE_NAME + r"\s+" + STREET_CASES + r"(?![\w])" + HOUSE_NUMBER)),
+    # A place named by a crossing: «на перекрёстке Машерова и Дружбы», «на углу Ленина и Мира».
+    # After «перекрёсток» the names may be typed in lower case; «угол» and «пересечение» need a capitalised
+    # name («в углу помещения», «пересечение охранной зоны ЛЭП» are process text).
+    ("street", re.compile(r"(?i:(?<![\w])перекр[её]ст(?:ок|ка|ке|ку|ком))\s+" + CROSS_NAMES +
+                          r"(?:\s+и\s+" + CROSS_NAMES + r")?"
+                          r"|(?<![\w])(?:углу|пересечени(?:е|я|и|ем))\s+(?:улиц\w*\s+|проспект\w*\s+)?" + PLACE_NAME +
+                          r"(?:\s+и\s+" + PLACE_NAME + r")?")),
     ("house", re.compile(r"(?<![\w])(?:д\.|дом|корп\.|корпус|к\.|стр\.|строение|кв\.|квартира|оф\.|офис|"
                          r"пом\.|помещение|лит\.|литера|уч\.|участок)\s*№?\s*\d+[а-яА-Я]?(?:[/\-]\d+[а-яА-Я]?)?")),
 ]
@@ -260,6 +284,7 @@ def _rule_findings(text: str) -> list[Finding]:
     for m in PERSON_CONTEXT.finditer(text):
         out.append(Finding(m.start(1), m.end(1), "person", m.group(1)))
     out += _address_findings(text)
+    out += _issuer_findings(text)
     return out
 
 
@@ -279,6 +304,38 @@ def _address_findings(text: str) -> list[Finding]:
     return [Finding(c[0][0], c[-1][1], "address", text[c[0][0]:c[-1][1]]) for c in chains
             if any(name == "street" for _, _, name in c)
             or (len(c) >= 2 and any(name == "house" for _, _, name in c))]
+
+
+# Passport issue details: who issued it and when. Taken only next to the word «паспорт» and only when the
+# fragment names an issuing authority or starts with a date, so «паспорт трансформатора выдан после
+# испытаний» stays process text.
+ISSUED = re.compile(r"(?i)(?<![а-яё])выдан[аоы]?(?![а-яё])\s*:?\s*")
+AUTHORITY = re.compile(r"УФМС|ФМС|ГУВМ|УВМ|МВД|ОВД|УВД|МФЦ|(?i:милици|полици|паспортн\w*\s+стол|внутренних\s+дел)")
+DATE = r"\d{1,2}[./]\d{1,2}[./]\d{2,4}(?:\s*г\.)?"
+ISSUE_END = re.compile(r"[);\n]|,\s*(?=(?i:код|дат|прожива|зарегистр|тел|e-?mail|адрес|снилс|инн)(?![а-яё]))")
+# abbreviations followed by a name («гор. Москве», «им. Ленина»): their dot does not end the issuer;
+# «по Тверской обл.» does
+NAME_PREFIXES = {"г", "гор", "пос", "ул", "д", "им", "ст", "с", "дер", "респ", "мкр", "пр", "просп", "пер"}
+MAX_ISSUER = 160
+
+
+def _issuer_findings(text: str) -> list[Finding]:
+    out = []
+    for m in ISSUED.finditer(text):
+        if not _near(text, m.start(), r"паспорт", 120):
+            continue
+        start = m.end()
+        stop = ISSUE_END.search(text, start, start + MAX_ISSUER)
+        end = stop.start() if stop else min(len(text), start + MAX_ISSUER)
+        for dot in re.finditer(r"\.(?=\s+[А-ЯЁA-Z]|\s*$)", text[start:end]):   # sentence end, not «гор. Москве»
+            word = re.search(r"(\w+)$", text[start:start + dot.start()])
+            if not word or word.group(1).lower() not in NAME_PREFIXES:
+                end = start + dot.start()
+                break
+        value = text[start:end].rstrip(" ,.")
+        if value and (AUTHORITY.search(value) or re.match(DATE, value)):
+            out.append(Finding(start, start + len(value), "passport", value))
+    return out
 
 
 def _injection_findings(text: str) -> list[Finding]:

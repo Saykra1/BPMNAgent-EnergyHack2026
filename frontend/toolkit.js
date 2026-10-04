@@ -359,7 +359,6 @@
     const tools = document.createElement('div');
     tools.className = 'tk-doc-tools';
     tools.innerHTML = `<label class="btn tk-upload" data-help="Загрузить описание из файла: txt, docx, pdf или расшифровку интервью.">Загрузить документ<input id="doc-file" type="file" accept=".txt,.md,.docx,.pdf,.srt,.vtt" hidden></label>
-      <button id="pii-check" type="button" data-help="Показать, какие персональные данные будут замаскированы перед отправкой модели.">Проверить ПДн</button>
       <span id="doc-info" class="hint"></span>`;
     text.after(tools);
     document.getElementById('doc-file').onchange = async (e) => {
@@ -373,15 +372,6 @@
         info.textContent = `${f.name}: ${r.chars.toLocaleString('ru')} символов${r.parts > 1 ? ` · будет обработан частями (${r.parts})` : ''}${r.kind === 'transcript' ? ' · расшифровка интервью' : ''}`;
       } catch (err) { info.textContent = 'Ошибка: ' + err.message; }
       e.target.value = '';
-    };
-    document.getElementById('pii-check').onclick = async () => {
-      const info = document.getElementById('doc-info');
-      try {
-        const r = await api('/api/pii', { text: text.value });
-        info.innerHTML = !r.enabled ? 'Маскирование ПДн выключено (PII_MASK=false).' : r.items.length
-          ? `Будет замаскировано: ${r.items.map(i => `<span class="pill warn" title="${esc(i.original)}">${esc(i.token)}</span>`).join(' ')}`
-          : 'Персональные данные не найдены.';
-      } catch (err) { info.textContent = err.message; }
     };
   }
 

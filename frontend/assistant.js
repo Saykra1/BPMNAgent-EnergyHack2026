@@ -189,7 +189,7 @@
         ${res.unsupported.length ? `<div class="notice">Ограниченная проверка: есть неподдерживаемые элементы (${esc(res.unsupported.join(', '))}).</div>` : ''}
         ${res.issues.map((i, n) => `<article class="issue ${esc(i.level)}" data-issue="${n}"><b>${esc(i.title)}</b><p>${esc(i.message)}</p><p>${esc(i.advice)}</p></article>`).join('')}
         ${res.xsd_errors.length ? `<pre class="code">${esc(res.xsd_errors.join('\n'))}</pre>` : ''}
-        <p class="hint">Отсутствие замечаний не доказывает полноту бизнес-процесса. Проверьте вкладку «Исключения».</p>`;
+        <p class="hint">Отсутствие замечаний не доказывает полноту бизнес-процесса. Проверьте вкладку «Риски».</p>`;
       if (state.lastResult?.assumptions?.length) report.insertAdjacentHTML('beforeend', '<h4>Допущения при построении</h4><ul class="list">' + state.lastResult.assumptions.map(x => `<li>${esc(x)}</li>`).join('') + '</ul>');
       if (state.lastResult?.questions?.length) report.insertAdjacentHTML('beforeend', '<h4>Нерешённые вопросы при построении</h4><ul class="list">' + state.lastResult.questions.map(x => `<li>${esc(x)}</li>`).join('') + '</ul>');
       const decided = (state.lastResult?.resolutions || []).filter(r => r.chosen !== 'both');

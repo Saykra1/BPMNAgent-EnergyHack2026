@@ -157,20 +157,6 @@ def upload(req: UploadRequest):
     return info
 
 
-class TextRequest(BaseModel):
-    text: str = Field(default="", max_length=200_000)
-
-
-@router.post("/pii")
-def pii_preview(req: TextRequest):
-    """What will be masked before a request to the model: the same PrivacyGuard as every pipeline call."""
-    from .pipeline import pii_items
-    from .privacy import PrivacyGuard, clean_text
-    guard = PrivacyGuard(clean_text(req.text)[0])
-    return {"enabled": True, "masked_text": guard.masked_text(), "items": pii_items(guard),
-            "onprem_only": _settings().llm_onprem_only}
-
-
 # ------------------------------------------------------------------------------- analytics
 class AnalyticsRequest(Source):
     runs: int = Field(default=1000, ge=50, le=20000)

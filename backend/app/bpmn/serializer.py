@@ -40,6 +40,8 @@ def to_xml(d: Diagram, lay: LayoutResult, exporter_version: str = "1.0") -> str:
     root.set("targetNamespace", "http://bpmn.io/schema/bpmn")
     root.set("exporter", "BPMN Agent")
     root.set("exporterVersion", exporter_version)
+    if d.name:
+        root.set("name", d.name)        # the process title: pools carry the organization's name
 
     if d.groups:
         cat = etree.SubElement(root, _b("category"), id="Category_1")

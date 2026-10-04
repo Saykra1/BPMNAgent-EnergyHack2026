@@ -448,7 +448,8 @@ button.trust-key { padding: 3px 7px; border-color: #efc9c2; color: #8c3c36; font
 }
 
 /* A brief branded opening; the editor is already loading underneath. */
-.intro-screen { position: fixed; inset: 0; z-index: 200; display: flex; flex-direction: column; overflow: hidden; padding: clamp(22px, 3.5vw, 52px); background: radial-gradient(circle at 51% 42%, rgba(51, 111, 96, .34), transparent 38%), linear-gradient(145deg, #122a30 0%, #16393b 58%, #1a443b 100%); color: #f5f5eb; isolation: isolate; }
+/* Above every overlay, the login screen (#auth-screen, 2000) included: a new visitor sees the welcome first. */
+.intro-screen { position: fixed; inset: 0; z-index: 2100; display: flex; flex-direction: column; overflow: hidden; padding: clamp(22px, 3.5vw, 52px); background: radial-gradient(circle at 51% 42%, rgba(51, 111, 96, .34), transparent 38%), linear-gradient(145deg, #122a30 0%, #16393b 58%, #1a443b 100%); color: #f5f5eb; isolation: isolate; }
 .intro-screen::before { content: ''; position: absolute; z-index: -1; inset: 0; opacity: .22; background-image: linear-gradient(rgba(230, 245, 236, .11) 1px, transparent 1px), linear-gradient(90deg, rgba(230, 245, 236, .11) 1px, transparent 1px); background-size: 64px 64px; mask-image: linear-gradient(to bottom, transparent, #000 30%, #000 75%, transparent); }
 .intro-screen::after { content: ''; position: absolute; z-index: -1; left: 50%; top: 42%; width: min(68vw, 780px); aspect-ratio: 1; border: 1px solid rgba(224, 241, 231, .1); border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 0 115px rgba(225, 242, 230, .025), 0 0 0 230px rgba(225, 242, 230, .018); }
 .intro-top { display: flex; align-items: center; gap: 11px; font-size: 14px; font-weight: 650; letter-spacing: .02em; }

@@ -5,6 +5,9 @@ turned back into the IR, the LLM edits the IR, and the result is rebuilt. Ids ar
 """
 from __future__ import annotations
 
+import html
+import re
+
 from ..bpmn.diagram import Diagram
 from ..bpmn.importer import bpmn_to_code
 from ..llm.plan import Plan, check_plan, parse_iso_hours
@@ -18,6 +21,12 @@ KIND_TO_TYPE = {
     "inclusiveGateway": "inclusive_gateway", "eventBasedGateway": "event_based_gateway",
     "startEvent": "start_event", "endEvent": "end_event",
 }
+
+
+def _definitions_name(xml: str) -> str:
+    """Process title saved in <bpmn:definitions name="…"> (pools carry the organization's name)."""
+    m = re.search(r"<(?:[\w-]+:)?definitions\b[^>]*?\sname=\"([^\"]*)\"", xml[:4000])
+    return html.unescape(m.group(1)).strip() if m else ""
 
 
 def diagram_to_plan(d: Diagram) -> Plan:
@@ -92,7 +101,8 @@ def diagram_to_plan(d: Diagram) -> Plan:
                      for f in d.message_flows()]
     groups = [{"id": g.id, "name": g.name} for g in d.groups.values()]
     plan = Plan.model_validate({
-        "title": d.processes[d.root_process].name or d.name, "organization": organization,
+        "title": (d.name if d.name and d.name != "Процесс" else None) or d.processes[d.root_process].name or d.name,
+        "organization": organization,
         "participants": participants, "elements": elements, "flows": flows,
         "message_flows": message_flows, "groups": groups,
         "performers": [{**p, "role": p.get("role") if p.get("role") in {x["id"] for x in participants} else None}
@@ -103,6 +113,6 @@ def diagram_to_plan(d: Diagram) -> Plan:
 
 def xml_to_plan(xml: str) -> Plan:
     from ..bpmn.validator import normalize
-    d = run_code(bpmn_to_code(xml)).diagram
+    d = run_code(bpmn_to_code(xml), _definitions_name(xml) or "Процесс").diagram
     normalize(d)
     return diagram_to_plan(d)

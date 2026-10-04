@@ -306,3 +306,12 @@ def test_exports_ir_and_camunda(client):
     body = cam.content.decode()
     assert "zeebe:taskDefinition" in body and 'executionPlatform="Camunda Cloud"' in body
     assert validate_xsd(body) == []
+
+
+def test_process_title_survives_the_bpmn_round_trip():
+    """Pools carry the organization; the title is kept in <definitions name> so the SOP is named after the process."""
+    from app.ir.from_diagram import xml_to_plan
+    plan = parse_plan(ex("03_grid_connection"))
+    xml = Pipeline(None, None).from_plan(plan).xml
+    assert 'name="Технологическое присоединение к электрическим сетям"' in xml and validate_xsd(xml) == []
+    assert xml_to_plan(xml).title == plan.title != plan.organization

@@ -108,6 +108,12 @@ def test_generation_sends_no_personal_data_and_restores_it_locally(tmp_path, mod
     assert leaked(journal) == [] and "[ТЕЛЕФОН_1]" in journal
 
 
+def test_full_name_in_any_case_is_one_label():
+    assert PrivacyGuard("Жалобу направляют юристу Смирновой Анне Владимировне.").masked_text() == \
+        "Жалобу направляют юристу [ФИО_1]."
+    assert PrivacyGuard("Звонок от Ольги Ивановны Петровой.").masked_text() == "Звонок от [ФИО_1]."
+
+
 def test_analyst_can_release_names_but_not_identifiers():
     guard = PrivacyGuard(TEXT, show=["Смирнова А.В.", "+7 912 345-67-89"])
     masked = guard.masked_text()
