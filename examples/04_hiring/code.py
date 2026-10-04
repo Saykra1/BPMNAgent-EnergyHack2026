@@ -1,5 +1,5 @@
 # Подбор сотрудника
-pool_main, lanes_main = DIAGRAM.add_pool(ROOT_PROCESS_ID, ['Руководитель подразделения', 'HR-менеджер', 'Кандидат', 'Служба безопасности', 'Директор'], 'Компания')
+pool_main, lanes_main = DIAGRAM.add_pool(ROOT_PROCESS_ID, ['Руководитель подразделения', 'HR-менеджер', 'Кандидат', 'Служба безопасности', 'Директор'], 'Компания', ids=['head', 'hr', 'cand', 'sec', 'dir'])
 node_0 = DIAGRAM.add_user_task('Создать заявку на подбор', lanes_main[0], id='request')
 node_1 = DIAGRAM.add_user_task('Опубликовать вакансию', lanes_main[1], id='publish')
 node_2 = DIAGRAM.add_user_task('Отобрать резюме', lanes_main[1], id='screen')

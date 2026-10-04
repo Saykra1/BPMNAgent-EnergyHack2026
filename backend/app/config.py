@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     pii_mask_objects: bool = False         # energy objects: «ПС 110 кВ «Южная»»
     llm_onprem_only: bool = False          # refuse any non-local LLM endpoint
     runs_dir: Path = ROOT / "runs"
+    prompt_versions: str = ""              # pin prompt versions: "ir_extract.system=1,ir_edit.system=2"
     env_file: str | None = None            # which file the settings came from (diagnostics)
 
 
@@ -78,4 +79,8 @@ def get_settings() -> Settings:
     if path is None:
         return Settings()
     values = {k: v for k, v in read_env_file(path).items() if k in Settings.model_fields}
-    return Settings(env_file=str(path), **values)
+    settings = Settings(env_file=str(path), **values)
+    if settings.prompt_versions:
+        import os
+        os.environ["PROMPT_VERSIONS"] = settings.prompt_versions    # read by llm.prompts
+    return settings

@@ -1,5 +1,5 @@
 # Устранение аварийного отключения электроэнергии
-pool_main, lanes_main = DIAGRAM.add_pool(ROOT_PROCESS_ID, ['Абонент', 'Диспетчер', 'Информационная система', 'Аварийная бригада'], 'Электросетевая компания')
+pool_main, lanes_main = DIAGRAM.add_pool(ROOT_PROCESS_ID, ['Абонент', 'Диспетчер', 'Информационная система', 'Аварийная бригада'], 'Электросетевая компания', ids=['sub', 'disp', 'sys', 'crew'])
 node_0 = DIAGRAM.add_task('Сообщить об отключении', lanes_main[0], id='report')
 node_1 = DIAGRAM.add_user_task('Зарегистрировать обращение', lanes_main[1], id='register')
 node_2 = DIAGRAM.add_user_task('Проверить данные телемеханики', lanes_main[1], id='telemetry')

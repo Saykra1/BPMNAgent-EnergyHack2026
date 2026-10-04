@@ -2,18 +2,18 @@
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="BPMN Agent" exporterVersion="1.0">
   <bpmn:collaboration id="Collaboration_1">
     <bpmn:participant id="Participant_1" name="Банк" processRef="Process_1"/>
-    <bpmn:participant id="Participant_2" name="Бюро кредитных историй"/>
-    <bpmn:messageFlow id="MessageFlow_1" sourceRef="history" targetRef="Participant_2" name="Запрос кредитной истории"/>
+    <bpmn:participant id="bki" name="Бюро кредитных историй"/>
+    <bpmn:messageFlow id="MessageFlow_1" sourceRef="history" targetRef="bki" name="Запрос кредитной истории"/>
   </bpmn:collaboration>
   <bpmn:process id="Process_1" isExecutable="false" name="Банк">
     <bpmn:laneSet id="LaneSet_Process_1">
-      <bpmn:lane id="Lane_1" name="Клиент">
+      <bpmn:lane id="client" name="Клиент">
         <bpmn:flowNodeRef>start</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>submit</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>fill</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>sign</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_2" name="Банковская система">
+      <bpmn:lane id="system" name="Банковская система">
         <bpmn:flowNodeRef>check_form</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>gw_full</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>req_more</bpmn:flowNodeRef>
@@ -22,10 +22,10 @@
         <bpmn:flowNodeRef>notify_reject</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>end_reject</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_3" name="Служба безопасности">
+      <bpmn:lane id="sec" name="Служба безопасности">
         <bpmn:flowNodeRef>blacklist</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_4" name="Кредитный менеджер">
+      <bpmn:lane id="manager" name="Кредитный менеджер">
         <bpmn:flowNodeRef>par_join</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>assess</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>gw_sum</bpmn:flowNodeRef>
@@ -34,10 +34,10 @@
         <bpmn:flowNodeRef>gw_approved</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>contract</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_5" name="Кредитный комитет">
+      <bpmn:lane id="committee" name="Кредитный комитет">
         <bpmn:flowNodeRef>committee_decide</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_6" name="Бухгалтерия">
+      <bpmn:lane id="acc" name="Бухгалтерия">
         <bpmn:flowNodeRef>end</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>transfer</bpmn:flowNodeRef>
       </bpmn:lane>
@@ -170,25 +170,25 @@
       <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true">
         <dc:Bounds x="60" y="60" width="2572" height="984"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Participant_2_di" bpmnElement="Participant_2" isHorizontal="true">
+      <bpmndi:BPMNShape id="bki_di" bpmnElement="bki" isHorizontal="true">
         <dc:Bounds x="60" y="1094" width="2572" height="70"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_1_di" bpmnElement="Lane_1" isHorizontal="true">
+      <bpmndi:BPMNShape id="client_di" bpmnElement="client" isHorizontal="true">
         <dc:Bounds x="90" y="60" width="2542" height="144"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_2_di" bpmnElement="Lane_2" isHorizontal="true">
+      <bpmndi:BPMNShape id="system_di" bpmnElement="system" isHorizontal="true">
         <dc:Bounds x="90" y="204" width="2542" height="264"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_3_di" bpmnElement="Lane_3" isHorizontal="true">
+      <bpmndi:BPMNShape id="sec_di" bpmnElement="sec" isHorizontal="true">
         <dc:Bounds x="90" y="468" width="2542" height="144"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_4_di" bpmnElement="Lane_4" isHorizontal="true">
+      <bpmndi:BPMNShape id="manager_di" bpmnElement="manager" isHorizontal="true">
         <dc:Bounds x="90" y="612" width="2542" height="144"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_5_di" bpmnElement="Lane_5" isHorizontal="true">
+      <bpmndi:BPMNShape id="committee_di" bpmnElement="committee" isHorizontal="true">
         <dc:Bounds x="90" y="756" width="2542" height="144"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_6_di" bpmnElement="Lane_6" isHorizontal="true">
+      <bpmndi:BPMNShape id="acc_di" bpmnElement="acc" isHorizontal="true">
         <dc:Bounds x="90" y="900" width="2542" height="144"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="start_di" bpmnElement="start">

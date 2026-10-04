@@ -1,6 +1,6 @@
 # Технологическое присоединение к электрическим сетям
-pool_main, lanes_main = DIAGRAM.add_pool(ROOT_PROCESS_ID, ['Заявитель', 'Отдел по работе с клиентами', 'Технический отдел', 'Главный инженер', 'Оперативный персонал'], 'Сетевая организация')
-pool_external_0 = DIAGRAM.add_black_box_pool('Подрядная организация')
+pool_main, lanes_main = DIAGRAM.add_pool(ROOT_PROCESS_ID, ['Заявитель', 'Отдел по работе с клиентами', 'Технический отдел', 'Главный инженер', 'Оперативный персонал'], 'Сетевая организация', ids=['applicant', 'clients', 'tech', 'chief', 'ops'])
+pool_external_0 = DIAGRAM.add_black_box_pool('Подрядная организация', id='contractor')
 node_17 = DIAGRAM.create_subprocess('Построить сетевые объекты', lanes_main[2], id='build')
 DIAGRAM.set_details(node_17, 'подрядная организация строит сетевые объекты', '', '', [])
 node_0 = DIAGRAM.add_user_task('Подать заявку на присоединение', lanes_main[0], id='apply')

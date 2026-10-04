@@ -1,6 +1,6 @@
 # Обработка заказа интернет-магазина
-pool_main, lanes_main = DIAGRAM.add_pool(ROOT_PROCESS_ID, ['Покупатель', 'Менеджер', 'Склад', 'Бухгалтерия', 'Служба доставки'], 'Интернет-магазин')
-pool_external_0 = DIAGRAM.add_black_box_pool('Платёжный шлюз банка')
+pool_main, lanes_main = DIAGRAM.add_pool(ROOT_PROCESS_ID, ['Покупатель', 'Менеджер', 'Склад', 'Бухгалтерия', 'Служба доставки'], 'Интернет-магазин', ids=['buyer', 'manager', 'warehouse', 'acc', 'delivery'])
+pool_external_0 = DIAGRAM.add_black_box_pool('Платёжный шлюз банка', id='bank')
 node_0 = DIAGRAM.add_user_task('Оформить заказ', lanes_main[0], id='order')
 node_1 = DIAGRAM.add_exclusive_gateway('Способ оплаты?', lanes_main[0], id='gw_pay')
 node_2 = DIAGRAM.add_user_task('Оплатить заказ онлайн', lanes_main[0], id='pay')

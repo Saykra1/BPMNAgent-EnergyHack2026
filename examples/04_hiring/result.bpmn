@@ -5,14 +5,14 @@
   </bpmn:collaboration>
   <bpmn:process id="Process_1" isExecutable="false" name="Компания">
     <bpmn:laneSet id="LaneSet_Process_1">
-      <bpmn:lane id="Lane_1" name="Руководитель подразделения">
+      <bpmn:lane id="head" name="Руководитель подразделения">
         <bpmn:flowNodeRef>start</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>request</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>tech</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>decide</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>gw_checks</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_2" name="HR-менеджер">
+      <bpmn:lane id="hr" name="HR-менеджер">
         <bpmn:flowNodeRef>end</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>publish</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>screen</bpmn:flowNodeRef>
@@ -23,15 +23,15 @@
         <bpmn:flowNodeRef>offer</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>hire</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_3" name="Кандидат">
+      <bpmn:lane id="cand" name="Кандидат">
         <bpmn:flowNodeRef>test</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>gw_offer</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>end_no</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_4" name="Служба безопасности">
+      <bpmn:lane id="sec" name="Служба безопасности">
         <bpmn:flowNodeRef>sb</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_5" name="Директор">
+      <bpmn:lane id="dir" name="Директор">
         <bpmn:flowNodeRef>approve</bpmn:flowNodeRef>
       </bpmn:lane>
     </bpmn:laneSet>
@@ -150,19 +150,19 @@
       <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true">
         <dc:Bounds x="60" y="60" width="2642" height="730"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_1_di" bpmnElement="Lane_1" isHorizontal="true">
+      <bpmndi:BPMNShape id="head_di" bpmnElement="head" isHorizontal="true">
         <dc:Bounds x="90" y="60" width="2612" height="144"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_2_di" bpmnElement="Lane_2" isHorizontal="true">
+      <bpmndi:BPMNShape id="hr_di" bpmnElement="hr" isHorizontal="true">
         <dc:Bounds x="90" y="204" width="2612" height="154"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_3_di" bpmnElement="Lane_3" isHorizontal="true">
+      <bpmndi:BPMNShape id="cand_di" bpmnElement="cand" isHorizontal="true">
         <dc:Bounds x="90" y="358" width="2612" height="144"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_4_di" bpmnElement="Lane_4" isHorizontal="true">
+      <bpmndi:BPMNShape id="sec_di" bpmnElement="sec" isHorizontal="true">
         <dc:Bounds x="90" y="502" width="2612" height="144"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_5_di" bpmnElement="Lane_5" isHorizontal="true">
+      <bpmndi:BPMNShape id="dir_di" bpmnElement="dir" isHorizontal="true">
         <dc:Bounds x="90" y="646" width="2612" height="144"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="start_di" bpmnElement="start">

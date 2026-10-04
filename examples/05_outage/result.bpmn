@@ -5,11 +5,11 @@
   </bpmn:collaboration>
   <bpmn:process id="Process_1" isExecutable="false" name="Электросетевая компания">
     <bpmn:laneSet id="LaneSet_Process_1">
-      <bpmn:lane id="Lane_1" name="Абонент">
+      <bpmn:lane id="sub" name="Абонент">
         <bpmn:flowNodeRef>start</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>report</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_2" name="Диспетчер">
+      <bpmn:lane id="disp" name="Диспетчер">
         <bpmn:flowNodeRef>register</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>telemetry</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>gw_type</bpmn:flowNodeRef>
@@ -22,12 +22,12 @@
         <bpmn:flowNodeRef>check_v</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>close</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_3" name="Информационная система">
+      <bpmn:lane id="sys" name="Информационная система">
         <bpmn:flowNodeRef>end</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>sms</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>sms_ok</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_4" name="Аварийная бригада">
+      <bpmn:lane id="crew" name="Аварийная бригада">
         <bpmn:flowNodeRef>go</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>localize</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>repair</bpmn:flowNodeRef>
@@ -155,16 +155,16 @@
       <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true">
         <dc:Bounds x="60" y="60" width="2902" height="696"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_1_di" bpmnElement="Lane_1" isHorizontal="true">
+      <bpmndi:BPMNShape id="sub_di" bpmnElement="sub" isHorizontal="true">
         <dc:Bounds x="90" y="60" width="2872" height="144"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_2_di" bpmnElement="Lane_2" isHorizontal="true">
+      <bpmndi:BPMNShape id="disp_di" bpmnElement="disp" isHorizontal="true">
         <dc:Bounds x="90" y="204" width="2872" height="254"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_3_di" bpmnElement="Lane_3" isHorizontal="true">
+      <bpmndi:BPMNShape id="sys_di" bpmnElement="sys" isHorizontal="true">
         <dc:Bounds x="90" y="458" width="2872" height="144"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_4_di" bpmnElement="Lane_4" isHorizontal="true">
+      <bpmndi:BPMNShape id="crew_di" bpmnElement="crew" isHorizontal="true">
         <dc:Bounds x="90" y="602" width="2872" height="154"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="start_di" bpmnElement="start">

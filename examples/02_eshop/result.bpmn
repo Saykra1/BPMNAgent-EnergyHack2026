@@ -2,13 +2,13 @@
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="BPMN Agent" exporterVersion="1.0">
   <bpmn:collaboration id="Collaboration_1">
     <bpmn:participant id="Participant_1" name="Интернет-магазин" processRef="Process_1"/>
-    <bpmn:participant id="Participant_2" name="Платёжный шлюз банка"/>
-    <bpmn:messageFlow id="MessageFlow_1" sourceRef="pay" targetRef="Participant_2" name="Платёж"/>
-    <bpmn:messageFlow id="MessageFlow_2" sourceRef="Participant_2" targetRef="confirm" name="Подтверждение оплаты"/>
+    <bpmn:participant id="bank" name="Платёжный шлюз банка"/>
+    <bpmn:messageFlow id="MessageFlow_1" sourceRef="pay" targetRef="bank" name="Платёж"/>
+    <bpmn:messageFlow id="MessageFlow_2" sourceRef="bank" targetRef="confirm" name="Подтверждение оплаты"/>
   </bpmn:collaboration>
   <bpmn:process id="Process_1" isExecutable="false" name="Интернет-магазин">
     <bpmn:laneSet id="LaneSet_Process_1">
-      <bpmn:lane id="Lane_1" name="Покупатель">
+      <bpmn:lane id="buyer" name="Покупатель">
         <bpmn:flowNodeRef>start</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>end</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>order</bpmn:flowNodeRef>
@@ -17,20 +17,20 @@
         <bpmn:flowNodeRef>receive</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>gw_accept</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_2" name="Менеджер">
+      <bpmn:lane id="manager" name="Менеджер">
         <bpmn:flowNodeRef>gw_pay_join</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>confirm</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>p_split</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_3" name="Склад">
+      <bpmn:lane id="warehouse" name="Склад">
         <bpmn:flowNodeRef>pick</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>process_return</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>end_return</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_4" name="Бухгалтерия">
+      <bpmn:lane id="acc" name="Бухгалтерия">
         <bpmn:flowNodeRef>docs</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_5" name="Служба доставки">
+      <bpmn:lane id="delivery" name="Служба доставки">
         <bpmn:flowNodeRef>p_join</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>deliver</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>return_goods</bpmn:flowNodeRef>
@@ -136,22 +136,22 @@
       <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true">
         <dc:Bounds x="60" y="60" width="2382" height="830"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Participant_2_di" bpmnElement="Participant_2" isHorizontal="true">
+      <bpmndi:BPMNShape id="bank_di" bpmnElement="bank" isHorizontal="true">
         <dc:Bounds x="60" y="940" width="2382" height="70"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_1_di" bpmnElement="Lane_1" isHorizontal="true">
+      <bpmndi:BPMNShape id="buyer_di" bpmnElement="buyer" isHorizontal="true">
         <dc:Bounds x="90" y="60" width="2352" height="254"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_2_di" bpmnElement="Lane_2" isHorizontal="true">
+      <bpmndi:BPMNShape id="manager_di" bpmnElement="manager" isHorizontal="true">
         <dc:Bounds x="90" y="314" width="2352" height="144"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_3_di" bpmnElement="Lane_3" isHorizontal="true">
+      <bpmndi:BPMNShape id="warehouse_di" bpmnElement="warehouse" isHorizontal="true">
         <dc:Bounds x="90" y="458" width="2352" height="144"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_4_di" bpmnElement="Lane_4" isHorizontal="true">
+      <bpmndi:BPMNShape id="acc_di" bpmnElement="acc" isHorizontal="true">
         <dc:Bounds x="90" y="602" width="2352" height="144"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_5_di" bpmnElement="Lane_5" isHorizontal="true">
+      <bpmndi:BPMNShape id="delivery_di" bpmnElement="delivery" isHorizontal="true">
         <dc:Bounds x="90" y="746" width="2352" height="144"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="start_di" bpmnElement="start">

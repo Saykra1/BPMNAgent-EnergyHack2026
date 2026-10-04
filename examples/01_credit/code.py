@@ -1,6 +1,6 @@
 # Выдача потребительского кредита
-pool_main, lanes_main = DIAGRAM.add_pool(ROOT_PROCESS_ID, ['Клиент', 'Банковская система', 'Служба безопасности', 'Кредитный менеджер', 'Кредитный комитет', 'Бухгалтерия'], 'Банк')
-pool_external_0 = DIAGRAM.add_black_box_pool('Бюро кредитных историй')
+pool_main, lanes_main = DIAGRAM.add_pool(ROOT_PROCESS_ID, ['Клиент', 'Банковская система', 'Служба безопасности', 'Кредитный менеджер', 'Кредитный комитет', 'Бухгалтерия'], 'Банк', ids=['client', 'system', 'sec', 'manager', 'committee', 'acc'])
+pool_external_0 = DIAGRAM.add_black_box_pool('Бюро кредитных историй', id='bki')
 node_0 = DIAGRAM.add_user_task('Подать заявку на кредит', lanes_main[0], id='submit')
 node_1 = DIAGRAM.add_service_task('Проверить полноту анкеты', lanes_main[1], id='check_form')
 node_2 = DIAGRAM.add_exclusive_gateway('Анкета заполнена?', lanes_main[1], id='gw_full')

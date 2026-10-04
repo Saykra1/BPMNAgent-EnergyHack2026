@@ -2,12 +2,12 @@
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="BPMN Agent" exporterVersion="1.0">
   <bpmn:collaboration id="Collaboration_1">
     <bpmn:participant id="Participant_1" name="Сетевая организация" processRef="Process_1"/>
-    <bpmn:participant id="Participant_2" name="Подрядная организация"/>
-    <bpmn:messageFlow id="MessageFlow_1" sourceRef="build" targetRef="Participant_2" name="Заказ на строительство"/>
+    <bpmn:participant id="contractor" name="Подрядная организация"/>
+    <bpmn:messageFlow id="MessageFlow_1" sourceRef="build" targetRef="contractor" name="Заказ на строительство"/>
   </bpmn:collaboration>
   <bpmn:process id="Process_1" isExecutable="false" name="Сетевая организация">
     <bpmn:laneSet id="LaneSet_Process_1">
-      <bpmn:lane id="Lane_1" name="Заявитель">
+      <bpmn:lane id="applicant" name="Заявитель">
         <bpmn:flowNodeRef>start</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>apply</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>add_docs</bpmn:flowNodeRef>
@@ -15,7 +15,7 @@
         <bpmn:flowNodeRef>own_side</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>fix</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_2" name="Отдел по работе с клиентами">
+      <bpmn:lane id="clients" name="Отдел по работе с клиентами">
         <bpmn:flowNodeRef>end</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>check_docs</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>gw_docs</bpmn:flowNodeRef>
@@ -25,7 +25,7 @@
         <bpmn:flowNodeRef>send_contract</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>act</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_3" name="Технический отдел">
+      <bpmn:lane id="tech" name="Технический отдел">
         <bpmn:flowNodeRef>build</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>check_power</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>gw_power</bpmn:flowNodeRef>
@@ -38,10 +38,10 @@
         <bpmn:flowNodeRef>inspect</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>gw_remarks</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_4" name="Главный инженер">
+      <bpmn:lane id="chief" name="Главный инженер">
         <bpmn:flowNodeRef>approve_upgrade</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_5" name="Оперативный персонал">
+      <bpmn:lane id="ops" name="Оперативный персонал">
         <bpmn:flowNodeRef>connect</bpmn:flowNodeRef>
       </bpmn:lane>
     </bpmn:laneSet>
@@ -249,22 +249,22 @@
       <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true">
         <dc:Bounds x="60" y="60" width="3572" height="850"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Participant_2_di" bpmnElement="Participant_2" isHorizontal="true">
+      <bpmndi:BPMNShape id="contractor_di" bpmnElement="contractor" isHorizontal="true">
         <dc:Bounds x="60" y="960" width="3572" height="70"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_1_di" bpmnElement="Lane_1" isHorizontal="true">
+      <bpmndi:BPMNShape id="applicant_di" bpmnElement="applicant" isHorizontal="true">
         <dc:Bounds x="90" y="60" width="3542" height="144"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_2_di" bpmnElement="Lane_2" isHorizontal="true">
+      <bpmndi:BPMNShape id="clients_di" bpmnElement="clients" isHorizontal="true">
         <dc:Bounds x="90" y="204" width="3542" height="154"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_3_di" bpmnElement="Lane_3" isHorizontal="true">
+      <bpmndi:BPMNShape id="tech_di" bpmnElement="tech" isHorizontal="true">
         <dc:Bounds x="90" y="358" width="3542" height="264"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_4_di" bpmnElement="Lane_4" isHorizontal="true">
+      <bpmndi:BPMNShape id="chief_di" bpmnElement="chief" isHorizontal="true">
         <dc:Bounds x="90" y="622" width="3542" height="144"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_5_di" bpmnElement="Lane_5" isHorizontal="true">
+      <bpmndi:BPMNShape id="ops_di" bpmnElement="ops" isHorizontal="true">
         <dc:Bounds x="90" y="766" width="3542" height="144"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="start_di" bpmnElement="start">
