@@ -16,7 +16,7 @@ from .pipeline import Pipeline
 from .llm.plan import parse_plan, PlanError
 from .sandbox import SandboxError
 from .insights import inspect_xml
-from .jev import JevReviewError, review_source_links
+from .jev import JevReviewError, review_source_links, review_audit_items
 from lxml import etree
 
 FRONTEND = ROOT / "frontend"
@@ -94,6 +94,25 @@ class InspectRequest(XmlRequest):
     text: str = Field(default="", max_length=30000)
 
 
+class AuditGap(BaseModel):
+    id: str = Field(max_length=100)
+    fragment: str = Field(max_length=1000)
+    candidates: list[str] = Field(default_factory=list, max_length=4)
+
+
+class AuditBranch(BaseModel):
+    id: str = Field(max_length=100)
+    excerpt: str = Field(max_length=1200)
+    gateway: str = Field(max_length=180)
+    condition: str = Field(max_length=180)
+    destination: str = Field(max_length=180)
+
+
+class JevAuditRequest(BaseModel):
+    gaps: list[AuditGap] = Field(default_factory=list, max_length=12)
+    branches: list[AuditBranch] = Field(default_factory=list, max_length=12)
+
+
 @app.post("/api/prepare")
 def prepare(req: GenerateRequest):
     return _require_llm().prepare(req.text)
@@ -123,6 +142,15 @@ def jev_review(req: InspectRequest):
         raise HTTPException(503, str(e))
     except (ImportErrorBPMN, SandboxError, etree.XMLSyntaxError, ValueError) as e:
         raise HTTPException(400, str(e))
+
+
+@app.post("/api/jev-audit")
+def jev_audit(req: JevAuditRequest):
+    try:
+        return review_audit_items([item.model_dump() for item in req.gaps],
+                                  [item.model_dump() for item in req.branches], get_settings())
+    except JevReviewError as e:
+        raise HTTPException(503, str(e))
 
 
 @app.get("/api/health")

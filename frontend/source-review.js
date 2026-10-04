@@ -98,7 +98,7 @@
     fragments = pieces.filter(p => p.ids.length && hasWord(text.slice(p.start, p.end)));
     $reader.innerHTML = pieces.map(p => p.ids.length && hasWord(text.slice(p.start, p.end))
       ? `<button type="button" class="source-fragment" data-start="${p.start}" data-end="${p.end}" data-ids="${esc(p.ids.join(','))}" aria-label="${esc(text.slice(p.start, p.end))}: ${esc(p.names.join(', '))}" title="${esc(p.names.join(', '))}">${esc(text.slice(p.start, p.end))}</button>`
-      : `<span>${esc(text.slice(p.start, p.end))}</span>`).join('');
+      : `<span data-start="${p.start}" data-end="${p.end}">${esc(text.slice(p.start, p.end))}</span>`).join('');
     $reader.querySelectorAll('.source-fragment').forEach(button => {
       const ids = button.dataset.ids.split(',');
       const names = [...new Set(ids.map(id => report?.cards.find(c => c.id === id)?.name).filter(Boolean))];
@@ -153,7 +153,7 @@
       .filter(s => s.text.length >= 18 && !s.text.endsWith(':'));
     const withoutLink = sentences.filter(s => !ranges.some(r => r.start < s.end && r.end > s.start));
     const stepsWithout = cards.filter(c => !linked.includes(c) && c.name);
-    box.innerHTML = `<h3>Связи с описанием</h3>
+    box.innerHTML = `<div id="process-audit"></div><details class="coverage-details"><summary>Точные цитаты и ручная привязка</summary><h3>Связи с описанием</h3>
       <p class="hint">Связь означает, что цитата из описания найдена в тексте. Проверку смысла выполняет аналитик.</p>
       <div class="coverage-stats"><div><b>${linked.length} / ${cards.length}</b><span>шагов с цитатой</span></div>
       <div><b>${sentences.length - withoutLink.length} / ${sentences.length}</b><span>фрагментов с привязкой</span></div></div>
@@ -162,7 +162,8 @@
       ${stepsWithout.length ? `<h4>Шаги без цитаты</h4>${stepsWithout.map(c => `<button class="coverage-step" data-node="${esc(c.id)}">${esc(c.name)}</button>`).join('')}` : ''}
       <div class="jev-audit"><button id="jev-check" data-help="Jev сравнит названия шагов с прикреплёнными цитатами и покажет сомнительные связи. Диаграмма не изменится.">Проверить смысл связей · Jev</button>
       <p class="hint">Необязательная проверка через OpenRouter. Схема и текст не изменяются.</p><div id="jev-results" role="status"></div></div>
-      <p id="coverage-status" class="hint" role="status"></p>`;
+      <p id="coverage-status" class="hint" role="status"></p></details>`;
+    window.processAudit?.render({ report, ranges, text: state.text });
     box.querySelectorAll('[data-node]').forEach(button => button.onclick = () => {
       const el = modeler.get('elementRegistry').get(button.dataset.node);
       if (el) { modeler.get('selection').select(el); modeler.get('canvas').scrollToElement(el); }
@@ -224,6 +225,14 @@
     mark([id], 'source-selected');
     focusLabel([report?.cards.find(c => c.id === id)?.name].filter(Boolean));
     if (!matchMedia('(max-width: 650px)').matches) button.scrollIntoView({ block: 'nearest' });
+  }
+  function revealRange(start, end) {
+    if ($reader.hidden) return;
+    $reader.querySelectorAll('.source-gap-current').forEach(node => node.classList.remove('source-gap-current'));
+    const matches = [...$reader.children].filter(node => Number(node.dataset.start) < end && Number(node.dataset.end) > start);
+    matches.forEach(node => node.classList.add('source-gap-current'));
+    matches[0]?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    if (matchMedia('(max-width: 760px)').matches) $('#left').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   async function capture(label = 'Изменение схемы') {
@@ -294,6 +303,7 @@
   $('#jev-entry').onclick = () => {
     window.workspaceUI?.openInsights();
     document.querySelector('.tabs [data-tab="coverage"]').click();
+    $('.coverage-details').open = true;
     const button = $('#jev-check');
     button?.scrollIntoView({ block: 'nearest' });
     button?.click();
@@ -320,6 +330,6 @@
     clearTimeout(versionTimer);
     if (!importing && !restoring) versionTimer = setTimeout(() => capture(), 900);
   });
-  window.sourceReview = { beforeImport, onResult, onInspect, onSelect };
+  window.sourceReview = { beforeImport, onResult, onInspect, onSelect, revealRange };
   renderHistory();
 })();

@@ -65,3 +65,68 @@ def review_source_links(xml: str, text: str, settings: Settings,
     return {"ok": True, "model": data.get("model", settings.jev_model), "checked": len(items),
             "total": len(cards), "items": sorted(items, key=lambda item: item["support"]),
             "note": "Это вероятностная подсказка, не доказательство корректности BPMN. Проверьте спорные связи вручную."}
+
+
+def review_audit_items(gaps: list[dict], branches: list[dict], settings: Settings,
+                       transport: httpx.BaseTransport | None = None) -> dict:
+    """Assess bounded, user-visible audit candidates; never mutate the BPMN graph."""
+    if not settings.jev_enabled:
+        raise JevReviewError("Проверка Jev не включена в настройках сервера.")
+    if not settings.llm_api_key or settings.llm_base_url.rstrip("/") != "https://openrouter.ai/api/v1":
+        raise JevReviewError("Для Jev нужен ключ OpenRouter и LLM_BASE_URL=https://openrouter.ai/api/v1.")
+
+    selected_gaps = gaps[:12]
+    selected_branches = branches[:12]
+    if not selected_gaps and not selected_branches:
+        return {"ok": True, "gaps": [], "branches": [], "note": "Нет спорных мест для проверки."}
+
+    state = {"gaps": {}, "branches": {}}
+    questions = {}
+    for i, item in enumerate(selected_gaps):
+        key = f"gap_{i}"
+        state["gaps"][key] = {
+            "requirement": str(item.get("fragment", ""))[:1000],
+            "closest_bpmn_steps": [str(v)[:180] for v in item.get("candidates", [])[:4]],
+        }
+        questions[key] = {"type": "noul", "instructions":
+                          f"Is the process requirement in gaps.{key}.requirement substantively represented "
+                          f"by the listed BPMN steps? A similar topic without the required action or condition is not enough."}
+    for i, item in enumerate(selected_branches):
+        key = f"branch_{i}"
+        state["branches"][key] = {
+            "source_excerpt": str(item.get("excerpt", ""))[:1200],
+            "gateway": str(item.get("gateway", ""))[:180],
+            "condition": str(item.get("condition", ""))[:180],
+            "destination": str(item.get("destination", ""))[:180],
+        }
+        questions[key] = {"type": "noul", "instructions":
+                          f"Does branches.{key}.source_excerpt support taking this exact BPMN branch "
+                          f"from its gateway to its destination under the named condition? Do not infer missing rules."}
+    try:
+        with httpx.Client(transport=transport, timeout=35) as client:
+            response = client.post(JEV_URL, json={"model": settings.jev_model, "state": state,
+                                                  "questions": questions},
+                                   headers={"Authorization": f"Bearer {settings.llm_api_key}"})
+        if response.status_code == 429:
+            raise JevReviewError("Jev временно ограничен по частоте запросов. Повторите проверку позже.")
+        if response.status_code == 402:
+            raise JevReviewError("На балансе OpenRouter недостаточно средств для проверки Jev.")
+        if response.status_code in (401, 403):
+            raise JevReviewError("OpenRouter не разрешил вызов Jev. Проверьте ключ и доступ к модели.")
+        response.raise_for_status()
+        answers = response.json()["answers"]
+        def probability(key: str) -> float:
+            value = float(answers[key]["noul"])
+            if not 0 <= value <= 1:
+                raise ValueError("Некорректная вероятность")
+            return round(value, 3)
+        return {"ok": True,
+                "gaps": [{"id": str(item.get("id", "")), "support": probability(f"gap_{i}")}
+                         for i, item in enumerate(selected_gaps)],
+                "branches": [{"id": str(item.get("id", "")), "support": probability(f"branch_{i}")}
+                             for i, item in enumerate(selected_branches)],
+                "note": "Jev оценивает смысл, но не доказывает полноту маршрута. Спорные места проверьте вручную."}
+    except JevReviewError:
+        raise
+    except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
+        raise JevReviewError("Смысловая проверка Jev не завершилась. Повторите попытку позже.") from exc

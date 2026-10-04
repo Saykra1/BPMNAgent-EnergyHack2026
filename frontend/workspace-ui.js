@@ -92,6 +92,10 @@
     if (element.hasAttribute('data-unlinked')) return 'Связать этот фрагмент текста с выбранным шагом схемы.';
     if (element.hasAttribute('data-node')) return 'Найти на схеме шаг без цитаты.';
     if (element.hasAttribute('data-version')) return 'Восстановить эту версию схемы.';
+    if (element.hasAttribute('data-gap')) return 'Найти спорный фрагмент в исходном описании.';
+    if (element.hasAttribute('data-gateway')) return 'Перейти к этой развилке на схеме.';
+    if (element.hasAttribute('data-route')) return 'Показать эту ветвь и следующий шаг на схеме.';
+    if (element.hasAttribute('data-audit-view')) return 'Переключить вид аудита требований и ветвлений.';
     const label = element.getAttribute('aria-label') || element.getAttribute('title');
     if (label && paletteHelp[label]) return paletteHelp[label];
     if (label?.startsWith('Open ')) return 'Открыть содержимое подпроцесса.';

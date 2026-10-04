@@ -81,6 +81,7 @@ function finishSteps(res) {
 
 // ------------------------------------------------------------------ rendering results
 async function showXml(xml) {
+  window.presentation?.stop();
   window.agentFeatures?.beforeImport();
   state.hasDiagram = false;
   syncDiagramActions();
@@ -88,14 +89,16 @@ async function showXml(xml) {
   $('#empty').hidden = true;
   state.hasDiagram = true;
   syncDiagramActions();
-  modeler.get('canvas').zoom('fit-viewport', 'auto');
-  if (matchMedia('(max-width: 760px)').matches) focusBeginning();
+  const canvas = modeler.get('canvas');
+  canvas.zoom('fit-viewport', 'auto');
+  if (canvas.zoom() < .55) focusBeginning(matchMedia('(max-width: 760px)').matches ? 1.05 : .75);
+  else if (matchMedia('(max-width: 760px)').matches) focusBeginning();
   return warnings;
 }
 
 function syncDiagramActions() {
   ['#dl-bpmn', '#dl-svg', '#dl-png', '#fit', '#read-view', '#zoom-in', '#zoom-out',
-    '#navigator-toggle', '#palette-toggle', '#relayout', '#check-xsd', '#inspect-current', '#simulate']
+    '#navigator-toggle', '#tour-toggle', '#palette-toggle', '#relayout', '#check-xsd', '#inspect-current', '#simulate']
     .forEach(selector => { $(selector).disabled = !state.hasDiagram; });
   $('#chat-box').hidden = !state.hasDiagram;
   if (!state.hasDiagram) $('#diagram-status').hidden = true;
@@ -284,16 +287,22 @@ $('#check-xsd').onclick = async () => {
 };
 
 $('#fit').onclick = () => modeler.get('canvas').zoom('fit-viewport', 'auto');
-function focusBeginning() {
+function focusBeginning(minZoom = 1.05) {
   const registry = modeler.get('elementRegistry');
-  const start = registry.getAll().find(e => e.businessObject?.$instanceOf('bpmn:StartEvent')) ||
-    registry.getAll().find(e => e.businessObject?.$instanceOf('bpmn:Task'));
+  const nodes = registry.getAll().filter(e => e.type !== 'label' && e.businessObject?.$instanceOf('bpmn:FlowNode'));
+  const start = nodes.find(e => {
+    if (!e.businessObject.$instanceOf('bpmn:StartEvent')) return false;
+    let parent = e.parent;
+    while (parent) { if (parent.type === 'bpmn:SubProcess') return false; parent = parent.parent; }
+    return true;
+  }) ||
+    nodes.find(e => e.businessObject.$instanceOf('bpmn:StartEvent')) || nodes[0];
   if (!start) return;
   const canvas = modeler.get('canvas');
-  if (canvas.zoom() < 1.05) canvas.zoom(1.05);
+  if (canvas.zoom() < minZoom) canvas.zoom(minZoom);
   canvas.scrollToElement(start, 100);
 }
-$('#read-view').onclick = focusBeginning;
+$('#read-view').onclick = () => focusBeginning();
 $('#diagram-review').onclick = () => {
   window.workspaceUI?.openInsights();
   $('.tabs [data-tab="report"]').click();

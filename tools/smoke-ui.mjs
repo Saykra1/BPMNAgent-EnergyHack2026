@@ -2,6 +2,7 @@
 // LLM planning is mocked; graph construction, XML checks and UI use the real backend.
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
+import { mkdir } from 'node:fs/promises';
 
 const url = process.argv[2] || 'http://127.0.0.1:8094';
 const browser = process.env.BROWSER_CDP
@@ -51,8 +52,10 @@ try {
   assert.equal(await page.locator('#diagram-status').isVisible(), true);
   assert.equal(await page.locator('#dl-bpmn').isEnabled(), true);
   assert.equal(await page.locator('#chat-box').isVisible(), true);
+  await page.locator('.toolbar-more summary').click();
   await page.locator('#palette-toggle').click();
   assert.equal(await page.locator('#palette-toggle').getAttribute('aria-pressed'), 'true');
+  await page.locator('.toolbar-more summary').click();
   await page.locator('#palette-toggle').click();
   await page.locator('#read-view').click();
   assert.equal(await page.evaluate(() => modeler.get('canvas').zoom() >= 1.05), true);
@@ -85,6 +88,13 @@ try {
   const valid = await page.request.post(url + '/api/validate', { data: { xml } });
   assert.equal((await valid.json()).xsd_valid, true);
   await page.locator('#insights-close').click();
+  await page.locator('#tour-toggle').click();
+  assert.equal(await page.locator('#tour-panel').isVisible(), true);
+  assert.match(await page.locator('#tour-title').innerText(), /Начало|Start/i);
+  assert.equal(await page.locator('.tour-node-cat').count(), 1);
+  await page.locator('#tour-next').click();
+  assert.match(await page.locator('#tour-title').innerText(), /Предоставить документы/);
+  await page.locator('#tour-close').click();
   await page.locator('.toolbar-more summary').click();
   await page.locator('#relayout').click();
   await page.waitForFunction(() => document.querySelector('#loading').hidden);
@@ -98,6 +108,7 @@ try {
   assert.equal(await page.locator('#detail-save').isDisabled(), true);
   // Exercise the real simulator, not just the toolbar toggle.
   await page.getByRole('button', { name: 'Trigger Event', exact: true }).click();
+  await page.locator('.bts-token[data-mascot] .bts-mascot').first().waitFor();
   await page.getByRole('button', { name: 'Set animation speed = Fast', exact: true }).click();
   await page.getByText('Finished', { exact: true }).waitFor();
   await page.locator('.toolbar-more summary').click();
@@ -124,6 +135,40 @@ try {
   await demoPage.locator('#open-demo').click();
   await demoPage.locator('#diagram-status').waitFor({ state: 'visible' });
   assert.equal(await demoPage.locator('.source-fragment').count() > 0, true);
+  if (process.env.SCREENSHOT_DIR) {
+    await mkdir(process.env.SCREENSHOT_DIR, { recursive: true });
+    await demoPage.screenshot({ path: `${process.env.SCREENSHOT_DIR}/desktop.png` });
+  }
+  await demoPage.locator('#insights-toggle').click();
+  await demoPage.locator('.tabs [data-tab="coverage"]').click();
+  assert.equal(await demoPage.locator('#process-audit').isVisible(), true);
+  await demoPage.locator('[data-audit-view="branches"]').click();
+  assert.equal(await demoPage.locator('.branch-card').count() > 0, true);
+  if (process.env.SCREENSHOT_DIR) {
+    await demoPage.screenshot({ path: `${process.env.SCREENSHOT_DIR}/audit.png` });
+  }
+  await demoPage.locator('#insights-close').click();
+  await demoPage.locator('#tour-toggle').click();
+  assert.match(await demoPage.locator('#tour-title').innerText(), /Начало/);
+  await demoPage.locator('#tour-next').click();
+  await demoPage.locator('#tour-next').click();
+  await demoPage.locator('#tour-next').click();
+  assert.equal(await demoPage.locator('#tour-choices button').count() >= 2, true);
+  if (process.env.SCREENSHOT_DIR) {
+    await demoPage.waitForTimeout(250); // let the analysis drawer finish its CSS exit transition
+    await demoPage.screenshot({ path: `${process.env.SCREENSHOT_DIR}/tour.png` });
+  }
+  await demoPage.locator('#tour-choices button').first().click();
+  assert.equal(await demoPage.locator('#tour-position').innerText(), 'Шаг 5');
+  if (process.env.SCREENSHOT_DIR) {
+    await demoPage.setViewportSize({ width: 390, height: 844 });
+    await demoPage.screenshot({ path: `${process.env.SCREENSHOT_DIR}/mobile.png`, fullPage: true });
+  }
+  await demoPage.evaluate(() => window.processAudit.render({
+    report: { cards: [] }, ranges: [],
+    text: 'После проверки отправить клиенту решение в течение пяти рабочих дней.'
+  }));
+  assert.equal(await demoPage.locator('#audit-gaps .audit-card').count(), 1);
   await demoPage.close();
   assert.deepEqual(errors, []);
   console.log('PASS: interview, source highlight, search, cards, XSD, simulation, inspection, mobile UI, one-click demo');

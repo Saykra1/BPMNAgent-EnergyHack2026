@@ -12,7 +12,7 @@
 </head>
 <body>
 <header class="topbar">
-  <div class="brand"><span class="brand-mark" aria-hidden="true">◇</span><span>Архитектор процессов<small>Текст → BPMN 2.0</small></span></div>
+  <div class="brand"><img class="brand-cat" src="/static/assets/mascot-cat.png" alt=""><span>Архитектор процессов<small>Текст → BPMN 2.0</small></span></div>
   <div class="topbar-right"><div id="llm-status" class="badge">Проверяем подключение</div><button id="insights-toggle" class="topbar-button" type="button" aria-controls="right" aria-expanded="false" data-help="Открыть проверки, сведения о шагах, связи с текстом и историю правок.">Анализ <span aria-hidden="true">↗</span></button></div>
 </header>
 <main>
@@ -40,16 +40,18 @@
       <div class="workspace-heading"><span class="eyebrow">РАБОЧЕЕ ПОЛЕ</span><strong>Диаграмма</strong></div>
       <div class="toolbar-actions">
         <button id="navigator-toggle" class="toolbar-button" type="button" aria-controls="navigator" aria-expanded="false" data-help="Найти шаг по названию или выделить действия конкретного участника.">Найти шаг</button>
-        <button id="palette-toggle" class="toolbar-button" type="button" aria-pressed="false" data-help="Показать инструменты для добавления событий, задач, шлюзов и участников.">Инструменты</button>
-        <label class="btn toolbar-button open-button" role="button" tabindex="0" data-help="Загрузить BPMN-файл с компьютера для просмотра и редактирования.">Открыть<input id="open-file" type="file" accept=".bpmn,.xml" hidden></label>
+        <button id="tour-toggle" class="toolbar-button tour-trigger" type="button" data-help="Пошагово показать процесс с исходной фразой, исполнителем и вариантами на развилках.">Показать процесс <span aria-hidden="true">↗</span></button>
         <button id="dl-bpmn" class="primary export-button" data-help="Скачать редактируемый файл BPMN 2.0 XML.">Скачать BPMN</button>
-        <details class="toolbar-more"><summary data-help="Проигрывание процесса, проверки, раскладка и экспорт изображений.">Ещё</summary><div class="toolbar-menu">
+        <details class="toolbar-more"><summary data-help="Инструменты, открытие BPMN-файла, проигрывание и дополнительные действия.">Ещё</summary><div class="toolbar-menu">
+          <span class="menu-label">РАБОТА СО СХЕМОЙ</span>
+          <button id="palette-toggle" type="button" aria-pressed="false" data-help="Показать инструменты для добавления событий, задач, шлюзов и участников.">Инструменты рисования</button>
+          <label class="btn open-button" role="button" tabindex="0" data-help="Загрузить BPMN-файл с компьютера для просмотра и редактирования.">Открыть BPMN-файл<input id="open-file" type="file" accept=".bpmn,.xml" hidden></label>
+          <span class="menu-divider"></span><span class="menu-label">ПРОВЕРКА</span>
           <button id="simulate" data-help="Пошагово пройти по маршрутам процесса и проверить ветвления.">▶ Проиграть процесс</button>
-          <span class="menu-divider"></span>
           <button id="inspect-current" data-help="Проверить текущую схему и показать замечания.">Проверить схему</button>
           <button id="relayout" data-help="Автоматически расположить блоки и связи заново.">Переразместить</button>
           <button id="check-xsd" data-help="Проверить XML по стандартной схеме BPMN 2.0.">Проверить формат</button>
-          <span class="menu-divider"></span>
+          <span class="menu-divider"></span><span class="menu-label">ЭКСПОРТ</span>
           <button id="dl-svg" data-help="Скачать векторное изображение схемы.">Скачать SVG</button>
           <button id="dl-png" data-help="Скачать растровое изображение схемы.">Скачать PNG</button>
         </div></details>
@@ -69,20 +71,21 @@
     </div>
     <div id="nav-focus" class="nav-focus" hidden><span id="nav-focus-text"></span><button id="nav-focus-clear" class="icon-button" aria-label="Сбросить поиск и фокус по участнику" data-help="Показать все шаги схемы без фильтра.">×</button></div>
     <div id="source-focus" class="source-focus" hidden aria-live="polite"></div>
-    <div id="simulation-hint" class="notice" hidden>Нажмите ▶ у стартового события. На развилке выберите ветвь; параллельные ветви выполняются одновременно. Сроки из карточек не отсчитываются: это проверка маршрута, а не расчёт длительности.</div>
+    <div id="simulation-hint" class="notice" hidden>Нажмите ▶ у стартового события: кот пройдёт выбранный маршрут. На развилке выберите ветвь; параллельные ветви выполняются одновременно. Это проверка маршрута, а не расчёт длительности.</div>
     <div id="canvas"><div id="empty"><span class="empty-symbol" aria-hidden="true">◇</span><strong>Начните с готового процесса</strong><span>Откройте пример техприсоединения: участники, развилки и проверки уже на схеме.</span><button id="open-demo" type="button" class="primary" data-help="Открыть редактируемый пример техприсоединения без обращения к модели.">Открыть демо-процесс <span aria-hidden="true">→</span></button><small>Без ожидания генерации · можно сразу редактировать</small></div></div>
     <div class="canvas-controls" aria-label="Масштаб схемы"><button id="fit" data-help="Показать всю схему целиком.">Вся схема</button><button id="read-view" data-help="Перейти к началу процесса и увеличить схему до читаемого масштаба.">К началу</button><span class="control-divider" aria-hidden="true"></span><button id="zoom-out" class="icon-button zoom-control" aria-label="Уменьшить масштаб" data-help="Уменьшить схему для обзора.">−</button><button id="zoom-in" class="icon-button zoom-control" aria-label="Увеличить масштаб" data-help="Увеличить схему, чтобы рассмотреть детали.">+</button></div>
+    <section id="tour-panel" class="tour-panel" aria-label="Показ процесса" hidden><div class="tour-head"><span class="eyebrow">ПОКАЗ ПРОЦЕССА</span><span id="tour-position"></span><button id="tour-close" class="icon-button" type="button" aria-label="Закрыть показ" data-help="Вернуться к обычному редактированию схемы.">×</button></div><div class="tour-body"><img src="/static/assets/mascot-cat.png" alt="" class="tour-cat"><div><h3 id="tour-title"></h3><p id="tour-role" class="hint"></p><blockquote id="tour-quote"></blockquote><div id="tour-choices" class="tour-choices" hidden></div></div></div><div class="tour-actions"><button id="tour-prev" type="button">← Назад</button><button id="tour-play" type="button" data-help="Автоматически переходить к следующему шагу; на развилке показ остановится для выбора пути.">▶ Автопоказ</button><button id="tour-next" class="primary" type="button">Далее →</button></div></section>
     <div id="loading" hidden><div class="spinner"></div><span id="loading-text">Генерация…</span></div>
   </section>
   <div id="panel-backdrop" hidden></div>
   <aside id="right" aria-label="Анализ диаграммы" aria-hidden="true">
     <div class="insights-head"><div><span class="eyebrow">ПРОЦЕСС</span><h2>Анализ схемы</h2></div><button id="insights-close" class="icon-button" aria-label="Закрыть анализ" data-help="Вернуться к диаграмме на всю ширину.">×</button></div>
-    <nav class="tabs" aria-label="Информация о процессе"><button data-tab="report" class="active" data-help="Результат проверки и вопросы к заказчику.">Обзор</button><button data-tab="element" data-help="Основание, срок и документы выбранного шага.">Шаг</button><button data-tab="coverage" data-help="Какие фразы и шаги связаны друг с другом.">Связи</button><button data-tab="energy" data-help="Исключительные ситуации и контрольные вопросы.">Риски</button><button data-tab="history" data-help="Предыдущие версии схемы в этой вкладке.">История</button></nav>
+    <nav class="tabs" aria-label="Информация о процессе"><button data-tab="report" class="active" data-help="Результат проверки и вопросы к заказчику.">Обзор</button><button data-tab="element" data-help="Основание, срок и документы выбранного шага.">Шаг</button><button data-tab="coverage" data-help="Неучтённые требования, развилки, цитаты и смысловая проверка Jev.">Аудит</button><button data-tab="energy" data-help="Исключительные ситуации и контрольные вопросы.">Риски</button><button data-tab="history" data-help="Предыдущие версии схемы в этой вкладке.">История</button></nav>
     <div class="tab" id="tab-report"><p class="muted">Здесь появятся результаты проверок, допущения и вопросы к заказчику.</p></div><div class="tab" id="tab-element" hidden><p class="muted">Выберите шаг на схеме: здесь будут основание в тексте, срок и документы.</p></div><div class="tab" id="tab-coverage" hidden><p class="muted">После построения схемы здесь будут связи фраз с её шагами.</p></div><div class="tab" id="tab-energy" hidden><p class="muted">Постройте или откройте процесс, чтобы проверить исключительные ситуации.</p></div><div class="tab" id="tab-history" hidden><p class="muted">Изменения схемы в этой вкладке появятся здесь.</p></div><div class="tab" id="tab-plan" hidden><pre id="plan-json" class="code"></pre></div><div class="tab" id="tab-code" hidden><textarea id="code" spellcheck="false" aria-label="Код схемы"></textarea><button id="rebuild" data-help="Снова построить схему по отредактированному коду.">Перестроить из кода</button></div><div class="tab" id="tab-attempts" hidden><div id="attempts"></div></div>
     <details class="advanced"><summary data-help="Открыть план, код и подробности генерации для технической проверки.">Технические детали</summary><div class="advanced-links"><button data-tab="plan" data-help="Показать JSON-план процесса.">План</button><button data-tab="code" data-help="Посмотреть или изменить код построения схемы.">Код</button><button data-tab="attempts" data-help="Посмотреть попытки построения и ошибки.">Попытки</button></div></details>
   </aside>
 </main>
 <div id="help-popover" role="tooltip" hidden></div>
-<script src="/static/vendor/modeler-simulation.js"></script><script src="/static/app.js"></script><script src="/static/assistant.js"></script><script src="/static/source-review.js"></script><script src="/static/workspace-ui.js"></script><script src="/static/diagram-navigation.js"></script>
+<script src="/static/vendor/modeler-simulation.js"></script><script src="/static/app.js"></script><script src="/static/assistant.js"></script><script src="/static/source-review.js"></script><script src="/static/workspace-ui.js"></script><script src="/static/diagram-navigation.js"></script><script src="/static/process-audit.js"></script><script src="/static/presentation.js"></script><script src="/static/mascot.js"></script>
 </body>
 </html>
