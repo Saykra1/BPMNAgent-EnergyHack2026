@@ -1,5 +1,5 @@
 {
-  "source": "reference_plan+plan_compiler",
+  "source": "reference_plan+deterministic_builder",
   "issues": [],
   "xsd_errors": [],
   "stats": {
@@ -27,5 +27,13 @@
     "Что происходит, если служба безопасности находит клиента в чёрном списке — отказ сразу или после оценки?",
     "Есть ли срок на дополнение анкеты клиентом?"
   ],
-  "error": null
+  "lint": [],
+  "lint_summary": {
+    "errors": 0,
+    "warnings": 0,
+    "info": 0,
+    "fixable": 0
+  },
+  "fixes": [],
+  "residual": []
 }

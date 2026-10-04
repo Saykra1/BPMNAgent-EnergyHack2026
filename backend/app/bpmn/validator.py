@@ -295,7 +295,7 @@ def validate(d: Diagram) -> list[Issue]:
                     W("W_MIXED_GATEWAY", f"Шлюз {_label(d, n.id)} одновременно сливает и разветвляет потоки; "
                                          "лучше разделить на два шлюза", [n.id])
                 if n.kind in ("exclusiveGateway", "inclusiveGateway") and len(outs) > 1:
-                    unlabeled = [f for f in outs if not f.name]
+                    unlabeled = [f for f in outs if not f.name and not f.default]
                     if unlabeled:
                         W("W_UNLABELED_BRANCH", f"Не все ветви шлюза {_label(d, n.id)} подписаны условием "
                                                 "(третий аргумент add_link)", [f.id for f in unlabeled])

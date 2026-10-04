@@ -164,7 +164,8 @@ DIAGRAM.add_link(ROOT_START_TASK_ID, a)
 
 def test_pipeline_repair_loop():
     llm = ScriptedClient(["Вот план:\n```json\n" + PLAN + "\n```", BROKEN, "```python\n" + SIMPLE + "```"])
-    res = Pipeline(llm, None, max_repairs=3).generate("Клиент подаёт заявку, менеджер проверяет")
+    res = Pipeline(llm, None, max_repairs=3).generate("Клиент подаёт заявку, менеджер проверяет",
+                                                       mode="two_stage")
     assert res.ok and res.source == "llm_repaired"
     assert "E_DANGLING_OUT" in llm.calls[2]["messages"][-1]["content"]
 
@@ -172,14 +173,14 @@ def test_pipeline_repair_loop():
 def test_pipeline_plan_repair_and_compiler_fallback():
     bad_plan = '{"elements": [], "flows": []}'
     llm = ScriptedClient([bad_plan, PLAN] + [BROKEN] * 4)
-    res = Pipeline(llm, None, max_repairs=3).generate("Клиент подаёт заявку")
+    res = Pipeline(llm, None, max_repairs=3).generate("Клиент подаёт заявку менеджеру", mode="two_stage")
     assert res.ok and res.source == "plan_compiler"
-    assert [a["stage"] for a in res.attempts][:2] == ["plan", "plan"]
+    assert [a["stage"] for a in res.attempts][:2] == ["extract_ir", "extract_ir"]
 
 
 def test_refine_summary():
     llm = ScriptedClient(["# Изменения: добавлен шаг\n" + SIMPLE])
-    res = Pipeline(llm, None).refine("text", SIMPLE, "добавь шаг")
+    res = Pipeline(llm, None).refine_code("text", SIMPLE, "добавь шаг")
     assert res.ok and res.summary == "добавлен шаг"
 
 
@@ -204,8 +205,8 @@ def test_gemini_client_request_and_parse():
     s = Settings(llm_provider="gemini", llm_api_key="k", llm_model="gemini-2.5-flash",
                  llm_base_url="https://generativelanguage.googleapis.com/v1beta/openai")
     c = GeminiClient(s, transport=httpx.MockTransport(handler))
-    r = c.complete("sys", [{"role": "user", "content": "a"}, {"role": "assistant", "content": "b"},
-                           {"role": "user", "content": "c"}], json_mode=True)
+    r = c.complete([{"role": "system", "content": "sys"}, {"role": "user", "content": "a"},
+                    {"role": "assistant", "content": "b"}, {"role": "user", "content": "c"}], {})
     assert r.text == '{"ok": 1}'
     assert seen["url"].endswith("/v1beta/models/gemini-2.5-flash:generateContent")
     assert seen["key"] == "k"
@@ -224,7 +225,7 @@ def test_gemini_client_error_message():
 
     c = GeminiClient(Settings(llm_provider="gemini", llm_api_key="bad"), transport=httpx.MockTransport(handler))
     with pytest.raises(LLMError) as e:
-        c.complete("s", [{"role": "user", "content": "x"}])
+        c.complete([{"role": "system", "content": "s"}, {"role": "user", "content": "x"}])
     assert "LLM_API_KEY" in str(e.value)
 
 
@@ -271,12 +272,12 @@ def test_gemini_fallback_on_overload_and_404():
 
     s = Settings(llm_provider="gemini", llm_api_key="k", llm_model="bad-model")
     c = GeminiClient(s, transport=httpx.MockTransport(handler), sleep=lambda _: None)
-    r = c.complete("s", [{"role": "user", "content": "x"}])
+    r = c.complete([{"role": "system", "content": "s"}, {"role": "user", "content": "x"}])
     assert r.text == '{"ok": 1}'
     assert c.model == "gemini-2.5-flash"            # sticky after fallback
     assert not any("image" in p for p in calls)
     n = len(calls)
-    c.complete("s", [{"role": "user", "content": "y"}])
+    c.complete([{"role": "system", "content": "s"}, {"role": "user", "content": "y"}])
     assert len(calls) == n + 1                       # goes straight to the working model
 
 
@@ -297,7 +298,7 @@ def test_gemini_drops_unsupported_thinking_config():
 
     c = GeminiClient(Settings(llm_provider="gemini", llm_api_key="k", llm_model="gemini-3.8-flash"),
                      transport=httpx.MockTransport(handler), sleep=lambda _: None)
-    assert c.complete("s", [{"role": "user", "content": "x"}]).text == "ok"
+    assert c.complete([{"role": "system", "content": "s"}, {"role": "user", "content": "x"}]).text == "ok"
     assert len(bodies) == 2
 
 
@@ -315,5 +316,5 @@ def test_gemini_all_overloaded_message():
     c = GeminiClient(Settings(llm_provider="gemini", llm_api_key="k", llm_model="gemini-3.8-flash"),
                      transport=httpx.MockTransport(handler), sleep=lambda _: None)
     with pytest.raises(LLMError) as e:
-        c.complete("s", [{"role": "user", "content": "x"}])
+        c.complete([{"role": "system", "content": "s"}, {"role": "user", "content": "x"}])
     assert "перегружены" in str(e.value)

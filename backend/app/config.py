@@ -17,17 +17,25 @@ ENV_CANDIDATES = [
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore")
 
-    llm_provider: str = "anthropic"        # anthropic | gemini | openai
+    llm_provider: str = "openai"           # openai | yandex | gemini | anthropic
     llm_model: str = ""                    # default per provider
     llm_api_key: str = ""
     llm_base_url: str = ""
     llm_fallback_models: str = ""          # comma-separated; empty = discover automatically (gemini)
+    llm_repair_model: str = ""             # optional separate model for the self-repair loop
+    llm_json_mode: str = "json_schema"     # json_schema | json_object | prompt_json (openai/yandex)
+    llm_reasoning_effort: str = ""         # gpt-oss reasoning_effort: low | medium | high (optional)
+    yandex_folder_id: str = ""             # Yandex AI Studio folder for gpt://<folder>/<model>
     jev_enabled: bool = False               # optional OpenRouter semantic source-link review
     jev_model: str = "typesafe/jev-1.13"
     llm_timeout: float = 180.0
     llm_temperature: float = 0.1
     llm_effort: str = "low"                # low | medium | high
     max_repairs: int = 3
+    pii_mask: bool = True                  # mask personal data before sending text to the LLM
+    pii_mask_addresses: bool = False
+    pii_mask_objects: bool = False         # energy objects: «ПС 110 кВ «Южная»»
+    llm_onprem_only: bool = False          # refuse any non-local LLM endpoint
     runs_dir: Path = ROOT / "runs"
     env_file: str | None = None            # which file the settings came from (diagnostics)
 

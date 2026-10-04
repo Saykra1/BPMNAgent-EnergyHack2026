@@ -1,194 +1,88 @@
-"""Prompts (Russian) for the planner, code generator, repair loop and dialogue edits."""
+"""Prompt store. Prompt texts live in versioned files backend/app/prompts/<name>.v<N>.md.
 
-API_REFERENCE = """\
-# DIAGRAM API (Python). Переменные ROOT_PROCESS_ID, ROOT_START_TASK_ID, ROOT_END_TASK_ID уже заданы.
-# <parent> = ROOT_PROCESS_ID | id дорожки (из add_pool) | id пула | id группы | id подпроцесса.
-# Все методы возвращают строковые id.
-
-pool_id, lane_ids = DIAGRAM.add_pool(ROOT_PROCESS_ID, ['Роль 1', 'Роль 2'], 'Организация')  # пул с дорожками
-pool_id, _ = DIAGRAM.add_pool(ROOT_PROCESS_ID, [], 'Банк')       # повторный вызов = ещё один пул (другая организация)
-pool_id = DIAGRAM.add_black_box_pool('Внешняя система')          # пул-«чёрный ящик» (только сообщения)
-
-t = DIAGRAM.add_task('Имя', parent)              # обычная задача
-t = DIAGRAM.add_user_task('Имя', parent)         # выполняет человек в системе
-t = DIAGRAM.add_service_task('Имя', parent)      # автоматически выполняет система/сервис
-t = DIAGRAM.add_script_task('Имя', parent)       # скрипт
-t = DIAGRAM.add_manual_task('Имя', parent)       # ручная работа вне системы
-t = DIAGRAM.add_send_task('Имя', parent)         # отправка сообщения/уведомления
-t = DIAGRAM.add_receive_task('Имя', parent)      # ожидание сообщения
-t = DIAGRAM.add_business_rule_task('Имя', parent)
-sp = DIAGRAM.create_subprocess('Имя', parent)    # свёрнутый подпроцесс; его шаги создаются с parent=sp
-                                                 # (старт/конец внутри подпроцесса добавляются автоматически)
-g = DIAGRAM.add_exclusive_gateway('Вопрос?', parent)   # ИЛИ-ИЛИ (одна ветвь по условию)
-g = DIAGRAM.add_parallel_gateway('', parent)           # И (все ветви одновременно) и их слияние
-g = DIAGRAM.add_inclusive_gateway('Вопрос?', parent)   # одна или несколько ветвей
-g = DIAGRAM.add_event_based_gateway('', parent)        # ветвление по наступившему событию
-e = DIAGRAM.add_start_event('Имя', parent, kind=None)  # kind: None | 'message' | 'timer' | 'signal'
-e = DIAGRAM.add_end_event('Имя', parent, kind=None)    # kind: None | 'message' | 'error' | 'terminate'
-e = DIAGRAM.add_intermediate_event('Имя', parent, 'timer')        # ожидание: 'timer' | 'message'
-e = DIAGRAM.add_intermediate_event('Имя', parent, 'message', True) # бросающее событие-сообщение
-grp = DIAGRAM.add_group('Этап', parent)          # визуальная группа; элементы создаются с parent=grp
-DIAGRAM.add_annotation('Комментарий', element)   # текстовая аннотация к элементу
-DIAGRAM.set_details(element, 'Точная цитата из описания', 'Допущение или пустая строка', 'Срок или пустая строка', ['Документ'])
-
-DIAGRAM.add_link(source, target)                 # поток управления (стрелка)
-DIAGRAM.add_link(gateway, target, 'Да')          # подпись условия ветви шлюза
-DIAGRAM.add_message_link(source, target, 'Счёт') # поток сообщений между РАЗНЫМИ пулами
+`load(name)` returns the highest version (or the one pinned via PROMPT_VERSIONS="name=1,other=2");
+`render(name, **vars)` substitutes {{var}} placeholders. The used versions are written to the run
+journal, so every result can be traced to the exact prompt text.
 """
+from __future__ import annotations
 
-CODE_RULES = """\
-Правила кода:
-- Только присваивания и вызовы DIAGRAM.<метод>(...). Нельзя: import, циклы, if, функции, f-строки, print.
-- Аргументы — строковые литералы, None, числа, переменные и индексы вида lanes[0].
-- Каждая задача/шлюз должны иметь входящую и исходящую связь; процесс начинается в ROOT_START_TASK_ID
-  и заканчивается в ROOT_END_TASK_ID (или в add_end_event для альтернативных исходов).
-- Каждая ветвь исключающего/инклюзивного шлюза подписывается (третий аргумент add_link).
-- Ветви параллельного шлюза сливаются параллельным шлюзом; ветви исключающего — исключающим
-  (или ведут к своим конечным событиям).
-- Цикл доработки (возврат на предыдущий шаг) — это связь назад на существующий узел.
-- Связи между разными пулами — только add_message_link; внутри пула — только add_link.
-- Создавайте элемент в дорожке того участника, который выполняет шаг.
-"""
+import os
+import re
+from functools import lru_cache
+from pathlib import Path
 
-PLANNER_SYSTEM = """\
-Ты — опытный бизнес-аналитик и эксперт по нотации BPMN 2.0. По текстовому описанию бизнес-процесса
-ты строишь структурированный план диаграммы в JSON. Отвечай ТОЛЬКО JSON-объектом без пояснений.
+PROMPT_DIR = Path(__file__).resolve().parents[1] / "prompts"
+_FILE_RE = re.compile(r"^(?P<name>.+)\.v(?P<ver>\d+)\.md$")
 
-Схема JSON:
-{
-  "title": "Короткое название процесса",
-  "organization": "Название организации/пула (если понятно)",
-  "participants": [{"id": "p1", "name": "Роль или подразделение", "external": false}],
-  "elements": [
-    {"id": "t1", "type": "<тип>", "name": "Глагол + объект", "participant": "p1",
-     "parent": null, "group": null, "event": null,
-     "source_quote": "точный непрерывный фрагмент исходного текста", "assumption": "",
-     "deadline": "", "documents": []}
-  ],
-  "flows": [{"from": "start", "to": "t1", "label": null}],
-  "message_flows": [{"from": "t3", "to": "p2", "label": "Счёт"}],
-  "groups": [{"id": "g1", "name": "Этап"}],
-  "assumptions": ["что пришлось домыслить"],
-  "questions": ["что неясно в описании и стоит уточнить у заказчика"]
-}
 
-Типы элементов: task, user_task, service_task, script_task, manual_task, send_task, receive_task,
-business_rule_task, subprocess, exclusive_gateway, parallel_gateway, inclusive_gateway,
-event_based_gateway, start_event, end_event, timer_event, message_event, message_throw_event.
-"start" и "end" — зарезервированные id общего начала и конца процесса; не объявляй их в elements.
+def _pins() -> dict[str, int]:
+    pins = {}
+    for item in os.environ.get("PROMPT_VERSIONS", "").split(","):
+        if "=" in item:
+            k, v = item.split("=", 1)
+            if v.strip().isdigit():
+                pins[k.strip()] = int(v)
+    return pins
 
-Как строить план:
-1. Участники: роли, подразделения, системы, клиент. Все участники одной компании (и клиент, если он
-   просто выполняет шаги) — это дорожки одного пула ("external": false). "external": true — только
-   отдельная внешняя организация, с которой процесс обменивается сообщениями (банк, поставщик);
-   её шаги тоже можно описать (participant = её id) или оставить «чёрным ящиком».
-2. Каждое действие — отдельный элемент с названием «глагол в инфинитиве + объект»
-   (например «Проверить заявку»), 2–5 слов, без номеров. Укажи участника, который его выполняет.
-   Тип задачи: user_task — человек работает в системе; service_task — автоматически система;
-   send_task — отправка уведомления/документа; manual_task — физическая работа; иначе task.
-3. Условия «если/в случае/при» — exclusive_gateway с названием-вопросом («Заявка одобрена?»),
-   у каждой исходящей связи label («Да»/«Нет» или условие). Ветви сливаются exclusive_gateway
-   (без названия) или заканчиваются своими end_event (например «Заявка отклонена»).
-4. «Одновременно/параллельно/в то же время» — parallel_gateway на разветвление и такой же на слияние.
-5. «Вернуть на доработку/повторить» — связь назад к ранее выполненному шагу (цикл).
-6. Ожидание срока — timer_event; ожидание ответа/документа — message_event или receive_task.
-7. Если шагов много (больше ~15), выдели крупные логические блоки в subprocess (их шаги — с parent).
-8. Не придумывай шагов, которых нет в описании; если что-то логически необходимо добавить для
-   связности — добавь и запиши в assumptions. Неясности запиши в questions.
-9. Каждый элемент должен быть достижим из "start" и вести к "end" или к end_event.
-10. Язык названий — язык описания.
-11. Для каждого содержательного шага укажи source_quote — ДОСЛОВНЫЙ непрерывный фрагмент
-    описания, который обосновывает шаг. Не сочиняй цитаты. Для домысленных шагов оставь цитату
-    пустой и объясни assumption. Технические шлюзы могут не иметь цитаты.
-12. В deadline переноси только прямо указанный срок, включая рабочие/календарные дни и точку
-    отсчёта, если она известна. В documents — только названные входные/выходные документы.
-    Не придумывай нормативные сроки, номера законов, документы или обязанности.
-13. Для энергетических процессов проверь неоднозначности: неполный комплект документов,
-    истечение указанного срока, недостаток мощности/отказ, замечания после осмотра и повторная
-    проверка. Задавай только относящиеся к описанию вопросы, не более 6, в порядке важности.
-    Уже данные в описании и уточнениях ответы не спрашивай повторно. Не добавляй отсутствующие
-    аварийные/отказные ветви самовольно: сначала вопрос или явно отмеченное допущение.
-"""
 
-PLANNER_USER = "Описание процесса:\n\"\"\"\n{text}\n\"\"\""
+@lru_cache(maxsize=None)
+def _versions() -> dict[str, dict[int, Path]]:
+    out: dict[str, dict[int, Path]] = {}
+    for f in PROMPT_DIR.glob("*.md"):
+        m = _FILE_RE.match(f.name)
+        if m:
+            out.setdefault(m["name"], {})[int(m["ver"])] = f
+    return out
 
-PLANNER_REPAIR = (
-    "План содержит ошибки:\n{errors}\n\nИсправь их и верни полный исправленный JSON-план целиком."
-)
 
-CODEGEN_SYSTEM = f"""\
-Ты генерируешь Python-код, который строит BPMN-диаграмму через программный интерфейс DIAGRAM.
-На вход — JSON-план процесса. На выход — ТОЛЬКО Python-код (без markdown и пояснений).
+def version(name: str) -> int:
+    versions = _versions().get(name)
+    if not versions:
+        raise KeyError(f"Нет файла промпта {name}.v*.md в {PROMPT_DIR}")
+    pin = _pins().get(name)
+    return pin if pin in versions else max(versions)
 
-{API_REFERENCE}
-{CODE_RULES}
-Как переносить план:
-- Участники с external=false → дорожки одного пула: add_pool(ROOT_PROCESS_ID, [имена], organization).
-- Участник external=true с элементами → отдельный add_pool(ROOT_PROCESS_ID, [], имя); без элементов →
-  add_black_box_pool(имя).
-- Ссылки "start"/"end" в flows → ROOT_START_TASK_ID / ROOT_END_TASK_ID.
-- Сначала создай пулы, группы и подпроцессы, затем элементы, затем связи.
-- Названия переменных — латиницей и осмысленные (check_request, gw_approved).
-- Переноси source_quote, assumption, deadline, documents через DIAGRAM.set_details для соответствующего элемента.
 
-Пример:
-pool, lanes = DIAGRAM.add_pool(ROOT_PROCESS_ID, ['Клиент', 'Менеджер'], 'Компания')
-submit = DIAGRAM.add_user_task('Подать заявку', lanes[0])
-check = DIAGRAM.add_task('Проверить заявку', lanes[1])
-gw_ok = DIAGRAM.add_exclusive_gateway('Заявка корректна?', lanes[1])
-reject = DIAGRAM.add_end_event('Заявка отклонена', lanes[1])
-DIAGRAM.add_link(ROOT_START_TASK_ID, submit)
-DIAGRAM.add_link(submit, check)
-DIAGRAM.add_link(check, gw_ok)
-DIAGRAM.add_link(gw_ok, ROOT_END_TASK_ID, 'Да')
-DIAGRAM.add_link(gw_ok, reject, 'Нет')
-"""
+def load(name: str) -> str:
+    text = _versions()[name][version(name)].read_text("utf-8")
+    return re.sub(r"^<!--.*?-->\s*", "", text, flags=re.S).rstrip() + "\n"   # strip header comment
 
-CODEGEN_USER = "JSON-план процесса:\n{plan}\n\nСгенерируй код."
 
-DIRECT_SYSTEM = f"""\
-Ты — эксперт по BPMN 2.0 и бизнес-аналитик. По текстовому описанию процесса напиши Python-код,
-который строит BPMN-диаграмму через интерфейс DIAGRAM. Ответ — ТОЛЬКО Python-код.
+def render(name: str, **values) -> str:
+    text = load(name)
+    for key, value in values.items():
+        text = text.replace("{{" + key + "}}", str(value))
+    left = re.findall(r"\{\{(\w+)\}\}", text)
+    if left:
+        raise KeyError(f"Промпт {name}: не заданы переменные {left}")
+    return text
 
-{API_REFERENCE}
-{CODE_RULES}
-Участники компании — дорожки одного пула; задачи называй «глагол + объект»; условия — исключающие
-шлюзы с вопросом и подписанными ветвями; «одновременно» — параллельные шлюзы с слиянием.
-"""
 
-REPAIR_USER = """\
-Код диаграммы не прошёл проверку.
+def used(*names: str) -> dict[str, str]:
+    """{name: 'vN'} for the run journal."""
+    return {n: f"v{version(n)}" for n in names}
 
-Код:
-```python
-{code}
-```
 
-Ошибки:
-{errors}
+class _Template:
+    """Legacy `.format(**kw)` interface over a prompt file (code-generation mode)."""
 
-Исправь ошибки и верни полный исправленный код целиком (только Python-код)."""
+    def __init__(self, name: str, **fixed):
+        self.name, self.fixed = name, fixed
 
-REFINE_SYSTEM = f"""\
-Ты редактируешь BPMN-диаграмму, заданную Python-кодом на интерфейсе DIAGRAM, по просьбе аналитика.
-Верни ПОЛНЫЙ новый код (только Python-код). Первой строкой добавь комментарий
-"# Изменения: <кратко что сделано>". Не меняй то, о чём не просили; сохраняй названия переменных.
-Сохраняй set_details для неизменённых шагов. У изменённых шагов перепроверь цитаты и документы:
-не оставляй старую цитату как основание нового действия. Новые сведения бери из просьбы аналитика;
-если основания нет, оставь цитату пустой и явно укажи допущение. Сроки не придумывай.
+    def format(self, **values) -> str:
+        return render(self.name, **self.fixed, **values)
 
-{API_REFERENCE}
-{CODE_RULES}"""
+    def __str__(self) -> str:
+        return self.format()
 
-REFINE_USER = """\
-Исходное описание процесса (для контекста):
-\"\"\"
-{text}
-\"\"\"
 
-Текущий код диаграммы:
-```python
-{code}
-```
-
-Просьба аналитика: {instruction}"""
+# ---- legacy code-generation mode (LLM writes DIAGRAM code from the IR) -------------------------
+API_REFERENCE = load("dsl_api_reference")
+CODE_RULES = load("dsl_code_rules")
+_DSL = dict(api_reference=API_REFERENCE, code_rules=CODE_RULES)
+CODEGEN_SYSTEM = render("code_generate.system", **_DSL)
+CODEGEN_USER = _Template("code_generate.user")
+DIRECT_SYSTEM = render("code_direct.system", **_DSL)
+REPAIR_USER = _Template("code_repair.user")
+REFINE_SYSTEM = render("code_refine.system", **_DSL)
+REFINE_USER = _Template("code_refine.user")

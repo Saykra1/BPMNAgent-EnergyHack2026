@@ -18,8 +18,8 @@ sys.path.insert(0, str(ROOT / "backend"))
 
 from app.config import get_settings  # noqa: E402
 from app.llm.client import make_client  # noqa: E402
-from app.llm.plan import compile_plan, parse_plan  # noqa: E402
-from app.pipeline import Pipeline, build  # noqa: E402
+from app.llm.plan import parse_plan  # noqa: E402
+from app.pipeline import Pipeline  # noqa: E402
 
 
 def main():
@@ -44,12 +44,12 @@ def main():
                       "run_id": res.run_id, "duration_s": res.duration_s}
         else:
             plan = parse_plan((d / "plan.json").read_text("utf-8"))
-            code = compile_plan(plan)
-            r = build(code, plan.title)
-            code, xml, ok = r.code, r.xml, r.ok
-            report = {"source": "reference_plan+plan_compiler", "issues": [i.to_dict() for i in r.issues],
-                      "xsd_errors": r.xsd_errors, "stats": r.stats, "assumptions": plan.assumptions,
-                      "questions": plan.questions, "error": r.error}
+            res = Pipeline(None, None).from_plan(plan, text)
+            code, xml, ok = res.code, res.xml, res.ok
+            report = {"source": "reference_plan+deterministic_builder", "issues": res.issues,
+                      "xsd_errors": res.xsd_errors, "stats": res.stats, "assumptions": res.assumptions,
+                      "questions": res.questions, "lint": res.lint, "lint_summary": res.lint_summary,
+                      "fixes": res.fixes, "residual": res.residual}
         (d / "code.py").write_text(code, "utf-8")
         if xml:
             (d / "result.bpmn").write_text(xml, "utf-8")

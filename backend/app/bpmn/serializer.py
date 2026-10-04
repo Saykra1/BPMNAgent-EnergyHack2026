@@ -94,6 +94,9 @@ def _emit_container(d: Diagram, parent_el, container: str) -> None:
         el = etree.SubElement(parent_el, _b(n.kind), id=n.id)
         if n.name:
             el.set("name", n.name)
+        default = next((f.id for f in d.outgoing(n.id) if f.default), None)
+        if default and n.kind in COND_GATEWAYS:
+            el.set("default", default)
         if n.details:
             etree.SubElement(el, _b("documentation"), textFormat="application/json").text = (
                 "BPMN_AGENT_DETAILS:" + json.dumps(n.details, ensure_ascii=False))
@@ -114,7 +117,8 @@ def _emit_container(d: Diagram, parent_el, container: str) -> None:
         el = etree.SubElement(parent_el, _b("sequenceFlow"), id=f.id, sourceRef=f.source, targetRef=f.target)
         if f.name:
             el.set("name", f.name)
-            if d.nodes[f.source].kind in COND_GATEWAYS and len(d.outgoing(f.source)) > 1:
+            if (d.nodes[f.source].kind in COND_GATEWAYS and len(d.outgoing(f.source)) > 1
+                    and not f.default):
                 ce = etree.SubElement(el, _b("conditionExpression"))
                 ce.set(f"{{{XSI}}}type", "bpmn:tFormalExpression")
                 ce.text = f.name

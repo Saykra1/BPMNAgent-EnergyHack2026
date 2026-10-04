@@ -2,65 +2,275 @@
   "title": "Выдача потребительского кредита",
   "organization": "Банк",
   "participants": [
-    {"id": "client", "name": "Клиент"},
-    {"id": "system", "name": "Банковская система"},
-    {"id": "sec", "name": "Служба безопасности"},
-    {"id": "manager", "name": "Кредитный менеджер"},
-    {"id": "committee", "name": "Кредитный комитет"},
-    {"id": "acc", "name": "Бухгалтерия"},
-    {"id": "bki", "name": "Бюро кредитных историй", "external": true}
+    {
+      "id": "client",
+      "name": "Клиент"
+    },
+    {
+      "id": "system",
+      "name": "Банковская система"
+    },
+    {
+      "id": "sec",
+      "name": "Служба безопасности"
+    },
+    {
+      "id": "manager",
+      "name": "Кредитный менеджер"
+    },
+    {
+      "id": "committee",
+      "name": "Кредитный комитет"
+    },
+    {
+      "id": "acc",
+      "name": "Бухгалтерия"
+    },
+    {
+      "id": "bki",
+      "name": "Бюро кредитных историй",
+      "external": true
+    }
   ],
   "elements": [
-    {"id": "submit", "type": "user_task", "name": "Подать заявку на кредит", "participant": "client"},
-    {"id": "check_form", "type": "service_task", "name": "Проверить полноту анкеты", "participant": "system"},
-    {"id": "gw_full", "type": "exclusive_gateway", "name": "Анкета заполнена?", "participant": "system"},
-    {"id": "req_more", "type": "send_task", "name": "Запросить недостающие данные", "participant": "system"},
-    {"id": "fill", "type": "user_task", "name": "Дополнить анкету", "participant": "client"},
-    {"id": "par_split", "type": "parallel_gateway", "name": "", "participant": "system"},
-    {"id": "blacklist", "type": "task", "name": "Проверить по чёрным спискам", "participant": "sec"},
-    {"id": "history", "type": "service_task", "name": "Запросить кредитную историю", "participant": "system"},
-    {"id": "par_join", "type": "parallel_gateway", "name": "", "participant": "manager"},
-    {"id": "assess", "type": "user_task", "name": "Оценить платёжеспособность", "participant": "manager"},
-    {"id": "gw_sum", "type": "exclusive_gateway", "name": "Сумма больше 1 млн?", "participant": "manager"},
-    {"id": "committee_decide", "type": "task", "name": "Принять решение комитетом", "participant": "committee"},
-    {"id": "manager_decide", "type": "user_task", "name": "Принять решение по кредиту", "participant": "manager"},
-    {"id": "gw_dec_join", "type": "exclusive_gateway", "name": "", "participant": "manager"},
-    {"id": "gw_approved", "type": "exclusive_gateway", "name": "Кредит одобрен?", "participant": "manager"},
-    {"id": "notify_reject", "type": "send_task", "name": "Уведомить об отказе", "participant": "system"},
-    {"id": "end_reject", "type": "end_event", "name": "Кредит не выдан", "participant": "system"},
-    {"id": "contract", "type": "user_task", "name": "Подготовить договор", "participant": "manager"},
-    {"id": "sign", "type": "user_task", "name": "Подписать договор", "participant": "client"},
-    {"id": "transfer", "type": "task", "name": "Перечислить деньги на счёт", "participant": "acc"}
+    {
+      "id": "submit",
+      "type": "user_task",
+      "name": "Подать заявку на кредит",
+      "participant": "client"
+    },
+    {
+      "id": "check_form",
+      "type": "service_task",
+      "name": "Проверить полноту анкеты",
+      "participant": "system"
+    },
+    {
+      "id": "gw_full",
+      "type": "exclusive_gateway",
+      "name": "Анкета заполнена?",
+      "participant": "system"
+    },
+    {
+      "id": "req_more",
+      "type": "send_task",
+      "name": "Запросить недостающие данные",
+      "participant": "system"
+    },
+    {
+      "id": "fill",
+      "type": "user_task",
+      "name": "Дополнить анкету",
+      "participant": "client"
+    },
+    {
+      "id": "par_split",
+      "type": "parallel_gateway",
+      "participant": "system"
+    },
+    {
+      "id": "blacklist",
+      "type": "task",
+      "name": "Проверить по чёрным спискам",
+      "participant": "sec"
+    },
+    {
+      "id": "history",
+      "type": "service_task",
+      "name": "Запросить кредитную историю",
+      "participant": "system"
+    },
+    {
+      "id": "par_join",
+      "type": "parallel_gateway",
+      "participant": "manager"
+    },
+    {
+      "id": "assess",
+      "type": "user_task",
+      "name": "Оценить платёжеспособность",
+      "participant": "manager"
+    },
+    {
+      "id": "gw_sum",
+      "type": "exclusive_gateway",
+      "name": "Сумма больше 1 млн?",
+      "participant": "manager"
+    },
+    {
+      "id": "committee_decide",
+      "type": "task",
+      "name": "Принять решение комитетом",
+      "participant": "committee"
+    },
+    {
+      "id": "manager_decide",
+      "type": "user_task",
+      "name": "Принять решение по кредиту",
+      "participant": "manager"
+    },
+    {
+      "id": "gw_dec_join",
+      "type": "exclusive_gateway",
+      "participant": "manager"
+    },
+    {
+      "id": "gw_approved",
+      "type": "exclusive_gateway",
+      "name": "Кредит одобрен?",
+      "participant": "manager"
+    },
+    {
+      "id": "notify_reject",
+      "type": "send_task",
+      "name": "Уведомить об отказе",
+      "participant": "system"
+    },
+    {
+      "id": "end_reject",
+      "type": "end_event",
+      "name": "Кредит не выдан",
+      "participant": "system"
+    },
+    {
+      "id": "contract",
+      "type": "user_task",
+      "name": "Подготовить договор",
+      "participant": "manager"
+    },
+    {
+      "id": "sign",
+      "type": "user_task",
+      "name": "Подписать договор",
+      "participant": "client"
+    },
+    {
+      "id": "transfer",
+      "type": "task",
+      "name": "Перечислить деньги на счёт",
+      "participant": "acc"
+    }
   ],
   "flows": [
-    {"from": "start", "to": "submit"},
-    {"from": "submit", "to": "check_form"},
-    {"from": "check_form", "to": "gw_full"},
-    {"from": "gw_full", "to": "par_split", "label": "Да"},
-    {"from": "gw_full", "to": "req_more", "label": "Нет"},
-    {"from": "req_more", "to": "fill"},
-    {"from": "fill", "to": "check_form"},
-    {"from": "par_split", "to": "blacklist"},
-    {"from": "par_split", "to": "history"},
-    {"from": "blacklist", "to": "par_join"},
-    {"from": "history", "to": "par_join"},
-    {"from": "par_join", "to": "assess"},
-    {"from": "assess", "to": "gw_sum"},
-    {"from": "gw_sum", "to": "committee_decide", "label": "Да"},
-    {"from": "gw_sum", "to": "manager_decide", "label": "Нет"},
-    {"from": "committee_decide", "to": "gw_dec_join"},
-    {"from": "manager_decide", "to": "gw_dec_join"},
-    {"from": "gw_dec_join", "to": "gw_approved"},
-    {"from": "gw_approved", "to": "contract", "label": "Да"},
-    {"from": "gw_approved", "to": "notify_reject", "label": "Нет"},
-    {"from": "notify_reject", "to": "end_reject"},
-    {"from": "contract", "to": "sign"},
-    {"from": "sign", "to": "transfer"},
-    {"from": "transfer", "to": "end"}
+    {
+      "from": "start",
+      "to": "submit"
+    },
+    {
+      "from": "submit",
+      "to": "check_form"
+    },
+    {
+      "from": "check_form",
+      "to": "gw_full"
+    },
+    {
+      "from": "gw_full",
+      "to": "par_split",
+      "label": "Да"
+    },
+    {
+      "from": "gw_full",
+      "to": "req_more",
+      "label": "Нет",
+      "default": true
+    },
+    {
+      "from": "req_more",
+      "to": "fill"
+    },
+    {
+      "from": "fill",
+      "to": "check_form"
+    },
+    {
+      "from": "par_split",
+      "to": "blacklist"
+    },
+    {
+      "from": "par_split",
+      "to": "history"
+    },
+    {
+      "from": "blacklist",
+      "to": "par_join"
+    },
+    {
+      "from": "history",
+      "to": "par_join"
+    },
+    {
+      "from": "par_join",
+      "to": "assess"
+    },
+    {
+      "from": "assess",
+      "to": "gw_sum"
+    },
+    {
+      "from": "gw_sum",
+      "to": "committee_decide",
+      "label": "Да"
+    },
+    {
+      "from": "gw_sum",
+      "to": "manager_decide",
+      "label": "Нет",
+      "default": true
+    },
+    {
+      "from": "committee_decide",
+      "to": "gw_dec_join"
+    },
+    {
+      "from": "manager_decide",
+      "to": "gw_dec_join"
+    },
+    {
+      "from": "gw_dec_join",
+      "to": "gw_approved"
+    },
+    {
+      "from": "gw_approved",
+      "to": "contract",
+      "label": "Да"
+    },
+    {
+      "from": "gw_approved",
+      "to": "notify_reject",
+      "label": "Нет",
+      "default": true
+    },
+    {
+      "from": "notify_reject",
+      "to": "end_reject"
+    },
+    {
+      "from": "contract",
+      "to": "sign"
+    },
+    {
+      "from": "sign",
+      "to": "transfer"
+    },
+    {
+      "from": "transfer",
+      "to": "end"
+    }
   ],
   "message_flows": [
-    {"from": "history", "to": "bki", "label": "Запрос кредитной истории"}
+    {
+      "from": "history",
+      "to": "bki",
+      "label": "Запрос кредитной истории"
+    }
   ],
-  "assumptions": ["Бюро кредитных историй показано внешним участником («чёрный ящик»)", "Решения менеджера и комитета сводятся в одну точку перед проверкой результата"],
-  "questions": ["Что происходит, если служба безопасности находит клиента в чёрном списке — отказ сразу или после оценки?", "Есть ли срок на дополнение анкеты клиентом?"]
+  "assumptions": [
+    "Бюро кредитных историй показано внешним участником («чёрный ящик»)",
+    "Решения менеджера и комитета сводятся в одну точку перед проверкой результата"
+  ],
+  "questions": [
+    "Что происходит, если служба безопасности находит клиента в чёрном списке — отказ сразу или после оценки?",
+    "Есть ли срок на дополнение анкеты клиентом?"
+  ]
 }

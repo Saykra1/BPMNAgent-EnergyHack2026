@@ -12,7 +12,7 @@ from .bpmn.importer import ImportErrorBPMN, bpmn_to_code
 from .bpmn.xsd import validate_xsd
 from .config import ROOT, find_env_file, get_settings
 from .llm.client import make_client
-from .pipeline import Pipeline
+from .pipeline import InputError, Pipeline, check_text
 from .llm.plan import parse_plan, PlanError
 from .sandbox import SandboxError
 from .insights import inspect_xml
@@ -40,8 +40,11 @@ def _pipeline() -> Pipeline:
         return _state["pipeline"]
     s = get_settings()
     error = None
+    repair = None
     try:
         llm = make_client(s)
+        if s.llm_repair_model:
+            repair = make_client(s, role="repair")
         if hasattr(llm, "verbose"):
             llm.verbose = True        # log every Gemini attempt / fallback to the server console
         print(f"[bpmn-agent] .env: {s.env_file or 'не найден'} · LLM: {s.llm_provider} · {getattr(llm, 'model', '')}")
@@ -51,7 +54,7 @@ def _pipeline() -> Pipeline:
             f"файл .env не найден — создайте его в {ROOT} (copy .env.example .env)")
         error = f"{e} [LLM_PROVIDER={s.llm_provider}; {where}]"
         print(f"[bpmn-agent] LLM недоступен: {error}")
-    p = Pipeline(llm, s.runs_dir, s.max_repairs)
+    p = Pipeline(llm, s.runs_dir, s.max_repairs, settings=s, repair_llm=repair)
     p.llm_error = error
     _state.update(key=key, pipeline=p, error=error, settings=s)
     return p
@@ -66,14 +69,16 @@ def _require_llm() -> Pipeline:
 
 
 class GenerateRequest(BaseModel):
-    text: str = Field(min_length=10, max_length=20000)
-    mode: str = "two_stage"          # two_stage | direct
+    text: str = Field(default="", max_length=200_000)
+    mode: str = "ir"                 # ir (IR → deterministic builder) | two_stage | direct (LLM writes code)
+    ask: bool = False                # True: return clarifying questions instead of guessing
 
 
 class RefineRequest(BaseModel):
-    instruction: str = Field(min_length=2, max_length=4000)
+    instruction: str = Field(default="", max_length=4000)
     code: str = ""
     xml: str | None = None           # current (possibly hand-edited) diagram
+    plan: dict | None = None         # current IR (if no xml)
     text: str = ""
 
 
@@ -189,22 +194,27 @@ def example_result(ex_id: str):
 
 @app.post("/api/generate")
 def generate(req: GenerateRequest):
-    res = _require_llm().generate(req.text, req.mode)
+    try:
+        check_text(req.text)
+    except InputError as e:
+        raise HTTPException(400, str(e))
+    res = _require_llm().generate(req.text, req.mode, ask=req.ask)
     return res.to_dict()
 
 
 @app.post("/api/refine")
 def refine(req: RefineRequest):
     pipeline = _require_llm()
-    code = req.code
-    if req.xml:
+    plan = None
+    if req.plan and not req.xml:
         try:
-            code = bpmn_to_code(req.xml)   # keep the analyst's manual edits
-        except ImportErrorBPMN as e:
+            plan = parse_plan(req.plan)
+        except PlanError as e:
             raise HTTPException(400, str(e))
-    if not code.strip():
-        raise HTTPException(400, "Нет текущей диаграммы для изменения")
-    return pipeline.refine(req.text, code, req.instruction).to_dict()
+    try:
+        return pipeline.refine(req.text, req.instruction, plan=plan, xml=req.xml, code=req.code).to_dict()
+    except (ImportErrorBPMN, SandboxError) as e:
+        raise HTTPException(400, f"Не удалось прочитать текущую схему: {e}")
 
 
 @app.post("/api/build")

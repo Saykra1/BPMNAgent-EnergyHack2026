@@ -111,11 +111,11 @@ def bpmn_to_code(xml: str, id_variables: dict | None = None) -> str:
             if tag in TASK_METHODS:
                 v = vname(el_id, "n")
                 var[el_id] = v
-                lines.append(f"{v} = DIAGRAM.{TASK_METHODS[tag]}({q(_name(el))}, {parent})")
+                lines.append(f"{v} = DIAGRAM.{TASK_METHODS[tag]}({q(_name(el))}, {parent}, id={q(el_id)})")
             elif tag in ("subProcess", "transaction", "adHocSubProcess"):
                 v = vname(el_id, "sp")
                 var[el_id] = v
-                lines.append(f"{v} = DIAGRAM.create_subprocess({q(_name(el))}, {parent})")
+                lines.append(f"{v} = DIAGRAM.create_subprocess({q(_name(el))}, {parent}, id={q(el_id)})")
                 emit(el, v, False)
             elif tag in ("startEvent", "endEvent", "intermediateCatchEvent", "intermediateThrowEvent",
                          "boundaryEvent"):
@@ -127,30 +127,35 @@ def bpmn_to_code(xml: str, id_variables: dict | None = None) -> str:
                 var[el_id] = v
                 if tag == "startEvent":
                     k = kind if kind in ("message", "timer", "signal", "conditional") else None
-                    lines.append(f"{v} = DIAGRAM.add_start_event({q(_name(el))}, {parent}, {q(k)})")
+                    lines.append(f"{v} = DIAGRAM.add_start_event({q(_name(el))}, {parent}, {q(k)}, id={q(el_id)})")
                 elif tag == "endEvent":
                     k = kind if kind in ("message", "error", "terminate", "signal", "escalation") else None
-                    lines.append(f"{v} = DIAGRAM.add_end_event({q(_name(el))}, {parent}, {q(k)})")
+                    lines.append(f"{v} = DIAGRAM.add_end_event({q(_name(el))}, {parent}, {q(k)}, id={q(el_id)})")
                 elif tag == "intermediateThrowEvent":
                     k = kind if kind in ("message", "signal", "escalation") else "message"
-                    lines.append(f"{v} = DIAGRAM.add_intermediate_event({q(_name(el))}, {parent}, {q(k)}, True)")
+                    lines.append(f"{v} = DIAGRAM.add_intermediate_event({q(_name(el))}, {parent}, {q(k)}, True, "
+                                 f"id={q(el_id)})")
                 else:
                     k = kind if kind in ("message", "timer", "signal", "conditional") else "timer"
-                    lines.append(f"{v} = DIAGRAM.add_intermediate_event({q(_name(el))}, {parent}, {q(k)})")
+                    lines.append(f"{v} = DIAGRAM.add_intermediate_event({q(_name(el))}, {parent}, {q(k)}, "
+                                 f"id={q(el_id)})")
             elif tag == "sequenceFlow":
-                flows.append(("seq", el.get("sourceRef"), el.get("targetRef"), _name(el)))
+                flows.append(("seq", el.get("sourceRef"), el.get("targetRef"), _name(el), el.get("id")))
             elif tag == "textAnnotation":
                 pass
 
     for pid, pexpr in proc_parent.items():
         emit(processes[pid], pexpr, True)
     for mf in root.findall("b:collaboration/b:messageFlow", NS):
-        flows.append(("msg", mf.get("sourceRef"), mf.get("targetRef"), _name(mf)))
+        flows.append(("msg", mf.get("sourceRef"), mf.get("targetRef"), _name(mf), mf.get("id")))
 
-    for kind, s, t, label in flows:
+    defaults = {el.get("default") for el in root.iter() if el.get("default")}
+    for kind, s, t, label, fid in flows:
         if s not in var or t not in var:
             continue  # e.g. boundary attachments or unsupported elements
         lab = f", {q(label)}" if label else ""
+        if kind == "seq" and fid in defaults:
+            lab += (", None" if not label else "") + ", default=True"
         method = "add_link" if kind == "seq" else "add_message_link"
         lines.append(f"DIAGRAM.{method}({var[s]}, {var[t]}{lab})")
 
@@ -177,8 +182,18 @@ def bpmn_to_code(xml: str, id_variables: dict | None = None) -> str:
                     continue
                 if not all(isinstance(v, str) for v in documents):
                     continue
+                extra = {k: data[k] for k in ("duration_min", "wait_min", "sla_hours")
+                         if isinstance(data.get(k), (int, float)) and data[k] >= 0}
+                if data.get("estimate") is True:
+                    extra["estimate"] = True
+                if isinstance(data.get("accountable"), str):
+                    extra["accountable"] = data["accountable"]
+                for k in ("consulted", "informed"):
+                    if isinstance(data.get(k), list) and all(isinstance(v, str) for v in data[k]):
+                        extra[k] = data[k]
+                kw = "".join(f", {k}={v!r}" for k, v in extra.items())
                 lines.append(f"DIAGRAM.set_details({var[el.get('id')]}, "
-                             f"{', '.join(repr(v) for v in values)}, {documents!r})")
+                             f"{', '.join(repr(v) for v in values)}, {documents!r}{kw})")
             except (ValueError, AttributeError):
                 continue
     if id_variables is not None:

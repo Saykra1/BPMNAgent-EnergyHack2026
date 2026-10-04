@@ -59,7 +59,6 @@
     {
       "id": "p1",
       "type": "parallel_gateway",
-      "name": "",
       "participant": "disp"
     },
     {
@@ -113,7 +112,6 @@
     {
       "id": "p1_join",
       "type": "parallel_gateway",
-      "name": "",
       "participant": "disp"
     },
     {
@@ -198,7 +196,8 @@
     {
       "from": "gw_time",
       "to": "dgu",
-      "label": "Нет"
+      "label": "Нет",
+      "default": true
     },
     {
       "from": "dgu",
