@@ -289,7 +289,7 @@
       ${d.llm_calls.map(c => `<details class="attempt"><summary>${esc(c.stage)} · ${esc(c.model)} · ${c.latency_s} с · ${c.input_tokens ?? '?'}/${c.output_tokens ?? '?'} ток. · ${esc(c.output_mode || '')}</summary>
         <pre>${esc((c.messages || []).map(x => `[${x.role}]\n${x.content}`).join('\n\n').slice(0, 6000))}</pre><pre>${esc((c.response || '').slice(0, 6000))}</pre></details>`).join('')}
       <button id="tk-jexp">Экспорт JSON</button>`;
-    document.getElementById('tk-jexp').onclick = () => { location.href = '/api/runs/' + encodeURIComponent(id) + '/export'; };
+    document.getElementById('tk-jexp').onclick = () => { window.authDownload('/api/runs/' + encodeURIComponent(id) + '/export'); };
     status('Готово', 'ok');
   }
 

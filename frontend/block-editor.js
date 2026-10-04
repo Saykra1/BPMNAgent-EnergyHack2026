@@ -155,8 +155,29 @@
       try { onSave(wrap); closeDialog(); }
       catch (err) { wrap.querySelector('.be-error').textContent = err.message; }
     };
-    wrap.querySelector('input, select, textarea')?.focus();
+    lockDialog(wrap);
+    wrap.querySelector('input:not(:disabled), select:not(:disabled), textarea:not(:disabled)')?.focus();
     return wrap;
+  }
+  // Inside a team project the fields follow the member's roles (the server checks the save again).
+  const STRUCT = '#be-type, #be-role, #be-newrole, .be-delete, input[name="be-default"], #be-fdef, #d-addrole, #d-newrole, .r-name';
+  const CODE = '#be-code, [data-flowcheck], #be-fcheck';
+  const FREE = '#be-testdata, #be-gw-testdata';
+  function lockDialog(wrap) {
+    const a = window.access;
+    if (!a?.inProject()) return;
+    const content = a.can('edit_content') || a.can('generate');
+    const lock = (el, why) => { el.disabled = true; el.title = why; };
+    wrap.querySelectorAll('.be-body input, .be-body select, .be-body textarea, .be-foot .be-delete').forEach(el => {
+      if (el.matches(FREE)) return;
+      if (el.matches(STRUCT)) { if (!a.can('edit_bpmn')) lock(el, 'Нет права «Редактировать схему»'); }
+      else if (el.matches(CODE)) { if (!a.can('edit_code')) lock(el, 'Нет права «Код блоков и проверки»'); }
+      else if (!content) lock(el, 'Нет права «Названия, описания, документы»');
+    });
+    if (!['edit_content', 'edit_bpmn', 'generate', 'edit_code'].some(p => a.can(p))) {
+      wrap.querySelector('.be-save').hidden = true;
+      wrap.querySelector('.be-cancel').textContent = 'Закрыть';
+    }
   }
   function closeDialog() { document.getElementById('be-modal')?.remove(); }
   const val = (w, sel) => w.querySelector(sel)?.value?.trim() ?? '';

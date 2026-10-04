@@ -84,7 +84,7 @@
     const card = inspection?.cards.find(c => c.id === selectedId);
     const quote = typeof details.source_quote === 'string' ? details.source_quote : '';
     const found = quote && state.text.includes(quote);
-    const locked = state.access === 'viewer';
+    const locked = !!window.access?.inProject() && !window.access.can('edit_content');
     const lockAttr = locked ? 'disabled' : '';
     box.innerHTML = `<h3>${esc(element.businessObject.name || 'Без названия')}</h3>
       ${card?.role ? `<p class="muted">Исполнитель: ${esc(card.role)}</p>` : ''}
@@ -115,7 +115,7 @@
       input.focus(); input.setSelectionRange(start, start + quote.length);
     };
     $('#detail-save').onclick = () => {
-      if (state.access === 'viewer' || state.busy || simulation) return;
+      if ((window.access?.inProject() && !window.access.can('edit_content')) || state.busy || simulation) return;
       const sourceQuote = $('#detail-quote').value.trim();
       // Existing imported quotes can be retained when the source text is unavailable.
       if (sourceQuote && sourceQuote !== quote && !state.text.includes(sourceQuote)) {

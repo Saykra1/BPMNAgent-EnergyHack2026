@@ -15,7 +15,7 @@ from .llm.client import make_client
 from .pipeline import InputError, Pipeline, check_text
 from .llm.plan import parse_plan, PlanError
 from .sandbox import SandboxError
-from .collab.routes import router as collab_router
+from .collab.routes import guard as collab_guard, router as collab_router
 from .insights import inspect_xml
 from .jev import JevReviewError, review_source_links, review_audit_items
 from lxml import etree
@@ -25,6 +25,7 @@ EXAMPLES = ROOT / "examples"
 
 app = FastAPI(title="BPMN Agent", version="1.0")
 app.include_router(collab_router)
+app.middleware("http")(collab_guard)
 
 
 _state: dict = {"key": None, "pipeline": None, "error": None, "settings": None}

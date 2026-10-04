@@ -1,18 +1,23 @@
-"""HTTP API команд. Генерация схем по-прежнему не требует входа."""
+"""HTTP API: registration and login, teams, configurable roles, invitations, shared projects.
+
+Plus an access guard for the rest of the API (installed as middleware in main):
+- with REQUIRE_LOGIN (default on) every /api call except login/registration needs a session;
+- calls made inside a team project (header X-Project-Id) are checked against the member's roles:
+  LLM endpoints need "generate", process-run actions need "run".
+"""
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal
 
-from fastapi import APIRouter, Header, HTTPException
-from pydantic import BaseModel, Field, field_validator
+from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 
+from . import permissions as P
 from .store import CollabError, CollabStore
 
 router = APIRouter()
 _store: CollabStore | None = None
-
-RoleName = Literal["owner", "editor", "viewer"]
 
 
 def init_store(path: Path) -> CollabStore:
@@ -25,8 +30,7 @@ def get_store() -> CollabStore:
     global _store
     if _store is None:
         from ..config import ROOT
-
-        _store = CollabStore(ROOT / "data" / "collab.db")
+        _store = CollabStore(ROOT / "data" / "app.db")
     return _store
 
 
@@ -37,65 +41,257 @@ def _run(fn, *args, **kwargs):
         raise HTTPException(exc.status, exc.message) from exc
 
 
-def _user_from_header(authorization: str | None, *, required: bool) -> dict | None:
-    if not authorization:
-        if required:
-            raise HTTPException(401, "Сначала представьтесь")
-        return None
-    scheme, _, token = authorization.partition(" ")
-    if scheme.lower() != "bearer" or not token.strip():
-        raise HTTPException(401, "Сначала представьтесь")
-    user = get_store().user_by_token(token.strip())
+def _token(authorization: str | None) -> str:
+    scheme, _, token = (authorization or "").partition(" ")
+    return token.strip() if scheme.lower() == "bearer" else ""
+
+
+def current_user(authorization: str | None) -> dict:
+    token = _token(authorization)
+    if not token:
+        raise HTTPException(401, "Войдите в систему")
+    user = get_store().user_by_token(token)
     if user is None:
-        raise HTTPException(401, "Сессия не найдена. Представьтесь ещё раз")
+        raise HTTPException(401, "Сессия истекла. Войдите снова")
     return user
 
 
-def current_user(authorization: str | None = Header(default=None)) -> dict:
-    return _user_from_header(authorization, required=True)  # type: ignore[return-value]
+# ----------------------------------------------------------------------------- access guard
+OPEN_PATHS = {"/api/auth/login", "/api/auth/register", "/api/auth/config", "/api/health"}
+GENERATE_PATHS = {"/api/generate", "/api/refine", "/api/prepare", "/api/estimate", "/api/recommend",
+                  "/api/explain", "/api/jev-review", "/api/jev-audit"}
+RUN_ACTIONS = ("/start", "/complete", "/choose", "/retry")
 
 
-def _person_name(value: str) -> str:
-    value = " ".join(value.split())
-    if not value:
-        raise ValueError("Укажите имя")
-    if len(value) > 80:
-        raise ValueError("Имя слишком длинное")
-    return value
+def require_login() -> bool:
+    from .. import main
+    return bool(getattr(main.get_settings(), "require_login", True))
 
 
+def required_permission(path: str, method: str) -> str | None:
+    if path in GENERATE_PATHS:
+        return "generate"
+    if method == "POST" and path.startswith("/api/run/") and path.endswith(RUN_ACTIONS):
+        return "run"
+    return None
+
+
+async def guard(request: Request, call_next):
+    path = request.url.path
+    if not path.startswith("/api/") or path in OPEN_PATHS:
+        return await call_next(request)
+    auth = request.headers.get("authorization")
+    user = None
+    if _token(auth):
+        user = get_store().user_by_token(_token(auth))
+    if user is None and require_login() and path not in OPEN_PATHS:
+        return JSONResponse({"detail": "Войдите в систему"}, status_code=401)
+    project_id = request.headers.get("x-project-id")
+    perm = required_permission(path, request.method)
+    if project_id and perm:
+        if user is None:
+            return JSONResponse({"detail": "Войдите в систему"}, status_code=401)
+        try:
+            perms = get_store().project_access(user["id"], project_id)
+        except CollabError as e:
+            return JSONResponse({"detail": e.message}, status_code=e.status)
+        if perm not in perms:
+            what = next(p["name"] for p in P.PERMISSIONS if p["id"] == perm)
+            return JSONResponse({"detail": f"Ваши роли в этом проекте не дают права «{what}»"}, status_code=403)
+    return await call_next(request)
+
+
+# ----------------------------------------------------------------------------- auth
+class RegisterBody(BaseModel):
+    login: str = Field(max_length=64)
+    email: str = Field(max_length=254)
+    name: str = Field(max_length=120)
+    password: str = Field(max_length=200)
+
+
+class LoginBody(BaseModel):
+    login: str = Field(max_length=254)
+    password: str = Field(max_length=200)
+
+
+class ProfileBody(BaseModel):
+    name: str = Field(max_length=120)
+
+
+class PasswordBody(BaseModel):
+    old_password: str = Field(max_length=200)
+    new_password: str = Field(max_length=200)
+
+
+def _me(user: dict) -> dict:
+    store = get_store()
+    return {"user": store.user(user["id"]), "teams": store.list_teams(user["id"]), "invites": store.my_invites(user["id"])}
+
+
+@router.get("/api/auth/config")
+def auth_config():
+    return {"require_login": require_login(), "permissions": P.PERMISSIONS}
+
+
+@router.post("/api/auth/register")
+def register(body: RegisterBody):
+    user, token = _run(get_store().register, body.login, body.email, body.name, body.password)
+    return {"token": token, **_me(user)}
+
+
+@router.post("/api/auth/login")
+def login(body: LoginBody):
+    user, token = _run(get_store().login, body.login, body.password)
+    return {"token": token, **_me(user)}
+
+
+@router.post("/api/auth/logout")
+def logout(authorization: str | None = Header(default=None)):
+    if _token(authorization):
+        get_store().logout(_token(authorization))
+    return {"ok": True}
+
+
+@router.get("/api/auth/me")
+def me(authorization: str | None = Header(default=None)):
+    return _me(current_user(authorization))
+
+
+@router.patch("/api/auth/me")
+def update_me(body: ProfileBody, authorization: str | None = Header(default=None)):
+    user = current_user(authorization)
+    _run(get_store().update_profile, user["id"], body.name)
+    return _me(user)
+
+
+@router.post("/api/auth/password")
+def change_password(body: PasswordBody, authorization: str | None = Header(default=None)):
+    user = current_user(authorization)
+    _run(get_store().change_password, user["id"], body.old_password, body.new_password, _token(authorization))
+    return {"ok": True}
+
+
+# ----------------------------------------------------------------------------- teams
 class NameBody(BaseModel):
-    name: str = Field(min_length=1, max_length=80)
-
-    @field_validator("name")
-    @classmethod
-    def strip_name(cls, value: str) -> str:
-        return _person_name(value)
-
-
-class JoinBody(BaseModel):
-    name: str | None = None
-
-    @field_validator("name")
-    @classmethod
-    def strip_name(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        return _person_name(value)
-
-
-class TeamBody(BaseModel):
-    name: str = Field(min_length=1, max_length=80)
-
-
-class InviteBody(BaseModel):
-    role: RoleName = "editor"
+    name: str = Field(max_length=120)
 
 
 class RoleBody(BaseModel):
-    role: RoleName
+    name: str = Field(max_length=120)
+    color: str = "#66746f"
+    permissions: list[str] = Field(default_factory=list)
+    scope: list[str] | None = None          # None = all projects
 
 
+class MemberRolesBody(BaseModel):
+    role_ids: list[str] = Field(default_factory=list, max_length=50)
+
+
+class InviteBody(BaseModel):
+    who: str = Field(max_length=254)          # e-mail, login or personal id
+    role_ids: list[str] = Field(default_factory=list, max_length=50)
+
+
+class LinkBody(BaseModel):
+    role_ids: list[str] = Field(default_factory=list, max_length=50)
+
+
+@router.post("/api/teams")
+def create_team(body: NameBody, authorization: str | None = Header(default=None)):
+    return _run(get_store().create_team, current_user(authorization)["id"], body.name)
+
+
+@router.get("/api/teams/{team_id}")
+def get_team(team_id: str, authorization: str | None = Header(default=None)):
+    return _run(get_store().team_detail, current_user(authorization)["id"], team_id)
+
+
+@router.patch("/api/teams/{team_id}")
+def rename_team(team_id: str, body: NameBody, authorization: str | None = Header(default=None)):
+    return _run(get_store().rename_team, current_user(authorization)["id"], team_id, body.name)
+
+
+@router.delete("/api/teams/{team_id}")
+def delete_team(team_id: str, authorization: str | None = Header(default=None)):
+    _run(get_store().delete_team, current_user(authorization)["id"], team_id)
+    return {"ok": True}
+
+
+@router.post("/api/teams/{team_id}/roles")
+def create_role(team_id: str, body: RoleBody, authorization: str | None = Header(default=None)):
+    return _run(get_store().create_role, current_user(authorization)["id"], team_id, body.name, body.color,
+                body.permissions, body.scope)
+
+
+@router.put("/api/roles/{role_id}")
+def update_role(role_id: str, body: RoleBody, authorization: str | None = Header(default=None)):
+    return _run(get_store().update_role, current_user(authorization)["id"], role_id, body.name, body.color,
+                body.permissions, body.scope)
+
+
+@router.delete("/api/roles/{role_id}")
+def delete_role(role_id: str, authorization: str | None = Header(default=None)):
+    return _run(get_store().delete_role, current_user(authorization)["id"], role_id)
+
+
+@router.put("/api/teams/{team_id}/members/{user_id}/roles")
+def set_member_roles(team_id: str, user_id: str, body: MemberRolesBody, authorization: str | None = Header(default=None)):
+    return _run(get_store().set_member_roles, current_user(authorization)["id"], team_id, user_id, body.role_ids)
+
+
+@router.delete("/api/teams/{team_id}/members/{user_id}")
+def remove_member(team_id: str, user_id: str, authorization: str | None = Header(default=None)):
+    return _run(get_store().remove_member, current_user(authorization)["id"], team_id, user_id)
+
+
+# ----------------------------------------------------------------------------- invitations
+@router.post("/api/teams/{team_id}/invites")
+def invite(team_id: str, body: InviteBody, authorization: str | None = Header(default=None)):
+    return _run(get_store().invite, current_user(authorization)["id"], team_id, body.who, body.role_ids)
+
+
+@router.get("/api/invites")
+def my_invites(authorization: str | None = Header(default=None)):
+    return get_store().my_invites(current_user(authorization)["id"])
+
+
+@router.post("/api/invites/{invite_id}/accept")
+def accept(invite_id: str, authorization: str | None = Header(default=None)):
+    return _run(get_store().respond, current_user(authorization)["id"], invite_id, True)
+
+
+@router.post("/api/invites/{invite_id}/decline")
+def decline(invite_id: str, authorization: str | None = Header(default=None)):
+    return _run(get_store().respond, current_user(authorization)["id"], invite_id, False)
+
+
+@router.delete("/api/invites/{invite_id}")
+def cancel_invite(invite_id: str, authorization: str | None = Header(default=None)):
+    return _run(get_store().cancel_invite, current_user(authorization)["id"], invite_id)
+
+
+@router.post("/api/teams/{team_id}/links")
+def create_link(team_id: str, body: LinkBody, authorization: str | None = Header(default=None)):
+    return _run(get_store().create_link, current_user(authorization)["id"], team_id, body.role_ids)
+
+
+@router.delete("/api/links/{token}")
+def revoke_link(token: str, authorization: str | None = Header(default=None)):
+    _run(get_store().revoke_link, current_user(authorization)["id"], token)
+    return {"ok": True}
+
+
+@router.get("/api/links/{token}")
+def link_info(token: str, authorization: str | None = Header(default=None)):
+    return _run(get_store().link_info, current_user(authorization)["id"], token)
+
+
+@router.post("/api/links/{token}/accept")
+def accept_link(token: str, authorization: str | None = Header(default=None)):
+    return _run(get_store().accept_link, current_user(authorization)["id"], token)
+
+
+# ----------------------------------------------------------------------------- projects
 class ProjectBody(BaseModel):
     title: str = Field(min_length=1, max_length=200)
 
@@ -103,114 +299,29 @@ class ProjectBody(BaseModel):
 class SaveBody(BaseModel):
     version: int = Field(ge=1)
     title: str | None = Field(default=None, max_length=200)
-    text: str = Field(default="", max_length=30000)
-    xml: str = Field(default="", max_length=2_000_000)
+    text: str = Field(default="", max_length=200_000)
+    xml: str = Field(default="", max_length=5_000_000)
     code: str = Field(default="", max_length=200_000)
     plan: dict | None = None
 
 
-def _public_user(user: dict) -> dict:
-    return {"id": user["id"], "name": user["name"], "token": user["token"]}
-
-
-@router.post("/api/session")
-def create_session(body: NameBody):
-    return _public_user(_run(get_store().create_user, body.name))
-
-
-@router.get("/api/me")
-def me(authorization: str | None = Header(default=None)):
-    user = current_user(authorization)
-    return {"id": user["id"], "name": user["name"], "teams": get_store().list_teams(user["id"])}
-
-
-@router.post("/api/teams")
-def create_team(body: TeamBody, authorization: str | None = Header(default=None)):
-    user = current_user(authorization)
-    return _run(get_store().create_team, user["id"], body.name)
-
-
-@router.get("/api/teams/{team_id}")
-def get_team(team_id: str, authorization: str | None = Header(default=None)):
-    user = current_user(authorization)
-    return _run(get_store().team_detail, user["id"], team_id)
-
-
-@router.post("/api/teams/{team_id}/invites")
-def create_invite(team_id: str, body: InviteBody, authorization: str | None = Header(default=None)):
-    user = current_user(authorization)
-    invite = _run(get_store().create_invite, user["id"], team_id, body.role)
-    invite["path"] = f"/join/{invite['token']}"
-    return invite
-
-
-@router.delete("/api/invites/{token}")
-def revoke_invite(token: str, authorization: str | None = Header(default=None)):
-    user = current_user(authorization)
-    _run(get_store().revoke_invite, user["id"], token)
-    return {"ok": True}
-
-
-@router.post("/api/join/{token}")
-def join_team(token: str, body: JoinBody | None = None, authorization: str | None = Header(default=None)):
-    if body is None:
-        body = JoinBody()
-    user = _user_from_header(authorization, required=False)
-    if user is None:
-        if not body.name:
-            raise HTTPException(400, "Укажите, как вас представить команде")
-        user = _run(get_store().create_user, body.name)
-    elif body.name:
-        user = _run(get_store().rename_user, user["id"], body.name)
-    joined = _run(get_store().join, token, user)
-    joined["user"] = _public_user(user)
-    return joined
-
-
-@router.patch("/api/teams/{team_id}/members/{user_id}")
-def set_member_role(
-    team_id: str, user_id: str, body: RoleBody, authorization: str | None = Header(default=None)
-):
-    user = current_user(authorization)
-    return _run(get_store().set_role, user["id"], team_id, user_id, body.role)
-
-
-@router.delete("/api/teams/{team_id}/members/{user_id}")
-def remove_member(team_id: str, user_id: str, authorization: str | None = Header(default=None)):
-    user = current_user(authorization)
-    return _run(get_store().remove_member, user["id"], team_id, user_id)
-
-
 @router.post("/api/teams/{team_id}/projects")
 def create_project(team_id: str, body: ProjectBody, authorization: str | None = Header(default=None)):
-    user = current_user(authorization)
-    return _run(get_store().create_project, user["id"], team_id, body.title)
+    return _run(get_store().create_project, current_user(authorization)["id"], team_id, body.title)
 
 
 @router.get("/api/projects/{project_id}")
 def get_project(project_id: str, authorization: str | None = Header(default=None)):
-    user = current_user(authorization)
-    return _run(get_store().get_project, user["id"], project_id)
+    return _run(get_store().get_project, current_user(authorization)["id"], project_id)
 
 
 @router.put("/api/projects/{project_id}")
 def save_project(project_id: str, body: SaveBody, authorization: str | None = Header(default=None)):
-    user = current_user(authorization)
-    return _run(
-        get_store().save_project,
-        user["id"],
-        project_id,
-        version=body.version,
-        title=body.title,
-        text=body.text,
-        xml=body.xml,
-        code=body.code,
-        plan=body.plan,
-    )
+    return _run(get_store().save_project, current_user(authorization)["id"], project_id, version=body.version,
+                title=body.title, text=body.text, xml=body.xml, code=body.code, plan=body.plan)
 
 
 @router.delete("/api/projects/{project_id}")
 def delete_project(project_id: str, authorization: str | None = Header(default=None)):
-    user = current_user(authorization)
-    _run(get_store().delete_project, user["id"], project_id)
+    _run(get_store().delete_project, current_user(authorization)["id"], project_id)
     return {"ok": True}
