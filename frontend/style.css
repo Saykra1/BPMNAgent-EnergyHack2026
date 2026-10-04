@@ -351,3 +351,48 @@ body.tour-open #canvas .djs-context-pad { display: none !important; }
 .djs-connection.audit-route .djs-visual > :first-child { stroke: #be762d !important; stroke-width: 4px !important; }
 .source-reader .source-gap-current { background: #ffdda9; box-decoration-break: clone; }
 @media (max-width: 760px) { .brand-cat { width: 32px; height: 43px; } .tour-panel { position: fixed; right: 10px; left: 10px; bottom: 10px; width: auto; max-height: 57dvh; overflow-y: auto; z-index: 22; } .canvas-controls { bottom: 12px; } body.tour-open .canvas-controls { bottom: calc(min(57dvh, 290px) + 17px); } }
+
+/* ---------- analyst toolkit ---------- */
+.tk-nav { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.tk-nav button { padding: 5px 10px; font-size: 12px; border-radius: 999px; }
+.tk-nav button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+#tk-body .row, .tk-left .row { display: flex; gap: 8px; margin: 8px 0; flex-wrap: wrap; }
+#tk-body .row > * { flex: 1 1 auto; }
+.tk-left { margin-top: 10px; }
+.tk-left .row select { flex: 1; }
+.tk-status { font-size: 12px; color: var(--muted); min-height: 1.2em; }
+.tk-status.ok { color: var(--good); } .tk-status.err { color: var(--danger); }
+.tk-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 8px 0; }
+.tk-table td { border: 1px solid var(--line); padding: 4px 6px; vertical-align: top; }
+.tk-table tr:first-child td { font-weight: 650; background: var(--accent-soft); }
+.tk-run { cursor: pointer; } .tk-run:hover td { background: #f7faf8; }
+.tk-scroll { overflow-x: auto; }
+.raci td.raci-R { background: #d9f2e1; text-align: center; font-weight: 700; }
+.raci td.raci-A { background: #fff1c7; text-align: center; font-weight: 700; }
+.raci td.raci-C { background: #dbe9f8; text-align: center; } .raci td.raci-I { background: #eef0ef; text-align: center; }
+.tk-doc h3 { margin: 12px 0 4px; } .tk-doc h4 { margin: 12px 0 4px; }
+.tk-hist { display: flex; align-items: flex-end; gap: 2px; height: 64px; border-bottom: 1px solid var(--line); }
+.tk-hist i { flex: 1; background: #8cc4ad; border-radius: 2px 2px 0 0; }
+.tk-bar { display: grid; grid-template-columns: 1fr 90px 40px; gap: 6px; align-items: center; font-size: 12px; margin: 3px 0; }
+.tk-bar i { display: block; height: 8px; background: #e88d67; border-radius: 4px; }
+.tk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.tk-check { display: flex; gap: 8px; align-items: center; font-weight: 500; margin: 10px 0 6px; }
+.tk-check input { width: auto; }
+.tk-doc-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 6px 0; }
+.tk-doc-tools .btn, .tk-doc-tools button { padding: 5px 10px; font-size: 12px; }
+#doc-info { flex-basis: 100%; }
+.tk-badge { background: #1c2925; color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 8px; white-space: nowrap; }
+.tk-badge.est::before { content: "≈"; }
+.msg.diff { background: #eef7f1; border-left: 3px solid #2f9e6e; }
+/* heat map: cold → hot */
+.djs-element.heat-0 .djs-visual > :nth-child(1) { fill: #eef6fb !important; }
+.djs-element.heat-1 .djs-visual > :nth-child(1) { fill: #dcefd8 !important; }
+.djs-element.heat-2 .djs-visual > :nth-child(1) { fill: #fbeec0 !important; }
+.djs-element.heat-3 .djs-visual > :nth-child(1) { fill: #f9c99a !important; }
+.djs-element.heat-4 .djs-visual > :nth-child(1) { fill: #f19a8a !important; }
+.djs-element.critical .djs-visual > :nth-child(1) { stroke: #b03a2e !important; stroke-width: 3px !important; }
+.djs-element.diff-added .djs-visual > :nth-child(1) { stroke: #20895f !important; stroke-width: 3px !important; fill: #e3f6ec !important; }
+.djs-element.diff-changed .djs-visual > :nth-child(1) { stroke: #d1822b !important; stroke-width: 3px !important; }
+.djs-element.path-step .djs-visual > :nth-child(1) { stroke: #2d6fd1 !important; stroke-width: 3px !important; fill: #e7f0fd !important; }
+.tabs { overflow-x: auto; scrollbar-width: thin; }
+.tabs button { flex: 1 0 auto; padding-left: 6px; padding-right: 6px; }

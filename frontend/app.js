@@ -197,6 +197,7 @@ async function applyResult(res) {
   if (imported) {
     renderDiagramStatus(res);
     await window.agentFeatures?.onResult(res);
+    await window.toolkit?.onResult(res);
     if (matchMedia('(max-width: 760px)').matches) $('#center').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 }

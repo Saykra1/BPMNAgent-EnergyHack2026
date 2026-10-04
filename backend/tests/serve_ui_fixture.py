@@ -16,6 +16,8 @@ if __name__ == '__main__':
     second['questions'] = []
     pipeline = Pipeline(ScriptedClient([json.dumps(first), json.dumps(second)]))
     main._pipeline = lambda: pipeline
+    from app import tools_api
+    tools_api._pipeline = main._pipeline
     # No environment/configuration access is required for this fixture.
     from app.config import Settings
     main._state['settings'] = Settings()
