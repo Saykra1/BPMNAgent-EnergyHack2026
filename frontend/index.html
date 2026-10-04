@@ -12,6 +12,12 @@
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+<div id="intro-screen" class="intro-screen" role="dialog" aria-modal="true" aria-label="Data Science Club — Архитектор процессов">
+  <div class="intro-top"><span class="intro-monogram" aria-hidden="true">DSC</span><span>Data Science Club</span></div>
+  <button id="intro-skip" class="intro-skip" type="button" aria-label="Пропустить вступление">Пропустить <span aria-hidden="true">↗</span></button>
+  <div class="intro-center"><div class="intro-mascot-wrap"><img src="/static/assets/mascot-cat.png" alt="" class="intro-mascot"></div><span class="intro-overline">DATA SCIENCE CLUB ПРЕДСТАВЛЯЕТ</span><h1>Архитектор<br>процессов<span class="intro-period">.</span></h1><p>От вашего описания — к понятной BPMN-схеме</p></div>
+  <div class="intro-bottom"><span>ТЕКСТ → BPMN 2.0</span><span class="intro-progress" aria-hidden="true"><i></i></span><span>ENERGYHACK 2026</span></div>
+</div>
 <header class="topbar">
   <div class="brand"><img class="brand-cat" src="/static/assets/mascot-cat.png" alt=""><span>Архитектор процессов<small>Текст → BPMN 2.0</small></span></div>
   <div class="topbar-right"><div id="llm-status" class="badge">Проверяем подключение</div><button id="insights-toggle" class="topbar-button" type="button" aria-controls="right" aria-expanded="false" data-help="Открыть проверки, сведения о шагах, связи с текстом и историю правок.">Анализ <span aria-hidden="true">↗</span></button></div>
@@ -30,7 +36,11 @@
       <p id="privacy-alert" class="privacy-alert" role="status" hidden></p>
       <p id="source-tip" class="hint" hidden></p>
       <button id="jev-entry" class="jev-entry" type="button" hidden data-help="Jev проверит, соответствуют ли выделенные цитаты шагам схемы, и покажет сомнительные связи.">Сверить текст и схему <span>Jev ↗</span></button>
-      <div class="generate-actions"><button id="generate" class="primary action-main" data-help="Построить редактируемую BPMN-схему по этому описанию.">Создать схему <span aria-hidden="true">→</span></button><details class="generation-settings"><summary data-help="Выбрать генерацию сразу, с уточняющими вопросами или напрямую."><span class="mode-icon" aria-hidden="true">⚙</span><span>Режим: <strong id="mode-name">Без уточнений</strong></span><span class="mode-chevron" aria-hidden="true">⌄</span></summary><label for="mode">Способ построения</label><select id="mode" aria-label="Режим генерации"><option value="two_stage" selected>Без уточнений</option><option value="guided">С уточнениями</option><option value="direct">Прямая генерация</option></select></details></div>
+      <div class="generate-actions"><button id="generate" class="primary action-main" data-help="Построить редактируемую BPMN-схему по этому описанию.">Создать схему <span aria-hidden="true">→</span></button><details class="generation-settings"><summary data-help="Выбрать генерацию сразу, с уточняющими вопросами или напрямую."><span class="mode-icon" aria-hidden="true">⚙</span><span>Режим: <strong id="mode-name">Без уточнений</strong></span><span class="mode-chevron" aria-hidden="true">⌄</span></summary><div class="mode-picker" role="group" aria-label="Способ построения схемы">
+        <button type="button" class="mode-option" data-mode-choice="two_stage" aria-pressed="true" data-help="Сначала модель составляет план процесса, затем строит по нему схему. Вопросов вам не задаёт."><strong>Без уточнений</strong><small>План, затем схема · без вопросов</small></button>
+        <button type="button" class="mode-option" data-mode-choice="guided" aria-pressed="false" data-help="Сначала увидите вопросы и допущения. Можно ответить, а затем построить уточнённую схему."><strong>С уточнениями</strong><small>Сначала вопросы, затем схема</small></button>
+        <button type="button" class="mode-option" data-mode-choice="direct" aria-pressed="false" data-help="Модель сразу строит схему по тексту, пропуская отдельный план. Это технический ускоренный режим."><strong>Прямая генерация</strong><small>Сразу схема · без отдельного плана</small></button>
+      </div><select id="mode" hidden aria-hidden="true" tabindex="-1"><option value="two_stage" selected>Без уточнений</option><option value="guided">С уточнениями</option><option value="direct">Прямая генерация</option></select></details></div>
       <p id="model-hint" class="model-hint" hidden>Для новой схемы нужен ключ модели в файле <code>.env</code>. Пока можно открыть готовый пример или BPMN-файл.</p>
       <button id="show-saved" class="sample-button" hidden data-help="Показать готовую схему этого примера без обращения к модели.">Открыть готовую схему примера <span aria-hidden="true">↗</span></button>
       <div id="interview" hidden aria-live="polite"></div>
@@ -81,7 +91,14 @@
     <section id="tour-panel" class="tour-panel" aria-label="Показ процесса" hidden><div class="tour-head"><span class="eyebrow">ПОКАЗ ПРОЦЕССА</span><span id="tour-position"></span><button id="tour-close" class="icon-button" type="button" aria-label="Закрыть показ" data-help="Вернуться к обычному редактированию схемы.">×</button></div><div class="tour-body"><img src="/static/assets/mascot-cat.png" alt="" class="tour-cat"><div><h3 id="tour-title"></h3><p id="tour-role" class="hint"></p><blockquote id="tour-quote"></blockquote><div id="tour-choices" class="tour-choices" hidden></div></div></div><div class="tour-actions"><button id="tour-prev" type="button">← Назад</button><button id="tour-play" type="button" data-help="Автоматически переходить к следующему шагу; на развилке показ остановится для выбора пути.">▶ Автопоказ</button><button id="tour-next" class="primary" type="button">Далее →</button></div></section>
     <section id="privacy-panel" class="privacy-panel" aria-label="Что увидит модель" hidden></section>
     <section id="conflict-gate" class="conflict-gate" aria-label="Противоречие в описании" hidden></section>
-    <div id="loading" hidden><div class="spinner"></div><span id="loading-text">Генерация…</span></div>
+    <div id="loading" hidden>
+      <div class="wait-experience">
+        <div class="wait-heading"><span class="wait-club">DSC / НА ПАУЗЕ</span><span class="wait-working"><span class="spinner" aria-hidden="true"></span><span id="loading-text" role="status">Генерация…</span></span></div>
+        <div class="wait-intro"><img src="/static/assets/mascot-cat.png" alt="" aria-hidden="true"><div><h2>Пока схема строится — сыграем?</h2><p>Мы — Data Science Club. Собрали несколько любопытных фактов из мира ИИ, чтобы ожидание прошло интереснее.</p></div></div>
+        <section class="wait-quiz" aria-label="Квиз об искусственном интеллекте"><div class="wait-quiz-head"><span id="wait-quiz-progress">ВОПРОС 1 / 5</span><span>МИР ИИ · БЕЗ СЛОЖНЫХ ТЕРМИНОВ</span></div><h3 id="wait-quiz-question"></h3><div id="wait-quiz-options" class="wait-quiz-options"></div><div id="wait-quiz-feedback" class="wait-quiz-feedback" role="status" hidden></div><button id="wait-quiz-next" class="wait-quiz-next" type="button" hidden>Следующий вопрос <span aria-hidden="true">→</span></button></section>
+        <p class="wait-footnote">Результат появится здесь автоматически, как только схема будет готова.</p>
+      </div>
+    </div>
   </section>
   <div id="panel-backdrop" hidden></div>
   <aside id="right" aria-label="Анализ диаграммы" aria-hidden="true">
@@ -92,6 +109,6 @@
   </aside>
 </main>
 <div id="help-popover" role="tooltip" hidden></div>
-<script src="/static/vendor/modeler-simulation.js"></script><script src="/static/app.js"></script><script src="/static/conflicts.js"></script><script src="/static/assistant.js"></script><script src="/static/privacy.js"></script><script src="/static/fact-check.js"></script><script src="/static/source-review.js"></script><script src="/static/workspace-ui.js"></script><script src="/static/diagram-navigation.js"></script><script src="/static/process-audit.js"></script><script src="/static/presentation.js"></script><script src="/static/mascot.js"></script>
+<script src="/static/vendor/modeler-simulation.js"></script><script src="/static/app.js"></script><script src="/static/wait-quiz.js"></script><script src="/static/conflicts.js"></script><script src="/static/assistant.js"></script><script src="/static/privacy.js"></script><script src="/static/fact-check.js"></script><script src="/static/source-review.js"></script><script src="/static/workspace-ui.js"></script><script src="/static/diagram-navigation.js"></script><script src="/static/process-audit.js"></script><script src="/static/presentation.js"></script><script src="/static/mascot.js"></script><script src="/static/intro.js"></script>
 </body>
 </html>

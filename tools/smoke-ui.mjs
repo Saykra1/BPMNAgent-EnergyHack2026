@@ -25,10 +25,40 @@ await page.route('**/api/prepare', route => {
   preparations++;
   const reviewed = structuredClone(plan);
   if (preparations > 1) reviewed.questions = [];
-  return route.fulfill({ json: { ok: true, plan: reviewed } });
+  return (async () => {
+    if (preparations === 1) await new Promise(resolve => setTimeout(resolve, 1200));
+    await route.fulfill({ json: { ok: true, plan: reviewed } });
+  })();
 });
 try {
   await page.goto(url);
+  const introStarted = Date.now();
+  await page.locator('#intro-screen').waitFor({ state: 'visible' });
+  if (process.env.SCREENSHOT_DIR) {
+    await mkdir(process.env.SCREENSHOT_DIR, { recursive: true });
+    await page.waitForTimeout(650); // capture the completed entrance, before automatic dismissal
+    await page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/intro.png` });
+  }
+  await page.locator('#intro-screen').waitFor({ state: 'detached' });
+  assert.equal(Date.now() - introStarted >= 1200, true);
+  await page.reload();
+  assert.equal(await page.locator('#intro-screen').count(), 0);
+  const quizAudit = await page.evaluate(() => {
+    window.waitQuiz.start();
+    const seen = new Set();
+    for (let i = 0; i < 35; i++) {
+      seen.add(document.querySelector('#wait-quiz-question').textContent);
+      const buttons = [...document.querySelectorAll('.wait-quiz-option')];
+      if (buttons.length !== 3) throw new Error(`Question ${i + 1} does not have three options`);
+      buttons[0].click();
+      if (document.querySelectorAll('.wait-quiz-option.is-correct').length !== 1) throw new Error(`Question ${i + 1} has no unique answer`);
+      if (!document.querySelector('#wait-quiz-feedback a')?.href.startsWith('https://')) throw new Error(`Question ${i + 1} has no source`);
+      document.querySelector('#wait-quiz-next').click();
+    }
+    return { unique: seen.size, progress: document.querySelector('#wait-quiz-progress').textContent };
+  });
+  assert.equal(quizAudit.unique, 35);
+  assert.match(quizAudit.progress, /1 \/ 35/);
   assert.equal(await page.locator('#right').isVisible(), false);
   assert.equal(await page.locator('#open-demo').isVisible(), true);
   assert.equal(await page.locator('#dl-bpmn').isDisabled(), true);
@@ -41,10 +71,33 @@ try {
   assert.equal(await page.locator('#mode').inputValue(), 'two_stage');
   assert.match(await page.locator('#mode-name').innerText(), /Без уточнений/);
   await page.locator('.generation-settings summary').click();
-  await page.locator('#mode').selectOption('guided');
+  await page.locator('[data-mode-choice="direct"]').hover();
+  assert.match(await page.locator('#help-popover').innerText(), /пропуская отдельный план/);
+  if (process.env.SCREENSHOT_DIR) {
+    await mkdir(process.env.SCREENSHOT_DIR, { recursive: true });
+    await page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/mode-picker.png` });
+  }
+  await page.locator('[data-mode-choice="direct"]').click();
+  assert.equal(await page.locator('#mode').inputValue(), 'direct');
+  await page.locator('.generation-settings summary').click();
+  await page.locator('[data-mode-choice="guided"]').click();
+  assert.equal(await page.locator('#mode').inputValue(), 'guided');
   assert.match(await page.locator('#mode-name').innerText(), /С уточнениями/);
   await page.locator('#generate').click();
+  await page.locator('#loading').waitFor({ state: 'visible' });
+  assert.equal(await page.locator('#loading').isVisible(), true);
+  assert.equal(await page.locator('.wait-quiz-option').count(), 3);
+  await page.locator('.wait-quiz-option').first().click();
+  assert.equal(await page.locator('#wait-quiz-feedback').isVisible(), true);
+  assert.match(await page.locator('#wait-quiz-feedback').innerText(), /Источник факта/);
+  if (process.env.SCREENSHOT_DIR) {
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/wait-quiz.png` });
+  }
+  await page.locator('#wait-quiz-next').click();
+  assert.match(await page.locator('#wait-quiz-progress').innerText(), /2 \/ 35/);
   await page.locator('#answer-0').fill('Заявку закрывают и уведомляют заявителя.');
+  assert.equal(await page.locator('#loading').isVisible(), false);
   await page.locator('#answer-apply').click();
   await page.waitForFunction(() => document.querySelector('#plan-build')?.textContent === 'Построить схему');
   await page.locator('#plan-build').click();
@@ -144,6 +197,19 @@ try {
   assert.equal(await demoPage.locator('#process-audit').isVisible(), true);
   await demoPage.locator('[data-audit-view="branches"]').click();
   assert.equal(await demoPage.locator('.branch-card').count() > 0, true);
+  let reviewedBranches = 0;
+  await demoPage.route('**/api/jev-audit', route => {
+    const request = route.request().postDataJSON();
+    reviewedBranches = request.branches.length;
+    return route.fulfill({ json: { ok: true, gaps: [],
+      branches: request.branches.map(item => ({ id: item.id, support: 0.72 })) } });
+  });
+  await demoPage.locator('[data-audit-view="gaps"]').click();
+  await demoPage.locator('#jev-audit').click();
+  await demoPage.waitForFunction(() => document.querySelector('#jev-audit-result')?.textContent.includes('Jev проверил'));
+  assert.equal(await demoPage.locator('[data-audit-view="branches"]').getAttribute('class'), 'active');
+  assert.equal(await demoPage.locator('#audit-branches .audit-score').count(), reviewedBranches);
+  assert.match(await demoPage.locator('#jev-audit-result').innerText(), /во вкладке «Развилки»/);
   if (process.env.SCREENSHOT_DIR) {
     await demoPage.screenshot({ path: `${process.env.SCREENSHOT_DIR}/audit.png` });
   }
@@ -170,8 +236,33 @@ try {
   }));
   assert.equal(await demoPage.locator('#audit-gaps .audit-card').count(), 1);
   await demoPage.close();
+  const compact = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const compactPage = await compact.newPage();
+  await compactPage.goto(url);
+  assert.equal(await compactPage.locator('#intro-screen').isVisible(), true);
+  assert.equal(await compactPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  if (process.env.SCREENSHOT_DIR) {
+    await compactPage.waitForTimeout(650); // capture the completed entrance on mobile too
+    await compactPage.screenshot({ path: `${process.env.SCREENSHOT_DIR}/intro-mobile.png` });
+  }
+  await compactPage.locator('#intro-skip').click();
+  await compactPage.locator('#intro-screen').waitFor({ state: 'detached' });
+  await compactPage.evaluate(() => busy(true, 'Ассистент строит схему…'));
+  await compactPage.locator('#loading').waitFor({ state: 'visible' });
+  assert.equal(await compactPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  if (process.env.SCREENSHOT_DIR) {
+    await compactPage.waitForTimeout(350);
+    await compactPage.screenshot({ path: `${process.env.SCREENSHOT_DIR}/wait-quiz-mobile.png` });
+  }
+  await compactPage.evaluate(() => busy(false));
+  await compact.close();
+  const reduced = await browser.newContext({ reducedMotion: 'reduce' });
+  const reducedPage = await reduced.newPage();
+  await reducedPage.goto(url);
+  assert.equal(await reducedPage.locator('#intro-screen').count(), 0);
+  await reduced.close();
   assert.deepEqual(errors, []);
-  console.log('PASS: interview, source highlight, search, cards, XSD, simulation, inspection, mobile UI, one-click demo');
+  console.log('PASS: intro, modes, interview, source highlight, search, cards, XSD, simulation, inspection, mobile UI, one-click demo');
 } finally {
   await context.close();
   await browser.close();
