@@ -41,7 +41,17 @@ try {
   assert.equal(await page.locator('#mode').inputValue(), 'two_stage');
   assert.match(await page.locator('#mode-name').innerText(), /Без уточнений/);
   await page.locator('.generation-settings summary').click();
-  await page.locator('#mode').selectOption('guided');
+  await page.locator('[data-mode-choice="direct"]').hover();
+  assert.match(await page.locator('#help-popover').innerText(), /пропуская отдельный план/);
+  if (process.env.SCREENSHOT_DIR) {
+    await mkdir(process.env.SCREENSHOT_DIR, { recursive: true });
+    await page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/mode-picker.png` });
+  }
+  await page.locator('[data-mode-choice="direct"]').click();
+  assert.equal(await page.locator('#mode').inputValue(), 'direct');
+  await page.locator('.generation-settings summary').click();
+  await page.locator('[data-mode-choice="guided"]').click();
+  assert.equal(await page.locator('#mode').inputValue(), 'guided');
   assert.match(await page.locator('#mode-name').innerText(), /С уточнениями/);
   await page.locator('#generate').click();
   await page.locator('#answer-0').fill('Заявку закрывают и уведомляют заявителя.');

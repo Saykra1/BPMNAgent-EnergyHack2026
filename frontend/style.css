@@ -74,8 +74,12 @@ button.quiet:hover { background: none; text-decoration: underline; }
 .mode-icon { display: grid; place-items: center; width: 23px; height: 23px; border-radius: 6px; background: #dfefe4; color: var(--accent); font-size: 15px; }
 .mode-chevron { margin-left: auto; font-size: 17px; line-height: 1; transition: transform .15s; }
 .generation-settings[open] .mode-chevron { transform: rotate(180deg); }
-.generation-settings label { margin-top: 9px; }
-.generation-settings select { margin-bottom: 4px; }
+.mode-picker { display: grid; gap: 4px; margin-top: 6px; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: #fff; box-shadow: 0 8px 22px rgba(24, 59, 39, .06); }
+.mode-option { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%; padding: 8px 10px; border: 1px solid transparent; border-radius: 7px; background: transparent; text-align: left; }
+.mode-option strong { font-size: 12px; font-weight: 650; }
+.mode-option small { color: var(--muted); font-size: 10px; }
+.mode-option[aria-pressed="true"] { border-color: #b9d8c5; background: #edf7f0; color: var(--accent-dark); }
+.mode-option:hover:not(:disabled) { border-color: #c8dfd0; background: #f4faf6; }
 .sample-button { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: 12px; padding: 10px 11px; color: var(--accent); border-color: #cde2d4; background: #f5fbf6; font-weight: 600; text-align: left; }
 .sample-button:hover { background: #ebf8ee !important; }
 .row { display: flex; align-items: stretch; gap: 8px; margin-top: 10px; }

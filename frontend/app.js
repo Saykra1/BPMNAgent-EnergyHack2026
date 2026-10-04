@@ -24,6 +24,7 @@ function busy(on, text = 'Генерация…') {
   window.agentFeatures?.onBusy(on);
   $('#loading').hidden = !on; $('#loading-text').textContent = text;
   ['#generate', '#refine', '#rebuild', '#relayout', '#show-saved', '#mode', '#example', '#text', '#open-file', '#simulate'].forEach((s) => ($(s).disabled = on));
+  document.querySelectorAll('[data-mode-choice]').forEach(button => { button.disabled = on; });
 }
 function fileBase() {
   const t = (state.plan && state.plan.title) || 'process';
@@ -225,8 +226,19 @@ $('#generate').onclick = async () => {
 
 function updateModeName() {
   $('#mode-name').textContent = $('#mode').selectedOptions[0].textContent;
+  document.querySelectorAll('[data-mode-choice]').forEach(button => {
+    button.setAttribute('aria-pressed', String(button.dataset.modeChoice === $('#mode').value));
+  });
 }
 $('#mode').addEventListener('change', updateModeName);
+document.querySelectorAll('[data-mode-choice]').forEach(button => {
+  button.onclick = () => {
+    $('#mode').value = button.dataset.modeChoice;
+    $('#mode').dispatchEvent(new Event('change', { bubbles: true }));
+    $('.generation-settings').open = false;
+    $('.generation-settings summary').focus();
+  };
+});
 updateModeName();
 
 $('#refine').onclick = async () => {
