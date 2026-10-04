@@ -3,7 +3,7 @@
 Usage:
   python eval/run_eval.py                 # through the configured LLM (LLM_* in .env)
   python eval/run_eval.py --offline       # reference plans only (checks the deterministic part)
-  python eval/run_eval.py --modes two_stage direct --render   # compare modes, check in bpmn-js
+  python eval/run_eval.py --modes ir two_stage --render      # compare IR mode with LLM code generation
 
 Metrics per case: built / XSD-valid / opens in bpmn-js without warnings, repair rounds, source
 (llm, llm_repaired, plan_compiler, lenient), latency, structural recall (expected participants
@@ -84,7 +84,7 @@ def bpmnjs_check(xml: str) -> dict:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--offline", action="store_true", help="use reference plans, no LLM")
-    ap.add_argument("--modes", nargs="+", default=["two_stage"])
+    ap.add_argument("--modes", nargs="+", default=["ir"])
     ap.add_argument("--render", action="store_true", help="also import into bpmn-js (node + playwright)")
     ap.add_argument("--only", nargs="*")
     args = ap.parse_args()
@@ -95,7 +95,8 @@ def main():
     pipe = None
     if not args.offline:
         from app.llm.client import make_client
-        pipe = Pipeline(make_client(s), s.runs_dir, s.max_repairs)
+        repair = make_client(s, role="repair") if s.llm_repair_model else None
+        pipe = Pipeline(make_client(s), s.runs_dir, s.max_repairs, settings=s, repair_llm=repair)
 
     rows = []
     for mode in (["reference"] if args.offline else args.modes):
@@ -114,6 +115,8 @@ def main():
             row = {"id": c["id"], "mode": mode, "built": bool(res["xml"]), "ok": res["ok"],
                    "xsd_valid": bool(res["xml"]) and not res["xsd_errors"], "source": res["source"],
                    "repairs": sum(1 for a in res["attempts"] if a["stage"].startswith("repair")),
+                   "residual": len(res.get("residual") or []),
+                   "lint_errors": (res.get("lint_summary") or {}).get("errors", 0),
                    "warnings": sum(1 for i in res["issues"] if i["level"] == "warning"),
                    "seconds": round(time.time() - t0, 2)}
             if res["xml"]:
@@ -137,7 +140,7 @@ def main():
     md.append("")
     md.append(f"Построено: {sum(r['built'] for r in rows)}/{len(rows)}, XSD-валидно: {sum(r['xsd_valid'] for r in rows)}/{len(rows)}, "
               f"средний структурный балл: {round(sum(r.get('score', {}).get('total', 0) for r in rows) / n, 3)}, "
-              f"с первой попытки: {sum(r['source'] in ('llm', 'reference') for r in rows)}/{len(rows)}")
+              f"с первой попытки: {sum(r['source'] in ('llm', 'ir', 'reference') for r in rows)}/{len(rows)}")
     (out_dir / f"{stamp}.md").write_text("\n".join(md), "utf-8")
     print("\n".join(md))
 

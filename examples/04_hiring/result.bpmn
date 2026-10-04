@@ -5,242 +5,236 @@
   </bpmn:collaboration>
   <bpmn:process id="Process_1" isExecutable="false" name="Компания">
     <bpmn:laneSet id="LaneSet_Process_1">
-      <bpmn:lane id="Lane_1" name="Руководитель подразделения">
-        <bpmn:flowNodeRef>StartEvent_1</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>UserTask_1</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Task_3</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>UserTask_4</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Gateway_2</bpmn:flowNodeRef>
+      <bpmn:lane id="head" name="Руководитель подразделения">
+        <bpmn:flowNodeRef>start</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>request</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>tech</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>decide</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>gw_checks</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_2" name="HR-менеджер">
-        <bpmn:flowNodeRef>EndEvent_1</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>UserTask_2</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>UserTask_3</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Task_1</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Gateway_1</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>SendTask_1</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Gateway_3</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>SendTask_2</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>UserTask_6</bpmn:flowNodeRef>
+      <bpmn:lane id="hr" name="HR-менеджер">
+        <bpmn:flowNodeRef>end</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>publish</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>screen</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>interview</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>gw_fit</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>reject</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>gw_checks_join</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>offer</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>hire</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_3" name="Кандидат">
-        <bpmn:flowNodeRef>Task_2</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Gateway_4</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>EndEvent_2</bpmn:flowNodeRef>
+      <bpmn:lane id="cand" name="Кандидат">
+        <bpmn:flowNodeRef>test</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>gw_offer</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>end_no</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_4" name="Служба безопасности">
-        <bpmn:flowNodeRef>Task_4</bpmn:flowNodeRef>
+      <bpmn:lane id="sec" name="Служба безопасности">
+        <bpmn:flowNodeRef>sb</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_5" name="Директор">
-        <bpmn:flowNodeRef>UserTask_5</bpmn:flowNodeRef>
+      <bpmn:lane id="dir" name="Директор">
+        <bpmn:flowNodeRef>approve</bpmn:flowNodeRef>
       </bpmn:lane>
     </bpmn:laneSet>
-    <bpmn:startEvent id="StartEvent_1" name="Начало">
+    <bpmn:startEvent id="start" name="Начало">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
-    <bpmn:endEvent id="EndEvent_1" name="Конец">
+    <bpmn:endEvent id="end" name="Конец">
       <bpmn:incoming>Flow_21</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:userTask id="UserTask_1" name="Создать заявку на подбор">
+    <bpmn:userTask id="request" name="Создать заявку на подбор">
       <bpmn:incoming>Flow_1</bpmn:incoming>
       <bpmn:outgoing>Flow_2</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:userTask id="UserTask_2" name="Опубликовать вакансию">
+    <bpmn:userTask id="publish" name="Опубликовать вакансию">
       <bpmn:incoming>Flow_2</bpmn:incoming>
       <bpmn:outgoing>Flow_3</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:userTask id="UserTask_3" name="Отобрать резюме">
+    <bpmn:userTask id="screen" name="Отобрать резюме">
       <bpmn:incoming>Flow_3</bpmn:incoming>
       <bpmn:incoming>Flow_8</bpmn:incoming>
       <bpmn:outgoing>Flow_4</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:task id="Task_1" name="Провести первичное интервью">
+    <bpmn:task id="interview" name="Провести первичное интервью">
       <bpmn:incoming>Flow_4</bpmn:incoming>
       <bpmn:outgoing>Flow_5</bpmn:outgoing>
     </bpmn:task>
-    <bpmn:exclusiveGateway id="Gateway_1" name="Кандидат подходит?">
+    <bpmn:exclusiveGateway id="gw_fit" name="Кандидат подходит?" default="Flow_7">
       <bpmn:incoming>Flow_5</bpmn:incoming>
       <bpmn:outgoing>Flow_6</bpmn:outgoing>
       <bpmn:outgoing>Flow_7</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:sendTask id="SendTask_1" name="Отправить отказ кандидату">
+    <bpmn:sendTask id="reject" name="Отправить отказ кандидату">
       <bpmn:incoming>Flow_7</bpmn:incoming>
       <bpmn:outgoing>Flow_8</bpmn:outgoing>
     </bpmn:sendTask>
-    <bpmn:task id="Task_2" name="Выполнить тестовое задание">
+    <bpmn:task id="test" name="Выполнить тестовое задание">
       <bpmn:incoming>Flow_6</bpmn:incoming>
       <bpmn:outgoing>Flow_9</bpmn:outgoing>
     </bpmn:task>
-    <bpmn:task id="Task_3" name="Провести техническое интервью">
+    <bpmn:task id="tech" name="Провести техническое интервью">
       <bpmn:incoming>Flow_9</bpmn:incoming>
       <bpmn:outgoing>Flow_10</bpmn:outgoing>
     </bpmn:task>
-    <bpmn:userTask id="UserTask_4" name="Принять решение по кандидату">
+    <bpmn:userTask id="decide" name="Принять решение по кандидату">
       <bpmn:incoming>Flow_10</bpmn:incoming>
       <bpmn:outgoing>Flow_11</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:inclusiveGateway id="Gateway_2" name="Нужные проверки?">
+    <bpmn:inclusiveGateway id="gw_checks" name="Нужные проверки?" default="Flow_14">
       <bpmn:incoming>Flow_11</bpmn:incoming>
       <bpmn:outgoing>Flow_12</bpmn:outgoing>
       <bpmn:outgoing>Flow_13</bpmn:outgoing>
       <bpmn:outgoing>Flow_14</bpmn:outgoing>
     </bpmn:inclusiveGateway>
-    <bpmn:task id="Task_4" name="Проверить кандидата">
+    <bpmn:task id="sb" name="Проверить кандидата">
       <bpmn:incoming>Flow_12</bpmn:incoming>
       <bpmn:outgoing>Flow_15</bpmn:outgoing>
     </bpmn:task>
-    <bpmn:userTask id="UserTask_5" name="Согласовать кандидата">
+    <bpmn:userTask id="approve" name="Согласовать кандидата">
       <bpmn:incoming>Flow_13</bpmn:incoming>
       <bpmn:outgoing>Flow_16</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:inclusiveGateway id="Gateway_3">
+    <bpmn:inclusiveGateway id="gw_checks_join">
       <bpmn:incoming>Flow_14</bpmn:incoming>
       <bpmn:incoming>Flow_15</bpmn:incoming>
       <bpmn:incoming>Flow_16</bpmn:incoming>
       <bpmn:outgoing>Flow_17</bpmn:outgoing>
     </bpmn:inclusiveGateway>
-    <bpmn:sendTask id="SendTask_2" name="Направить оффер">
+    <bpmn:sendTask id="offer" name="Направить оффер">
       <bpmn:incoming>Flow_17</bpmn:incoming>
       <bpmn:outgoing>Flow_18</bpmn:outgoing>
     </bpmn:sendTask>
-    <bpmn:exclusiveGateway id="Gateway_4" name="Оффер принят?">
+    <bpmn:exclusiveGateway id="gw_offer" name="Оффер принят?" default="Flow_20">
       <bpmn:incoming>Flow_18</bpmn:incoming>
       <bpmn:outgoing>Flow_19</bpmn:outgoing>
       <bpmn:outgoing>Flow_20</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:userTask id="UserTask_6" name="Оформить на работу">
+    <bpmn:userTask id="hire" name="Оформить на работу">
       <bpmn:incoming>Flow_19</bpmn:incoming>
       <bpmn:outgoing>Flow_21</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:endEvent id="EndEvent_2" name="Кандидат отказался">
+    <bpmn:endEvent id="end_no" name="Кандидат отказался">
       <bpmn:incoming>Flow_20</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="UserTask_1"/>
-    <bpmn:sequenceFlow id="Flow_2" sourceRef="UserTask_1" targetRef="UserTask_2"/>
-    <bpmn:sequenceFlow id="Flow_3" sourceRef="UserTask_2" targetRef="UserTask_3"/>
-    <bpmn:sequenceFlow id="Flow_4" sourceRef="UserTask_3" targetRef="Task_1"/>
-    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_1" targetRef="Gateway_1"/>
-    <bpmn:sequenceFlow id="Flow_6" sourceRef="Gateway_1" targetRef="Task_2" name="Да">
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="start" targetRef="request"/>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="request" targetRef="publish"/>
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="publish" targetRef="screen"/>
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="screen" targetRef="interview"/>
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="interview" targetRef="gw_fit"/>
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="gw_fit" targetRef="test" name="Да">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Да</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_7" sourceRef="Gateway_1" targetRef="SendTask_1" name="Нет">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Нет</bpmn:conditionExpression>
-    </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_8" sourceRef="SendTask_1" targetRef="UserTask_3"/>
-    <bpmn:sequenceFlow id="Flow_9" sourceRef="Task_2" targetRef="Task_3"/>
-    <bpmn:sequenceFlow id="Flow_10" sourceRef="Task_3" targetRef="UserTask_4"/>
-    <bpmn:sequenceFlow id="Flow_11" sourceRef="UserTask_4" targetRef="Gateway_2"/>
-    <bpmn:sequenceFlow id="Flow_12" sourceRef="Gateway_2" targetRef="Task_4" name="Нужна проверка СБ">
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="gw_fit" targetRef="reject" name="Нет"/>
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="reject" targetRef="screen"/>
+    <bpmn:sequenceFlow id="Flow_9" sourceRef="test" targetRef="tech"/>
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="tech" targetRef="decide"/>
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="decide" targetRef="gw_checks"/>
+    <bpmn:sequenceFlow id="Flow_12" sourceRef="gw_checks" targetRef="sb" name="Нужна проверка СБ">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Нужна проверка СБ</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_13" sourceRef="Gateway_2" targetRef="UserTask_5" name="Нужно согласование">
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="gw_checks" targetRef="approve" name="Нужно согласование">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Нужно согласование</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_14" sourceRef="Gateway_2" targetRef="Gateway_3" name="Проверки не нужны">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Проверки не нужны</bpmn:conditionExpression>
-    </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_15" sourceRef="Task_4" targetRef="Gateway_3"/>
-    <bpmn:sequenceFlow id="Flow_16" sourceRef="UserTask_5" targetRef="Gateway_3"/>
-    <bpmn:sequenceFlow id="Flow_17" sourceRef="Gateway_3" targetRef="SendTask_2"/>
-    <bpmn:sequenceFlow id="Flow_18" sourceRef="SendTask_2" targetRef="Gateway_4"/>
-    <bpmn:sequenceFlow id="Flow_19" sourceRef="Gateway_4" targetRef="UserTask_6" name="Да">
+    <bpmn:sequenceFlow id="Flow_14" sourceRef="gw_checks" targetRef="gw_checks_join" name="Проверки не нужны"/>
+    <bpmn:sequenceFlow id="Flow_15" sourceRef="sb" targetRef="gw_checks_join"/>
+    <bpmn:sequenceFlow id="Flow_16" sourceRef="approve" targetRef="gw_checks_join"/>
+    <bpmn:sequenceFlow id="Flow_17" sourceRef="gw_checks_join" targetRef="offer"/>
+    <bpmn:sequenceFlow id="Flow_18" sourceRef="offer" targetRef="gw_offer"/>
+    <bpmn:sequenceFlow id="Flow_19" sourceRef="gw_offer" targetRef="hire" name="Да">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Да</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_20" sourceRef="Gateway_4" targetRef="EndEvent_2" name="Нет">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Нет</bpmn:conditionExpression>
-    </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_21" sourceRef="UserTask_6" targetRef="EndEvent_1"/>
+    <bpmn:sequenceFlow id="Flow_20" sourceRef="gw_offer" targetRef="end_no" name="Нет"/>
+    <bpmn:sequenceFlow id="Flow_21" sourceRef="hire" targetRef="end"/>
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
       <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true">
         <dc:Bounds x="60" y="60" width="2642" height="730"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_1_di" bpmnElement="Lane_1" isHorizontal="true">
+      <bpmndi:BPMNShape id="head_di" bpmnElement="head" isHorizontal="true">
         <dc:Bounds x="90" y="60" width="2612" height="144"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_2_di" bpmnElement="Lane_2" isHorizontal="true">
+      <bpmndi:BPMNShape id="hr_di" bpmnElement="hr" isHorizontal="true">
         <dc:Bounds x="90" y="204" width="2612" height="154"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_3_di" bpmnElement="Lane_3" isHorizontal="true">
+      <bpmndi:BPMNShape id="cand_di" bpmnElement="cand" isHorizontal="true">
         <dc:Bounds x="90" y="358" width="2612" height="144"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_4_di" bpmnElement="Lane_4" isHorizontal="true">
+      <bpmndi:BPMNShape id="sec_di" bpmnElement="sec" isHorizontal="true">
         <dc:Bounds x="90" y="502" width="2612" height="144"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_5_di" bpmnElement="Lane_5" isHorizontal="true">
+      <bpmndi:BPMNShape id="dir_di" bpmnElement="dir" isHorizontal="true">
         <dc:Bounds x="90" y="646" width="2612" height="144"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+      <bpmndi:BPMNShape id="start_di" bpmnElement="start">
         <dc:Bounds x="150" y="117" width="36" height="36"/>
         <bpmndi:BPMNLabel>
           <dc:Bounds x="120" y="159" width="96" height="14"/>
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+      <bpmndi:BPMNShape id="end_di" bpmnElement="end">
         <dc:Bounds x="2636" y="261" width="36" height="36"/>
         <bpmndi:BPMNLabel>
           <dc:Bounds x="2606" y="303" width="96" height="14"/>
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="UserTask_1_di" bpmnElement="UserTask_1">
+      <bpmndi:BPMNShape id="request_di" bpmnElement="request">
         <dc:Bounds x="256" y="95" width="120" height="80"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="UserTask_2_di" bpmnElement="UserTask_2">
+      <bpmndi:BPMNShape id="publish_di" bpmnElement="publish">
         <dc:Bounds x="446" y="239" width="120" height="80"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="UserTask_3_di" bpmnElement="UserTask_3">
+      <bpmndi:BPMNShape id="screen_di" bpmnElement="screen">
         <dc:Bounds x="636" y="239" width="120" height="80"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_1_di" bpmnElement="Task_1">
+      <bpmndi:BPMNShape id="interview_di" bpmnElement="interview">
         <dc:Bounds x="826" y="239" width="120" height="80"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Gateway_1_di" bpmnElement="Gateway_1">
+      <bpmndi:BPMNShape id="gw_fit_di" bpmnElement="gw_fit">
         <dc:Bounds x="1016" y="254" width="50" height="50"/>
         <bpmndi:BPMNLabel>
           <dc:Bounds x="993" y="220" width="96" height="28"/>
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="SendTask_1_di" bpmnElement="SendTask_1">
+      <bpmndi:BPMNShape id="reject_di" bpmnElement="reject">
         <dc:Bounds x="1136" y="239" width="120" height="80"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_2_di" bpmnElement="Task_2">
+      <bpmndi:BPMNShape id="test_di" bpmnElement="test">
         <dc:Bounds x="1136" y="393" width="120" height="80"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_3_di" bpmnElement="Task_3">
+      <bpmndi:BPMNShape id="tech_di" bpmnElement="tech">
         <dc:Bounds x="1326" y="95" width="120" height="80"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="UserTask_4_di" bpmnElement="UserTask_4">
+      <bpmndi:BPMNShape id="decide_di" bpmnElement="decide">
         <dc:Bounds x="1516" y="95" width="120" height="80"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Gateway_2_di" bpmnElement="Gateway_2">
+      <bpmndi:BPMNShape id="gw_checks_di" bpmnElement="gw_checks">
         <dc:Bounds x="1706" y="110" width="50" height="50"/>
         <bpmndi:BPMNLabel>
           <dc:Bounds x="1683" y="90" width="96" height="14"/>
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_4_di" bpmnElement="Task_4">
+      <bpmndi:BPMNShape id="sb_di" bpmnElement="sb">
         <dc:Bounds x="1826" y="537" width="120" height="80"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="UserTask_5_di" bpmnElement="UserTask_5">
+      <bpmndi:BPMNShape id="approve_di" bpmnElement="approve">
         <dc:Bounds x="1826" y="681" width="120" height="80"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Gateway_3_di" bpmnElement="Gateway_3">
+      <bpmndi:BPMNShape id="gw_checks_join_di" bpmnElement="gw_checks_join">
         <dc:Bounds x="2016" y="254" width="50" height="50"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="SendTask_2_di" bpmnElement="SendTask_2">
+      <bpmndi:BPMNShape id="offer_di" bpmnElement="offer">
         <dc:Bounds x="2136" y="239" width="120" height="80"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Gateway_4_di" bpmnElement="Gateway_4">
+      <bpmndi:BPMNShape id="gw_offer_di" bpmnElement="gw_offer">
         <dc:Bounds x="2326" y="408" width="50" height="50"/>
         <bpmndi:BPMNLabel>
           <dc:Bounds x="2303" y="464" width="96" height="14"/>
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="UserTask_6_di" bpmnElement="UserTask_6">
+      <bpmndi:BPMNShape id="hire_di" bpmnElement="hire">
         <dc:Bounds x="2446" y="239" width="120" height="80"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="EndEvent_2_di" bpmnElement="EndEvent_2">
+      <bpmndi:BPMNShape id="end_no_di" bpmnElement="end_no">
         <dc:Bounds x="2488" y="415" width="36" height="36"/>
         <bpmndi:BPMNLabel>
           <dc:Bounds x="2458" y="457" width="96" height="28"/>

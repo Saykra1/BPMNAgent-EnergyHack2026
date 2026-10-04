@@ -81,15 +81,17 @@ def bpmn_to_code(xml: str, id_variables: dict | None = None) -> str:
                      if ln.find("b:childLaneSet", NS) is None]
             names = [_name(ln) or f"Дорожка {i + 1}" for i, ln in enumerate(lanes)]
             lv = f"lanes_{pv}"
+            lane_ids = [ln.get("id") for ln in lanes]
+            ids_kw = f", ids={lane_ids!r}" if lanes and all(lane_ids) and len(set(lane_ids)) == len(lane_ids) else ""
             lines.append(f"{pv}, {lv} = DIAGRAM.add_pool(ROOT_PROCESS_ID, [{', '.join(q(n) for n in names)}], "
-                         f"{q(_name(part) or 'Пул')})")
+                         f"{q(_name(part) or 'Пул')}{ids_kw}, id={q(part.get('id'))})")
             for i, ln in enumerate(lanes):
                 for ref in ln.findall("b:flowNodeRef", NS):
                     lane_of_node[ref.text.strip()] = f"{lv}[{i}]"
             proc_parent[pref] = pv
             first = False
         else:
-            lines.append(f"{pv} = DIAGRAM.add_black_box_pool({q(_name(part) or 'Участник')})")
+            lines.append(f"{pv} = DIAGRAM.add_black_box_pool({q(_name(part) or 'Участник')}, id={q(part.get('id'))})")
     for pid in processes:
         if pid not in proc_parent:
             if not first:
@@ -97,7 +99,32 @@ def bpmn_to_code(xml: str, id_variables: dict | None = None) -> str:
             proc_parent[pid] = "ROOT_PROCESS_ID"
             first = False
 
+    # performers directory (stored in a process documentation)
+    performer_ids: set[str] = set()
+    role_ids = {ln.get("id") for ln in root.iter(f"{{{BPMN}}}lane")} | {p.get("id") for p in participants}
+    for proc in processes.values():
+        for doc in proc.findall("b:documentation", NS):
+            raw = (doc.text or "").strip()
+            if not raw.startswith("BPMN_AGENT_PERFORMERS:"):
+                continue
+            try:
+                people = json.loads(raw.removeprefix("BPMN_AGENT_PERFORMERS:"))
+            except ValueError:
+                continue
+            for person in people if isinstance(people, list) else []:
+                if not isinstance(person, dict) or not isinstance(person.get("name"), str):
+                    continue
+                pid = person.get("id") if isinstance(person.get("id"), str) else f"person_{len(performer_ids) + 1}"
+                if pid in performer_ids:
+                    continue
+                role = person.get("role") if person.get("role") in role_ids else None
+                lines.append(f"DIAGRAM.add_performer({q(person['name'])}, {q(role)}, "
+                             f"{q(str(person.get('position') or ''))}, {q(str(person.get('contacts') or ''))}, "
+                             f"id={q(pid)})")
+                performer_ids.add(pid)
+
     flows: list[str] = []
+    boundaries: list = []
 
     def emit(container_el, parent_expr: str, in_process: bool):
         for el in container_el:
@@ -111,12 +138,15 @@ def bpmn_to_code(xml: str, id_variables: dict | None = None) -> str:
             if tag in TASK_METHODS:
                 v = vname(el_id, "n")
                 var[el_id] = v
-                lines.append(f"{v} = DIAGRAM.{TASK_METHODS[tag]}({q(_name(el))}, {parent})")
+                lines.append(f"{v} = DIAGRAM.{TASK_METHODS[tag]}({q(_name(el))}, {parent}, id={q(el_id)})")
             elif tag in ("subProcess", "transaction", "adHocSubProcess"):
                 v = vname(el_id, "sp")
                 var[el_id] = v
-                lines.append(f"{v} = DIAGRAM.create_subprocess({q(_name(el))}, {parent})")
+                lines.append(f"{v} = DIAGRAM.create_subprocess({q(_name(el))}, {parent}, id={q(el_id)})")
                 emit(el, v, False)
+            elif tag == "boundaryEvent" and el.find("b:timerEventDefinition", NS) is not None \
+                    and el.get("attachedToRef"):
+                boundaries.append(el)               # emitted after their hosts exist
             elif tag in ("startEvent", "endEvent", "intermediateCatchEvent", "intermediateThrowEvent",
                          "boundaryEvent"):
                 kind = None
@@ -127,30 +157,65 @@ def bpmn_to_code(xml: str, id_variables: dict | None = None) -> str:
                 var[el_id] = v
                 if tag == "startEvent":
                     k = kind if kind in ("message", "timer", "signal", "conditional") else None
-                    lines.append(f"{v} = DIAGRAM.add_start_event({q(_name(el))}, {parent}, {q(k)})")
+                    lines.append(f"{v} = DIAGRAM.add_start_event({q(_name(el))}, {parent}, {q(k)}, id={q(el_id)})")
                 elif tag == "endEvent":
                     k = kind if kind in ("message", "error", "terminate", "signal", "escalation") else None
-                    lines.append(f"{v} = DIAGRAM.add_end_event({q(_name(el))}, {parent}, {q(k)})")
+                    lines.append(f"{v} = DIAGRAM.add_end_event({q(_name(el))}, {parent}, {q(k)}, id={q(el_id)})")
                 elif tag == "intermediateThrowEvent":
                     k = kind if kind in ("message", "signal", "escalation") else "message"
-                    lines.append(f"{v} = DIAGRAM.add_intermediate_event({q(_name(el))}, {parent}, {q(k)}, True)")
+                    lines.append(f"{v} = DIAGRAM.add_intermediate_event({q(_name(el))}, {parent}, {q(k)}, True, "
+                                 f"id={q(el_id)})")
                 else:
                     k = kind if kind in ("message", "timer", "signal", "conditional") else "timer"
-                    lines.append(f"{v} = DIAGRAM.add_intermediate_event({q(_name(el))}, {parent}, {q(k)})")
+                    lines.append(f"{v} = DIAGRAM.add_intermediate_event({q(_name(el))}, {parent}, {q(k)}, "
+                                 f"id={q(el_id)})")
             elif tag == "sequenceFlow":
-                flows.append(("seq", el.get("sourceRef"), el.get("targetRef"), _name(el)))
+                flows.append(("seq", el.get("sourceRef"), el.get("targetRef"), _name(el), el.get("id")))
             elif tag == "textAnnotation":
                 pass
 
     for pid, pexpr in proc_parent.items():
         emit(processes[pid], pexpr, True)
+    for el in boundaries:
+        host = el.get("attachedToRef")
+        if host not in var:
+            continue
+        td = el.find("b:timerEventDefinition/b:timeDuration", NS)
+        dur = (td.text or "").strip() if td is not None else ""
+        if not re.fullmatch(r"P(?:\d+D)?(?:T(?:\d+H)?(?:\d+M)?)?", dur) or dur in ("P", "PT"):
+            dur = "PT1H"
+        v = vname(el.get("id"), "ev")
+        var[el.get("id")] = v
+        lines.append(f"{v} = DIAGRAM.add_boundary_timer({q(_name(el))}, {var[host]}, {q(dur)}, "
+                     f"{el.get('cancelActivity', 'true') != 'false'!r}, id={q(el.get('id'))})")
     for mf in root.findall("b:collaboration/b:messageFlow", NS):
-        flows.append(("msg", mf.get("sourceRef"), mf.get("targetRef"), _name(mf)))
+        flows.append(("msg", mf.get("sourceRef"), mf.get("targetRef"), _name(mf), mf.get("id")))
 
-    for kind, s, t, label in flows:
+    defaults = {el.get("default") for el in root.iter() if el.get("default")}
+    probability, checks = {}, {}
+    for sf in root.iter(f"{{{BPMN}}}sequenceFlow"):
+        for doc in sf.findall("b:documentation", NS):
+            raw = (doc.text or "").strip()
+            if raw.startswith("BPMN_AGENT_DETAILS:"):
+                try:
+                    data = json.loads(raw.removeprefix("BPMN_AGENT_DETAILS:"))
+                    p = data.get("probability")
+                    if isinstance(p, (int, float)) and not isinstance(p, bool) and 0 <= p <= 1:
+                        probability[sf.get("id")] = p
+                    if isinstance(data.get("check"), str) and data["check"].strip():
+                        checks[sf.get("id")] = data["check"].strip()
+                except (ValueError, AttributeError):
+                    pass
+    for kind, s, t, label, fid in flows:
         if s not in var or t not in var:
             continue  # e.g. boundary attachments or unsupported elements
         lab = f", {q(label)}" if label else ""
+        if kind == "seq" and fid in defaults:
+            lab += (", None" if not label else "") + ", default=True"
+        if kind == "seq" and fid in probability:
+            lab += (", None" if not label and fid not in defaults else "") + f", probability={probability[fid]!r}"
+        if kind == "seq" and fid in checks:
+            lab += f", check={q(checks[fid])}"
         method = "add_link" if kind == "seq" else "add_message_link"
         lines.append(f"DIAGRAM.{method}({var[s]}, {var[t]}{lab})")
 
@@ -165,22 +230,45 @@ def bpmn_to_code(xml: str, id_variables: dict | None = None) -> str:
     for el in root.iter():
         if el.get("id") not in var or _local(el) == "participant":
             continue
+        data, description = {}, []
         for doc in el.findall("b:documentation", NS):
-            raw = doc.text or ""
-            if not raw.startswith("BPMN_AGENT_DETAILS:"):
-                continue
-            try:
-                data = json.loads(raw.removeprefix("BPMN_AGENT_DETAILS:"))
-                values = [data.get(k, "") for k in ("source_quote", "assumption", "deadline")]
-                documents = data.get("documents", [])
-                if not all(isinstance(v, str) for v in values) or not isinstance(documents, list):
+            raw = (doc.text or "").strip()
+            if raw.startswith("BPMN_AGENT_DETAILS:"):
+                try:
+                    loaded = json.loads(raw.removeprefix("BPMN_AGENT_DETAILS:"))
+                    data = loaded if isinstance(loaded, dict) else {}
+                except ValueError:
                     continue
-                if not all(isinstance(v, str) for v in documents):
-                    continue
-                lines.append(f"DIAGRAM.set_details({var[el.get('id')]}, "
-                             f"{', '.join(repr(v) for v in values)}, {documents!r})")
-            except (ValueError, AttributeError):
-                continue
+            elif raw and not raw.startswith("BPMN_AGENT_"):
+                description.append(raw)                    # plain documentation = description
+        if not data and not description:
+            continue
+        values = [data.get(k, "") for k in ("source_quote", "assumption", "deadline")]
+        values = [v if isinstance(v, str) else "" for v in values]
+        documents = data.get("documents", [])
+        if not isinstance(documents, list) or not all(isinstance(v, str) for v in documents):
+            documents = []
+        extra = {k: data[k] for k in ("duration_min", "wait_min", "sla_hours")
+                 if isinstance(data.get(k), (int, float)) and not isinstance(data.get(k), bool) and data[k] >= 0}
+        if data.get("estimate") is True:
+            extra["estimate"] = True
+        if isinstance(data.get("accountable"), str):
+            extra["accountable"] = data["accountable"]
+        for k in ("consulted", "informed"):
+            if isinstance(data.get(k), list) and all(isinstance(v, str) for v in data[k]):
+                extra[k] = data[k]
+        if description:
+            extra["description"] = "\n\n".join(description)
+        if isinstance(data.get("performer"), str) and data["performer"] in performer_ids:
+            extra["performer"] = data["performer"]
+        for k in ("code", "report"):
+            if isinstance(data.get(k), str) and data[k].strip():
+                extra[k] = data[k]
+        if isinstance(data.get("fields"), list) and all(isinstance(v, str) for v in data["fields"]):
+            extra["fields"] = [v for v in data["fields"] if v.strip()]
+        kw = "".join(f", {k}={v!r}" for k, v in extra.items())
+        lines.append(f"DIAGRAM.set_details({var[el.get('id')]}, "
+                     f"{', '.join(repr(v) for v in values)}, {documents!r}{kw})")
     if id_variables is not None:
         id_variables.update(var)
     return "\n".join(lines) + "\n"

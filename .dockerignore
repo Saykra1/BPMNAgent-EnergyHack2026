@@ -9,6 +9,7 @@ __pycache__
 .ruff_cache
 .cache
 runs
+data
 tools/node_modules
 eval/results
 *.log

@@ -6,6 +6,7 @@ and the resulting graph is validated, laid out and serialized deterministically.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Iterable
 
@@ -14,9 +15,20 @@ TASK_KINDS = {
     "sendTask", "receiveTask", "businessRuleTask",
 }
 GATEWAY_KINDS = {"exclusiveGateway", "parallelGateway", "inclusiveGateway", "eventBasedGateway"}
-EVENT_KINDS = {"startEvent", "endEvent", "intermediateCatchEvent", "intermediateThrowEvent"}
+EVENT_KINDS = {"startEvent", "endEvent", "intermediateCatchEvent", "intermediateThrowEvent", "boundaryEvent"}
 SUBPROCESS_KIND = "subProcess"
 EVENT_DEFINITIONS = {"timer", "message", "error", "signal", "terminate", "escalation", "conditional"}
+
+
+_NCNAME_BAD = re.compile(r"[^\w.\-]", re.UNICODE)
+
+
+def xml_id(raw: str) -> str:
+    """Turn an arbitrary IR id into a valid XML ID (NCName)."""
+    clean = _NCNAME_BAD.sub("_", raw.strip())
+    if not clean or not (clean[0].isalpha() or clean[0] == "_"):
+        clean = "id_" + clean
+    return clean
 
 
 class DiagramError(ValueError):
@@ -37,6 +49,9 @@ class Node:
     event_definition: str | None = None
     auto: bool = False        # created by post-processing, not by the model
     details: dict = field(default_factory=dict)
+    attached_to: str | None = None   # boundary event host
+    interrupting: bool = False
+    timer: str | None = None         # ISO 8601 duration for timer events
 
     @property
     def is_task(self) -> bool:
@@ -58,6 +73,9 @@ class Flow:
     target: str
     name: str = ""
     kind: str = "sequence"  # "sequence" | "message"
+    default: bool = False    # default ("otherwise") branch of an exclusive/inclusive gateway
+    probability: float | None = None
+    check: str = ""          # branch check evaluated when the process is run
 
 
 @dataclass
@@ -110,12 +128,33 @@ class Diagram:
         self.lanes: dict[str, Lane] = {}
         self.groups: dict[str, Group] = {}
         self.annotations: dict[str, Annotation] = {}
+        self.performers: list[dict] = []          # directory of people: id, name, role, position, contacts
         self._counters: dict[str, int] = {}
         self.root_process = self._new_process(name)
-        self.root_start = self._add_node("startEvent", "Начало", self.root_process, prefix="StartEvent")
-        self.root_end = self._add_node("endEvent", "Конец", self.root_process, prefix="EndEvent")
+        # ids "start"/"end" match the reserved IR ids, so diagram ids == IR ids
+        self.root_start = self._add_node("startEvent", "Начало", self.root_process, "StartEvent", id="start")
+        self.root_end = self._add_node("endEvent", "Конец", self.root_process, "EndEvent", id="end")
 
-    def set_details(self, target, source_quote="", assumption="", deadline="", documents=None):
+    DETAIL_NUMBERS = ("duration_min", "wait_min", "sla_hours")
+
+    def add_performer(self, name, role=None, position="", contacts="", id=None):
+        """Person in the performers directory; `role` is a lane / pool id (the role he works in)."""
+        if role is not None and role not in self.lanes and role not in self.pools:
+            raise DiagramError(f"add_performer: неизвестная роль (дорожка) {role!r}")
+        for v, what in ((position, "position"), (contacts, "contacts")):
+            if not isinstance(v, str):
+                raise DiagramError(f"add_performer: {what} должно быть строкой")
+        pid = id if isinstance(id, str) and id.strip() else f"person_{len(self.performers) + 1}"
+        if any(p["id"] == pid for p in self.performers):
+            raise DiagramError(f"add_performer: исполнитель {pid!r} уже есть")
+        self.performers.append({"id": pid, "name": self._check_name(name, "add_performer"), "role": role,
+                                "position": position, "contacts": contacts})
+        return pid
+
+    def set_details(self, target, source_quote="", assumption="", deadline="", documents=None,
+                    duration_min=None, wait_min=None, sla_hours=None, estimate=False,
+                    accountable=None, consulted=None, informed=None, description="", performer=None,
+                    code="", report="", fields=None):
         if target not in self.nodes:
             raise DiagramError("Карточку можно добавить только к шагу, шлюзу или событию")
         if not all(isinstance(v, str) for v in (source_quote, assumption, deadline)):
@@ -124,15 +163,67 @@ class Diagram:
             documents = []
         if not isinstance(documents, list) or not all(isinstance(v, str) for v in documents):
             raise DiagramError("Документы должны быть списком строк")
-        self.nodes[target].details = dict(source_quote=source_quote, assumption=assumption,
-                                          deadline=deadline, documents=documents)
+        details = dict(source_quote=source_quote, assumption=assumption, deadline=deadline, documents=documents)
+        for key, value in (("duration_min", duration_min), ("wait_min", wait_min), ("sla_hours", sla_hours)):
+            if value is not None:
+                if not isinstance(value, (int, float)) or value < 0:
+                    raise DiagramError(f"{key} должен быть неотрицательным числом")
+                details[key] = value
+        if estimate:
+            details["estimate"] = True
+        if accountable is not None:
+            if not isinstance(accountable, str):
+                raise DiagramError("accountable должен быть строкой (id участника)")
+            details["accountable"] = accountable
+        for key, value in (("consulted", consulted), ("informed", informed)):
+            if value:
+                if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+                    raise DiagramError(f"{key} должен быть списком строк")
+                details[key] = value
+        if description:
+            if not isinstance(description, str):
+                raise DiagramError("description должно быть строкой")
+            details["description"] = description
+        if performer is not None:
+            if not any(p["id"] == performer for p in self.performers):
+                raise DiagramError(f"set_details: неизвестный исполнитель {performer!r} (добавьте add_performer)")
+            details["performer"] = performer
+        for key, value in (("code", code), ("report", report)):
+            if value:
+                if not isinstance(value, str):
+                    raise DiagramError(f"{key} должен быть строкой")
+                details[key] = value
+        if fields:
+            if not isinstance(fields, list) or not all(isinstance(v, str) for v in fields):
+                raise DiagramError("fields должен быть списком строк")
+            details["fields"] = fields
+        self.nodes[target].details = details
         return target
 
     # ------------------------------------------------------------------ ids
     def _id(self, prefix: str) -> str:
-        n = self._counters.get(prefix, 0) + 1
-        self._counters[prefix] = n
-        return f"{prefix}_{n}"
+        while True:
+            n = self._counters.get(prefix, 0) + 1
+            self._counters[prefix] = n
+            cand = f"{prefix}_{n}"
+            if not self._taken(cand):
+                return cand
+
+    def _taken(self, ident: str) -> bool:
+        return any(ident in coll for coll in (self.nodes, self.flows, self.processes, self.pools,
+                                              self.lanes, self.groups, self.annotations))
+
+    def _explicit_id(self, ident) -> str:
+        """Caller-supplied id (e.g. from the IR): must be a valid XML NCName and unique."""
+        if not isinstance(ident, str) or not ident.strip():
+            raise DiagramError(f"id должен быть непустой строкой, получено {ident!r}")
+        clean = xml_id(ident)
+        if clean in (getattr(self, "root_start", None), getattr(self, "root_end", None)) \
+                and clean in self.nodes and not any(clean in (f.source, f.target) for f in self.flows.values()):
+            del self.nodes[clean]          # explicit start/end replaces the untouched default one
+        if self._taken(clean):
+            raise DiagramError(f"id {clean!r} уже используется")
+        return clean
 
     def _new_process(self, name: str) -> str:
         pid = self._id("Process")
@@ -173,56 +264,56 @@ class Diagram:
         )
 
     def _add_node(self, kind: str, name: str, parent: str, prefix: str,
-                  event_definition: str | None = None, auto: bool = False) -> str:
+                  event_definition: str | None = None, auto: bool = False, id=None) -> str:
         container, lane, group = self.resolve_parent(parent)
-        nid = self._id(prefix)
+        nid = self._explicit_id(id) if id is not None else self._id(prefix)
         self.nodes[nid] = Node(nid, kind, name, container, lane, group, event_definition, auto)
         return nid
 
     # ------------------------------------------------------------ public API
-    def add_task(self, name, parent):
-        return self._add_node("task", self._check_name(name, "add_task"), parent, "Task")
+    def add_task(self, name, parent, id=None):
+        return self._add_node("task", self._check_name(name, "add_task"), parent, "Task", id=id)
 
-    def add_user_task(self, name, parent):
-        return self._add_node("userTask", self._check_name(name, "add_user_task"), parent, "UserTask")
+    def add_user_task(self, name, parent, id=None):
+        return self._add_node("userTask", self._check_name(name, "add_user_task"), parent, "UserTask", id=id)
 
-    def add_script_task(self, name, parent):
-        return self._add_node("scriptTask", self._check_name(name, "add_script_task"), parent, "ScriptTask")
+    def add_script_task(self, name, parent, id=None):
+        return self._add_node("scriptTask", self._check_name(name, "add_script_task"), parent, "ScriptTask", id=id)
 
-    def add_service_task(self, name, parent):
-        return self._add_node("serviceTask", self._check_name(name, "add_service_task"), parent, "ServiceTask")
+    def add_service_task(self, name, parent, id=None):
+        return self._add_node("serviceTask", self._check_name(name, "add_service_task"), parent, "ServiceTask", id=id)
 
-    def add_manual_task(self, name, parent):
-        return self._add_node("manualTask", self._check_name(name, "add_manual_task"), parent, "ManualTask")
+    def add_manual_task(self, name, parent, id=None):
+        return self._add_node("manualTask", self._check_name(name, "add_manual_task"), parent, "ManualTask", id=id)
 
-    def add_send_task(self, name, parent):
-        return self._add_node("sendTask", self._check_name(name, "add_send_task"), parent, "SendTask")
+    def add_send_task(self, name, parent, id=None):
+        return self._add_node("sendTask", self._check_name(name, "add_send_task"), parent, "SendTask", id=id)
 
-    def add_receive_task(self, name, parent):
-        return self._add_node("receiveTask", self._check_name(name, "add_receive_task"), parent, "ReceiveTask")
+    def add_receive_task(self, name, parent, id=None):
+        return self._add_node("receiveTask", self._check_name(name, "add_receive_task"), parent, "ReceiveTask", id=id)
 
-    def add_business_rule_task(self, name, parent):
+    def add_business_rule_task(self, name, parent, id=None):
         return self._add_node("businessRuleTask", self._check_name(name, "add_business_rule_task"),
-                              parent, "BusinessRuleTask")
+                              parent, "BusinessRuleTask", id=id)
 
-    def create_subprocess(self, name, parent):
-        return self._add_node(SUBPROCESS_KIND, self._check_name(name, "create_subprocess"), parent, "SubProcess")
+    def create_subprocess(self, name, parent, id=None):
+        return self._add_node(SUBPROCESS_KIND, self._check_name(name, "create_subprocess"), parent, "SubProcess", id=id)
 
-    def add_exclusive_gateway(self, name, parent):
+    def add_exclusive_gateway(self, name, parent, id=None):
         return self._add_node("exclusiveGateway", self._check_name(name, "add_exclusive_gateway"),
-                              parent, "Gateway")
+                              parent, "Gateway", id=id)
 
-    def add_parallel_gateway(self, name, parent):
+    def add_parallel_gateway(self, name, parent, id=None):
         return self._add_node("parallelGateway", self._check_name(name, "add_parallel_gateway"),
-                              parent, "Gateway")
+                              parent, "Gateway", id=id)
 
-    def add_inclusive_gateway(self, name, parent):
+    def add_inclusive_gateway(self, name, parent, id=None):
         return self._add_node("inclusiveGateway", self._check_name(name, "add_inclusive_gateway"),
-                              parent, "Gateway")
+                              parent, "Gateway", id=id)
 
-    def add_event_based_gateway(self, name, parent):
+    def add_event_based_gateway(self, name, parent, id=None):
         return self._add_node("eventBasedGateway", self._check_name(name, "add_event_based_gateway"),
-                              parent, "Gateway")
+                              parent, "Gateway", id=id)
 
     def _event_def(self, kind, allowed: Iterable[str]) -> str | None:
         if kind is None or kind == "":
@@ -231,23 +322,38 @@ class Diagram:
             raise DiagramError(f"Тип события {kind!r} не поддерживается, допустимо: {sorted(allowed)} или None")
         return kind
 
-    def add_start_event(self, name, parent, kind=None):
+    def add_start_event(self, name, parent, kind=None, id=None):
         ed = self._event_def(kind, {"message", "timer", "signal", "conditional"})
         return self._add_node("startEvent", self._check_name(name, "add_start_event"), parent,
-                              "StartEvent", ed)
+                              "StartEvent", ed, id=id)
 
-    def add_end_event(self, name, parent, kind=None):
+    def add_end_event(self, name, parent, kind=None, id=None):
         ed = self._event_def(kind, {"message", "error", "terminate", "signal", "escalation"})
-        return self._add_node("endEvent", self._check_name(name, "add_end_event"), parent, "EndEvent", ed)
+        return self._add_node("endEvent", self._check_name(name, "add_end_event"), parent, "EndEvent", ed,
+                              id=id)
 
-    def add_intermediate_event(self, name, parent, kind="timer", throw=False):
+    def add_intermediate_event(self, name, parent, kind="timer", throw=False, id=None):
         allowed = {"message", "signal", "escalation"} if throw else {"message", "timer", "signal", "conditional"}
         ed = self._event_def(kind, allowed)
         k = "intermediateThrowEvent" if throw else "intermediateCatchEvent"
-        return self._add_node(k, self._check_name(name, "add_intermediate_event"), parent, "Event", ed)
+        return self._add_node(k, self._check_name(name, "add_intermediate_event"), parent, "Event", ed, id=id)
 
-    def add_pool(self, parent, lanes, name=None):
-        """Create a pool (participant) with lanes. Returns (pool_id, [lane_ids])."""
+    def add_boundary_timer(self, name, host, duration="PT1H", interrupting=False, id=None):
+        """Timer attached to a task (SLA): when it fires, its outgoing flow starts an escalation path."""
+        if not isinstance(host, str) or host not in self.nodes or not self.nodes[host].is_task:
+            raise DiagramError("add_boundary_timer: таймер можно прикрепить только к задаче или подпроцессу")
+        if not isinstance(duration, str) or not re.fullmatch(r"P(?:\d+D)?(?:T(?:\d+H)?(?:\d+M)?)?", duration):
+            raise DiagramError("add_boundary_timer: срок в формате ISO 8601, например 'P3D' или 'PT4H'")
+        h = self.nodes[host]
+        nid = self._explicit_id(id) if id is not None else self._id("BoundaryEvent")
+        self.nodes[nid] = Node(nid, "boundaryEvent", self._check_name(name, "add_boundary_timer"), h.container,
+                               h.lane, h.group, "timer", attached_to=host, interrupting=bool(interrupting),
+                               timer=duration)
+        return nid
+
+    def add_pool(self, parent, lanes, name=None, ids=None, id=None):
+        """Create a pool (participant) with lanes. Returns (pool_id, [lane_ids]).
+        Optional `ids` (lane ids) and `id` (pool id) keep the IR participant ids."""
         if isinstance(lanes, str):
             lanes = [lanes]
         if not isinstance(lanes, (list, tuple)) or not all(isinstance(x, str) for x in lanes):
@@ -263,14 +369,16 @@ class Diagram:
             # The process already has a pool: this is another participant with its own process.
             container = self._new_process(pool_name)
             process = self.processes[container]
-        pool_id = self._id("Participant")
+        if ids is not None and (not isinstance(ids, (list, tuple)) or len(ids) != len(lanes)):
+            raise DiagramError("add_pool: ids должен быть списком той же длины, что и дорожки")
+        pool_id = self._explicit_id(id) if id is not None else self._id("Participant")
         self.pools[pool_id] = Pool(pool_id, pool_name, container)
         process.pool = pool_id
         process.name = pool_name
         lane_ids = []
         if len(lanes) > 1 or (len(lanes) == 1 and name):
-            for lname in lanes:
-                lid = self._id("Lane")
+            for i, lname in enumerate(lanes):
+                lid = self._explicit_id(ids[i]) if ids is not None else self._id("Lane")
                 self.lanes[lid] = Lane(lid, lname.strip(), container)
                 process.lanes.append(lid)
                 lane_ids.append(lid)
@@ -279,9 +387,9 @@ class Diagram:
             lane_ids = [pool_id] * len(lanes)
         return pool_id, lane_ids
 
-    def add_black_box_pool(self, name):
+    def add_black_box_pool(self, name, id=None):
         """External participant shown as an empty pool (only message flows go to it)."""
-        pool_id = self._id("Participant")
+        pool_id = self._explicit_id(id) if id is not None else self._id("Participant")
         self.pools[pool_id] = Pool(pool_id, self._check_name(name, "add_black_box_pool"), None)
         return pool_id
 
@@ -306,14 +414,26 @@ class Diagram:
                 hint = " Это id контейнера, а связывать можно только узлы (задачи, шлюзы, события)."
             raise DiagramError(f"add_link: {what} {ref!r} не является узлом диаграммы.{hint}")
 
-    def add_link(self, source, target, name=None):
+    def add_link(self, source, target, name=None, default=False, probability=None, check=None):
+        """Sequence flow. default=True marks the gateway's default ("иначе") branch;
+        probability (0..1) is used only by analytics / simulation."""
         self._check_endpoint(source, "источник")
         self._check_endpoint(target, "цель")
         if source == target:
             raise DiagramError(f"add_link: связь узла {source} самого с собой запрещена")
+        if default and not self.nodes[source].kind in ("exclusiveGateway", "inclusiveGateway"):
+            raise DiagramError("add_link: default=True допустим только для исходящей связи "
+                               "исключающего или инклюзивного шлюза")
+        if probability is not None and (not isinstance(probability, (int, float)) or not 0 <= probability <= 1):
+            raise DiagramError("add_link: probability должна быть числом от 0 до 1")
+        if default and any(f.default for f in self.outgoing(source)):
+            raise DiagramError(f"add_link: у шлюза {source} уже есть ветка по умолчанию")
+        if check is not None and not isinstance(check, str):
+            raise DiagramError("add_link: check должна быть строкой")
         label = name.strip() if isinstance(name, str) else ""
         fid = self._id("Flow")
-        self.flows[fid] = Flow(fid, source, target, label, "sequence")
+        self.flows[fid] = Flow(fid, source, target, label, "sequence", bool(default), probability,
+                               (check or "").strip())
         return fid
 
     def add_message_link(self, source, target, name=None):
@@ -374,5 +494,5 @@ API_METHODS = frozenset({
     "add_exclusive_gateway", "add_parallel_gateway", "add_inclusive_gateway", "add_event_based_gateway",
     "add_start_event", "add_end_event", "add_intermediate_event",
     "add_pool", "add_black_box_pool", "add_group", "add_annotation",
-    "add_link", "add_message_link", "set_details",
+    "add_link", "add_message_link", "set_details", "add_boundary_timer", "add_performer",
 })

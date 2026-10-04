@@ -5,246 +5,244 @@
   </bpmn:collaboration>
   <bpmn:process id="Process_1" isExecutable="false" name="Электросетевая компания">
     <bpmn:laneSet id="LaneSet_Process_1">
-      <bpmn:lane id="Lane_1" name="Абонент">
-        <bpmn:flowNodeRef>StartEvent_1</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Task_1</bpmn:flowNodeRef>
+      <bpmn:lane id="sub" name="Абонент">
+        <bpmn:flowNodeRef>start</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>report</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_2" name="Диспетчер">
-        <bpmn:flowNodeRef>UserTask_1</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>UserTask_2</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Gateway_1</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>SendTask_1</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>EndEvent_2</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Gateway_2</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>UserTask_3</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>UserTask_4</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Gateway_4</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>UserTask_5</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>UserTask_6</bpmn:flowNodeRef>
+      <bpmn:lane id="disp" name="Диспетчер">
+        <bpmn:flowNodeRef>register</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>telemetry</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>gw_type</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>inform</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>end_planned</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>p1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>order</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>dgu</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>p1_join</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>check_v</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>close</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_3" name="Информационная система">
-        <bpmn:flowNodeRef>EndEvent_1</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>ServiceTask_1</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>ServiceTask_2</bpmn:flowNodeRef>
+      <bpmn:lane id="sys" name="Информационная система">
+        <bpmn:flowNodeRef>end</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>sms</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>sms_ok</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_4" name="Аварийная бригада">
-        <bpmn:flowNodeRef>ManualTask_1</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>ManualTask_2</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>ManualTask_3</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Gateway_3</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>ManualTask_4</bpmn:flowNodeRef>
+      <bpmn:lane id="crew" name="Аварийная бригада">
+        <bpmn:flowNodeRef>go</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>localize</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>repair</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>gw_time</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>restore</bpmn:flowNodeRef>
       </bpmn:lane>
     </bpmn:laneSet>
-    <bpmn:startEvent id="StartEvent_1" name="Начало">
+    <bpmn:startEvent id="start" name="Начало">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
-    <bpmn:endEvent id="EndEvent_1" name="Конец">
+    <bpmn:endEvent id="end" name="Конец">
       <bpmn:incoming>Flow_22</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:task id="Task_1" name="Сообщить об отключении">
+    <bpmn:task id="report" name="Сообщить об отключении">
       <bpmn:incoming>Flow_1</bpmn:incoming>
       <bpmn:outgoing>Flow_2</bpmn:outgoing>
     </bpmn:task>
-    <bpmn:userTask id="UserTask_1" name="Зарегистрировать обращение">
+    <bpmn:userTask id="register" name="Зарегистрировать обращение">
       <bpmn:incoming>Flow_2</bpmn:incoming>
       <bpmn:outgoing>Flow_3</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:userTask id="UserTask_2" name="Проверить данные телемеханики">
+    <bpmn:userTask id="telemetry" name="Проверить данные телемеханики">
       <bpmn:incoming>Flow_3</bpmn:incoming>
       <bpmn:outgoing>Flow_4</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:exclusiveGateway id="Gateway_1" name="Тип отключения?">
+    <bpmn:exclusiveGateway id="gw_type" name="Тип отключения?">
       <bpmn:incoming>Flow_4</bpmn:incoming>
       <bpmn:outgoing>Flow_5</bpmn:outgoing>
       <bpmn:outgoing>Flow_7</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:sendTask id="SendTask_1" name="Сообщить сроки восстановления">
+    <bpmn:sendTask id="inform" name="Сообщить сроки восстановления">
       <bpmn:incoming>Flow_5</bpmn:incoming>
       <bpmn:outgoing>Flow_6</bpmn:outgoing>
     </bpmn:sendTask>
-    <bpmn:endEvent id="EndEvent_2" name="Обращение закрыто">
+    <bpmn:endEvent id="end_planned" name="Обращение закрыто">
       <bpmn:incoming>Flow_6</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:parallelGateway id="Gateway_2">
+    <bpmn:parallelGateway id="p1">
       <bpmn:incoming>Flow_7</bpmn:incoming>
       <bpmn:outgoing>Flow_8</bpmn:outgoing>
       <bpmn:outgoing>Flow_9</bpmn:outgoing>
     </bpmn:parallelGateway>
-    <bpmn:userTask id="UserTask_3" name="Сформировать наряд">
+    <bpmn:userTask id="order" name="Сформировать наряд">
       <bpmn:incoming>Flow_8</bpmn:incoming>
       <bpmn:outgoing>Flow_10</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:serviceTask id="ServiceTask_1" name="Отправить SMS абонентам участка">
+    <bpmn:serviceTask id="sms" name="Отправить SMS абонентам участка">
       <bpmn:incoming>Flow_9</bpmn:incoming>
       <bpmn:outgoing>Flow_18</bpmn:outgoing>
     </bpmn:serviceTask>
-    <bpmn:manualTask id="ManualTask_1" name="Выехать на место аварии">
+    <bpmn:manualTask id="go" name="Выехать на место аварии">
       <bpmn:incoming>Flow_10</bpmn:incoming>
       <bpmn:outgoing>Flow_11</bpmn:outgoing>
     </bpmn:manualTask>
-    <bpmn:manualTask id="ManualTask_2" name="Локализовать повреждение">
+    <bpmn:manualTask id="localize" name="Локализовать повреждение">
       <bpmn:incoming>Flow_11</bpmn:incoming>
       <bpmn:outgoing>Flow_12</bpmn:outgoing>
     </bpmn:manualTask>
-    <bpmn:manualTask id="ManualTask_3" name="Устранить повреждение">
+    <bpmn:manualTask id="repair" name="Устранить повреждение">
       <bpmn:incoming>Flow_12</bpmn:incoming>
       <bpmn:incoming>Flow_16</bpmn:incoming>
       <bpmn:outgoing>Flow_13</bpmn:outgoing>
     </bpmn:manualTask>
-    <bpmn:exclusiveGateway id="Gateway_3" name="Устранено за 4 часа?">
+    <bpmn:exclusiveGateway id="gw_time" name="Устранено за 4 часа?" default="Flow_15">
       <bpmn:incoming>Flow_13</bpmn:incoming>
       <bpmn:outgoing>Flow_14</bpmn:outgoing>
       <bpmn:outgoing>Flow_15</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:userTask id="UserTask_4" name="Подключить резервный источник питания">
+    <bpmn:userTask id="dgu" name="Подключить резервный источник питания">
       <bpmn:incoming>Flow_15</bpmn:incoming>
       <bpmn:outgoing>Flow_16</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:manualTask id="ManualTask_4" name="Восстановить схему электроснабжения">
+    <bpmn:manualTask id="restore" name="Восстановить схему электроснабжения">
       <bpmn:incoming>Flow_14</bpmn:incoming>
       <bpmn:outgoing>Flow_17</bpmn:outgoing>
     </bpmn:manualTask>
-    <bpmn:parallelGateway id="Gateway_4">
+    <bpmn:parallelGateway id="p1_join">
       <bpmn:incoming>Flow_17</bpmn:incoming>
       <bpmn:incoming>Flow_18</bpmn:incoming>
       <bpmn:outgoing>Flow_19</bpmn:outgoing>
     </bpmn:parallelGateway>
-    <bpmn:userTask id="UserTask_5" name="Проверить подачу напряжения">
+    <bpmn:userTask id="check_v" name="Проверить подачу напряжения">
       <bpmn:incoming>Flow_19</bpmn:incoming>
       <bpmn:outgoing>Flow_20</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:userTask id="UserTask_6" name="Закрыть наряд">
+    <bpmn:userTask id="close" name="Закрыть наряд">
       <bpmn:incoming>Flow_20</bpmn:incoming>
       <bpmn:outgoing>Flow_21</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:serviceTask id="ServiceTask_2" name="Уведомить о восстановлении">
+    <bpmn:serviceTask id="sms_ok" name="Уведомить о восстановлении">
       <bpmn:incoming>Flow_21</bpmn:incoming>
       <bpmn:outgoing>Flow_22</bpmn:outgoing>
     </bpmn:serviceTask>
-    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_1"/>
-    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_1" targetRef="UserTask_1"/>
-    <bpmn:sequenceFlow id="Flow_3" sourceRef="UserTask_1" targetRef="UserTask_2"/>
-    <bpmn:sequenceFlow id="Flow_4" sourceRef="UserTask_2" targetRef="Gateway_1"/>
-    <bpmn:sequenceFlow id="Flow_5" sourceRef="Gateway_1" targetRef="SendTask_1" name="Плановое">
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="start" targetRef="report"/>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="report" targetRef="register"/>
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="register" targetRef="telemetry"/>
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="telemetry" targetRef="gw_type"/>
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="gw_type" targetRef="inform" name="Плановое">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Плановое</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_6" sourceRef="SendTask_1" targetRef="EndEvent_2"/>
-    <bpmn:sequenceFlow id="Flow_7" sourceRef="Gateway_1" targetRef="Gateway_2" name="Аварийное">
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="inform" targetRef="end_planned"/>
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="gw_type" targetRef="p1" name="Аварийное">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Аварийное</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_8" sourceRef="Gateway_2" targetRef="UserTask_3"/>
-    <bpmn:sequenceFlow id="Flow_9" sourceRef="Gateway_2" targetRef="ServiceTask_1"/>
-    <bpmn:sequenceFlow id="Flow_10" sourceRef="UserTask_3" targetRef="ManualTask_1"/>
-    <bpmn:sequenceFlow id="Flow_11" sourceRef="ManualTask_1" targetRef="ManualTask_2"/>
-    <bpmn:sequenceFlow id="Flow_12" sourceRef="ManualTask_2" targetRef="ManualTask_3"/>
-    <bpmn:sequenceFlow id="Flow_13" sourceRef="ManualTask_3" targetRef="Gateway_3"/>
-    <bpmn:sequenceFlow id="Flow_14" sourceRef="Gateway_3" targetRef="ManualTask_4" name="Да">
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="p1" targetRef="order"/>
+    <bpmn:sequenceFlow id="Flow_9" sourceRef="p1" targetRef="sms"/>
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="order" targetRef="go"/>
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="go" targetRef="localize"/>
+    <bpmn:sequenceFlow id="Flow_12" sourceRef="localize" targetRef="repair"/>
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="repair" targetRef="gw_time"/>
+    <bpmn:sequenceFlow id="Flow_14" sourceRef="gw_time" targetRef="restore" name="Да">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Да</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_15" sourceRef="Gateway_3" targetRef="UserTask_4" name="Нет">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Нет</bpmn:conditionExpression>
-    </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_16" sourceRef="UserTask_4" targetRef="ManualTask_3"/>
-    <bpmn:sequenceFlow id="Flow_17" sourceRef="ManualTask_4" targetRef="Gateway_4"/>
-    <bpmn:sequenceFlow id="Flow_18" sourceRef="ServiceTask_1" targetRef="Gateway_4"/>
-    <bpmn:sequenceFlow id="Flow_19" sourceRef="Gateway_4" targetRef="UserTask_5"/>
-    <bpmn:sequenceFlow id="Flow_20" sourceRef="UserTask_5" targetRef="UserTask_6"/>
-    <bpmn:sequenceFlow id="Flow_21" sourceRef="UserTask_6" targetRef="ServiceTask_2"/>
-    <bpmn:sequenceFlow id="Flow_22" sourceRef="ServiceTask_2" targetRef="EndEvent_1"/>
+    <bpmn:sequenceFlow id="Flow_15" sourceRef="gw_time" targetRef="dgu" name="Нет"/>
+    <bpmn:sequenceFlow id="Flow_16" sourceRef="dgu" targetRef="repair"/>
+    <bpmn:sequenceFlow id="Flow_17" sourceRef="restore" targetRef="p1_join"/>
+    <bpmn:sequenceFlow id="Flow_18" sourceRef="sms" targetRef="p1_join"/>
+    <bpmn:sequenceFlow id="Flow_19" sourceRef="p1_join" targetRef="check_v"/>
+    <bpmn:sequenceFlow id="Flow_20" sourceRef="check_v" targetRef="close"/>
+    <bpmn:sequenceFlow id="Flow_21" sourceRef="close" targetRef="sms_ok"/>
+    <bpmn:sequenceFlow id="Flow_22" sourceRef="sms_ok" targetRef="end"/>
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
       <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true">
         <dc:Bounds x="60" y="60" width="2902" height="696"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_1_di" bpmnElement="Lane_1" isHorizontal="true">
+      <bpmndi:BPMNShape id="sub_di" bpmnElement="sub" isHorizontal="true">
         <dc:Bounds x="90" y="60" width="2872" height="144"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_2_di" bpmnElement="Lane_2" isHorizontal="true">
+      <bpmndi:BPMNShape id="disp_di" bpmnElement="disp" isHorizontal="true">
         <dc:Bounds x="90" y="204" width="2872" height="254"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_3_di" bpmnElement="Lane_3" isHorizontal="true">
+      <bpmndi:BPMNShape id="sys_di" bpmnElement="sys" isHorizontal="true">
         <dc:Bounds x="90" y="458" width="2872" height="144"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_4_di" bpmnElement="Lane_4" isHorizontal="true">
+      <bpmndi:BPMNShape id="crew_di" bpmnElement="crew" isHorizontal="true">
         <dc:Bounds x="90" y="602" width="2872" height="154"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+      <bpmndi:BPMNShape id="start_di" bpmnElement="start">
         <dc:Bounds x="150" y="117" width="36" height="36"/>
         <bpmndi:BPMNLabel>
           <dc:Bounds x="120" y="159" width="96" height="14"/>
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+      <bpmndi:BPMNShape id="end_di" bpmnElement="end">
         <dc:Bounds x="2896" y="515" width="36" height="36"/>
         <bpmndi:BPMNLabel>
           <dc:Bounds x="2866" y="557" width="96" height="14"/>
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_1_di" bpmnElement="Task_1">
+      <bpmndi:BPMNShape id="report_di" bpmnElement="report">
         <dc:Bounds x="256" y="95" width="120" height="80"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="UserTask_1_di" bpmnElement="UserTask_1">
+      <bpmndi:BPMNShape id="register_di" bpmnElement="register">
         <dc:Bounds x="446" y="239" width="120" height="80"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="UserTask_2_di" bpmnElement="UserTask_2">
+      <bpmndi:BPMNShape id="telemetry_di" bpmnElement="telemetry">
         <dc:Bounds x="636" y="239" width="120" height="80"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Gateway_1_di" bpmnElement="Gateway_1">
+      <bpmndi:BPMNShape id="gw_type_di" bpmnElement="gw_type">
         <dc:Bounds x="826" y="254" width="50" height="50"/>
         <bpmndi:BPMNLabel>
           <dc:Bounds x="803" y="234" width="96" height="14"/>
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="SendTask_1_di" bpmnElement="SendTask_1">
+      <bpmndi:BPMNShape id="inform_di" bpmnElement="inform">
         <dc:Bounds x="946" y="239" width="120" height="80"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="EndEvent_2_di" bpmnElement="EndEvent_2">
+      <bpmndi:BPMNShape id="end_planned_di" bpmnElement="end_planned">
         <dc:Bounds x="1178" y="261" width="36" height="36"/>
         <bpmndi:BPMNLabel>
           <dc:Bounds x="1148" y="303" width="96" height="28"/>
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Gateway_2_di" bpmnElement="Gateway_2">
+      <bpmndi:BPMNShape id="p1_di" bpmnElement="p1">
         <dc:Bounds x="981" y="364" width="50" height="50"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="UserTask_3_di" bpmnElement="UserTask_3">
+      <bpmndi:BPMNShape id="order_di" bpmnElement="order">
         <dc:Bounds x="1136" y="349" width="120" height="80"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="ServiceTask_1_di" bpmnElement="ServiceTask_1">
+      <bpmndi:BPMNShape id="sms_di" bpmnElement="sms">
         <dc:Bounds x="1136" y="493" width="120" height="80"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="ManualTask_1_di" bpmnElement="ManualTask_1">
+      <bpmndi:BPMNShape id="go_di" bpmnElement="go">
         <dc:Bounds x="1326" y="637" width="120" height="80"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="ManualTask_2_di" bpmnElement="ManualTask_2">
+      <bpmndi:BPMNShape id="localize_di" bpmnElement="localize">
         <dc:Bounds x="1516" y="637" width="120" height="80"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="ManualTask_3_di" bpmnElement="ManualTask_3">
+      <bpmndi:BPMNShape id="repair_di" bpmnElement="repair">
         <dc:Bounds x="1706" y="637" width="120" height="80"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Gateway_3_di" bpmnElement="Gateway_3">
+      <bpmndi:BPMNShape id="gw_time_di" bpmnElement="gw_time">
         <dc:Bounds x="1896" y="652" width="50" height="50"/>
         <bpmndi:BPMNLabel>
           <dc:Bounds x="1873" y="708" width="96" height="28"/>
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="UserTask_4_di" bpmnElement="UserTask_4">
+      <bpmndi:BPMNShape id="dgu_di" bpmnElement="dgu">
         <dc:Bounds x="2016" y="239" width="120" height="80"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="ManualTask_4_di" bpmnElement="ManualTask_4">
+      <bpmndi:BPMNShape id="restore_di" bpmnElement="restore">
         <dc:Bounds x="2016" y="637" width="120" height="80"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Gateway_4_di" bpmnElement="Gateway_4">
+      <bpmndi:BPMNShape id="p1_join_di" bpmnElement="p1_join">
         <dc:Bounds x="2206" y="254" width="50" height="50"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="UserTask_5_di" bpmnElement="UserTask_5">
+      <bpmndi:BPMNShape id="check_v_di" bpmnElement="check_v">
         <dc:Bounds x="2326" y="239" width="120" height="80"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="UserTask_6_di" bpmnElement="UserTask_6">
+      <bpmndi:BPMNShape id="close_di" bpmnElement="close">
         <dc:Bounds x="2516" y="239" width="120" height="80"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="ServiceTask_2_di" bpmnElement="ServiceTask_2">
+      <bpmndi:BPMNShape id="sms_ok_di" bpmnElement="sms_ok">
         <dc:Bounds x="2706" y="493" width="120" height="80"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">

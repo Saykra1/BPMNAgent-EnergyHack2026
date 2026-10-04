@@ -1,12 +1,12 @@
 {
-  "source": "reference_plan+plan_compiler",
+  "source": "reference_plan+deterministic_builder",
   "issues": [
     {
       "level": "fix",
       "code": "F_ADD_START",
       "message": "Добавлено стартовое событие в подпроцесс «Построить сетевые объекты»",
       "elements": [
-        "StartEvent_2"
+        "StartEvent_1"
       ]
     },
     {
@@ -14,7 +14,7 @@
       "code": "F_ADD_END",
       "message": "Добавлено конечное событие в подпроцесс «Построить сетевые объекты»",
       "elements": [
-        "EndEvent_2"
+        "EndEvent_1"
       ]
     }
   ],
@@ -46,5 +46,13 @@
     "Что происходит, если заявитель не предоставил документы за 20 рабочих дней — заявка аннулируется?",
     "Нужна ли оплата до начала строительства или допускается рассрочка?"
   ],
-  "error": null
+  "lint": [],
+  "lint_summary": {
+    "errors": 0,
+    "warnings": 0,
+    "info": 0,
+    "fixable": 0
+  },
+  "fixes": [],
+  "residual": []
 }

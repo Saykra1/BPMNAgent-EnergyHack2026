@@ -205,6 +205,7 @@ async function applyResult(res) {
   if (imported) {
     renderDiagramStatus(res);
     await window.agentFeatures?.onResult(res);
+    await window.toolkit?.onResult(res);
     if (matchMedia('(max-width: 760px)').matches) $('#center').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 }
@@ -283,7 +284,8 @@ $('#refine').onclick = async () => {
   busy(true, 'Вношу изменения…'); animateSteps('direct');
   try {
     const { xml } = await modeler.saveXML({ format: true });
-    const res = await api('/api/refine', { instruction, xml, code: state.code, text: state.text, privacy: window.privacyUI.options() });
+    const res = await api('/api/refine', { instruction, xml, code: state.code, text: state.text, resolutions: state.resolutions,
+      privacy: window.privacyUI.options() });
     if (res.xml) {
       state.text += '\n\nУточнение аналитика: ' + instruction; $('#text').value = state.text;
       state.privacy.trusted.push(instruction);

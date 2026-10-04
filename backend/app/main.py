@@ -13,9 +13,10 @@ from .bpmn.importer import ImportErrorBPMN, bpmn_to_code
 from .bpmn.xsd import validate_xsd
 from .config import ROOT, find_env_file, get_settings
 from .llm.client import make_client
-from .pipeline import Pipeline
+from .pipeline import InputError, Pipeline, check_text
 from .llm.plan import parse_plan, PlanError
 from .sandbox import SandboxError
+from .collab.routes import guard as collab_guard, router as collab_router
 from .insights import inspect_xml
 from .privacy import clean_text, ner_available, preview
 from .jev import JevReviewError, review_source_links, review_audit_items
@@ -25,6 +26,8 @@ FRONTEND = ROOT / "frontend"
 EXAMPLES = ROOT / "examples"
 
 app = FastAPI(title="BPMN Agent", version="1.0")
+app.include_router(collab_router)
+app.middleware("http")(collab_guard)
 
 
 _state: dict = {"key": None, "pipeline": None, "error": None, "settings": None}
@@ -42,8 +45,11 @@ def _pipeline() -> Pipeline:
         return _state["pipeline"]
     s = get_settings()
     error = None
+    repair = None
     try:
         llm = make_client(s)
+        if s.llm_repair_model:
+            repair = make_client(s, role="repair")
         if hasattr(llm, "verbose"):
             llm.verbose = True        # log every Gemini attempt / fallback to the server console
         print(f"[bpmn-agent] .env: {s.env_file or 'не найден'} · LLM: {s.llm_provider} · {getattr(llm, 'model', '')}")
@@ -53,7 +59,7 @@ def _pipeline() -> Pipeline:
             f"файл .env не найден — создайте его в {ROOT} (copy .env.example .env)")
         error = f"{e} [LLM_PROVIDER={s.llm_provider}; {where}]"
         print(f"[bpmn-agent] LLM недоступен: {error}")
-    p = Pipeline(llm, s.runs_dir, s.max_repairs)
+    p = Pipeline(llm, s.runs_dir, s.max_repairs, settings=s, repair_llm=repair)
     p.llm_error = error
     _state.update(key=key, pipeline=p, error=error, settings=s)
     return p
@@ -87,17 +93,20 @@ class Resolution(BaseModel):
 
 
 class GenerateRequest(BaseModel):
-    text: CleanText = Field(min_length=10, max_length=20000)
-    mode: str = "two_stage"          # two_stage | direct
+    text: CleanText = Field(default="", max_length=200_000)
+    mode: str = "ir"                 # ir (IR → deterministic builder) | two_stage | direct (LLM writes code)
+    ask: bool = False                # True: return clarifying questions instead of guessing
     resolutions: list[Resolution] = Field(default_factory=list, max_length=20)
     privacy: PrivacyOptions = Field(default_factory=PrivacyOptions)
 
 
 class RefineRequest(BaseModel):
-    instruction: CleanText = Field(min_length=2, max_length=4000)
+    instruction: CleanText = Field(default="", max_length=4000)
     code: str = ""
     xml: str | None = None           # current (possibly hand-edited) diagram
+    plan: dict | None = None         # current IR (if no xml)
     text: CleanText = ""
+    resolutions: list[Resolution] = Field(default_factory=list, max_length=20)   # footnotes to keep
     privacy: PrivacyOptions = Field(default_factory=PrivacyOptions)
 
 
@@ -111,17 +120,17 @@ class XmlRequest(BaseModel):
 
 class PlanRequest(BaseModel):
     plan: dict
-    text: CleanText = Field(default="", max_length=30000)
+    text: CleanText = Field(default="", max_length=200_000)
     resolutions: list[Resolution] = Field(default_factory=list, max_length=20)
 
 
 class InspectRequest(XmlRequest):
-    text: CleanText = Field(default="", max_length=30000)
+    text: CleanText = Field(default="", max_length=200_000)
     privacy: PrivacyOptions = Field(default_factory=PrivacyOptions)
 
 
 class PrivacyRequest(BaseModel):
-    text: str = Field(default="", max_length=30000)
+    text: str = Field(default="", max_length=200_000)
     privacy: PrivacyOptions = Field(default_factory=PrivacyOptions)
 
 
@@ -202,6 +211,7 @@ def health():
     return {"ok": True, "llm": p.llm is not None, "provider": s.llm_provider, "llm_error": _state["error"],
             "env_file": s.env_file,
             "model": getattr(p.llm, "model", None), "max_repairs": s.max_repairs,
+            "repair_model": getattr(p.repair_llm, "model", None), "onprem_only": s.llm_onprem_only,
             "jev": s.jev_enabled and s.llm_base_url.rstrip("/") == "https://openrouter.ai/api/v1",
             "privacy": {"ner": ner_available()}}
 
@@ -232,23 +242,31 @@ def example_result(ex_id: str):
 
 @app.post("/api/generate")
 def generate(req: GenerateRequest):
-    res = _require_llm().generate(req.text, req.mode, [r.model_dump() for r in req.resolutions],
-                                  req.privacy.model_dump())
+    try:
+        check_text(req.text)
+    except InputError as e:
+        raise HTTPException(400, str(e))
+    res = _require_llm().generate(req.text, req.mode, ask=req.ask,
+                                  resolutions=[r.model_dump() for r in req.resolutions],
+                                  privacy=req.privacy.model_dump())
     return res.to_dict()
 
 
 @app.post("/api/refine")
 def refine(req: RefineRequest):
     pipeline = _require_llm()
-    code = req.code
-    if req.xml:
+    plan = None
+    if req.plan and not req.xml:
         try:
-            code = bpmn_to_code(req.xml)   # keep the analyst's manual edits
-        except ImportErrorBPMN as e:
+            plan = parse_plan(req.plan)
+        except PlanError as e:
             raise HTTPException(400, str(e))
-    if not code.strip():
-        raise HTTPException(400, "Нет текущей диаграммы для изменения")
-    return pipeline.refine(req.text, code, req.instruction, req.privacy.model_dump()).to_dict()
+    try:
+        return pipeline.refine(req.text, req.instruction, plan=plan, xml=req.xml, code=req.code,
+                               resolutions=[r.model_dump() for r in req.resolutions],
+                               privacy=req.privacy.model_dump()).to_dict()
+    except (ImportErrorBPMN, SandboxError) as e:
+        raise HTTPException(400, f"Не удалось прочитать текущую схему: {e}")
 
 
 @app.post("/api/build")
@@ -279,15 +297,29 @@ def runs(limit: int = 30):
         for d in sorted(s.runs_dir.iterdir(), reverse=True)[:limit]:
             m = d / "meta.json"
             if m.exists():
-                meta = json.loads(m.read_text("utf-8"))
+                try:
+                    meta = json.loads(m.read_text("utf-8"))
+                except json.JSONDecodeError:
+                    continue
                 meta.pop("events", None)
                 out.append(meta)
     return out
 
 
+from . import tools_api  # noqa: E402
+
+app.include_router(tools_api.bind(_pipeline, get_settings))
+from .run import api as run_api  # noqa: E402
+
+app.include_router(run_api.bind(get_settings))
 app.mount("/static", StaticFiles(directory=str(FRONTEND)), name="static")
 
 
 @app.get("/")
 def index():
+    return FileResponse(FRONTEND / "index.html")
+
+
+@app.get("/join/{token}")
+def join_page(token: str):
     return FileResponse(FRONTEND / "index.html")

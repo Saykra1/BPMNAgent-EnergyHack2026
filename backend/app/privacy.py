@@ -477,8 +477,9 @@ class PrivacyGuard:
         return out
 
     def mask_messages(self, messages: list[dict]) -> list[dict]:
+        """System messages are our own prompts and pass as is; everything else is masked."""
         self.requests += 1
-        return [{**m, "content": self.mask(m["content"])} for m in messages]
+        return [m if m.get("role") == "system" else {**m, "content": self.mask(m["content"])} for m in messages]
 
     # -- incoming
     def unmask(self, text: str) -> str:

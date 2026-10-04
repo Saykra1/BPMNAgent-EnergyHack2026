@@ -2,6 +2,7 @@ import json
 import re
 
 import httpx
+import pytest
 from fastapi.testclient import TestClient
 
 from app import main
@@ -36,11 +37,14 @@ VALUES = [v for values in PII.values() for v in values]
 class EchoModel:
     """Behaves like a model that copies what it was sent: quotes come from the masked text."""
     name = "echo"
+    model = "echo"
 
     def __init__(self):
         self.calls = []
 
-    def complete(self, system, messages, json_mode=False, max_tokens=8000):
+    def complete(self, messages, schema=None, *, max_tokens=8000):
+        system = "\n".join(m["content"] for m in messages if m["role"] == "system")
+        messages = [m for m in messages if m["role"] != "system"]
         self.calls.append({"system": system, "messages": messages})
         content = messages[-1]["content"]
         if "внутренние противоречия" in system:
@@ -84,19 +88,21 @@ def test_identifier_checksums_reduce_false_positives():
     assert detect("Партия 4111 1111 1111 1112") == []                 # fails Luhn
 
 
-def test_generation_sends_no_personal_data_and_restores_it_locally(tmp_path):
+@pytest.mark.parametrize("mode,calls", [("ir", 2), ("two_stage", 3)])   # IR + check (+ code)
+def test_generation_sends_no_personal_data_and_restores_it_locally(tmp_path, mode, calls):
     model = EchoModel()
-    res = Pipeline(model, runs_dir=tmp_path).generate(TEXT)
-    assert res.ok and len(model.calls) == 3                            # plan + contradiction check + code
+    res = Pipeline(model, runs_dir=tmp_path).generate(TEXT, mode)
+    assert res.ok and len(model.calls) == calls
     assert leaked(model.calls) == []
     assert all("[ФИО_1]" in call["messages"][0]["content"] for call in model.calls[:2])
     assert all("метками" in call["system"] for call in model.calls)   # the model is told how to treat labels
     # The diagram shows real data and every quote still matches the description.
     assert "Петров Иван Сергеевич" in res.xml and "[ФИО_" not in res.xml
     assert all(e["source_quote"] and e["source_quote"] in TEXT for e in res.plan["elements"])
-    assert res.privacy["requests"] == 3 and res.privacy["egress_caught"] == 0
+    assert res.privacy["requests"] == calls and res.privacy["egress_caught"] == 0
     assert {h["kind"] for h in res.privacy["hidden"]} >= set(PII)
-    assert leaked(res.privacy) == []
+    assert leaked(res.privacy) == [] and leaked(res.pii) == []
+    assert {m["type"] for m in res.pii} >= {"fio", "phone", "email"}    # the toolkit's view of the same guard
     # The journal stores exactly what left the machine.
     journal = (tmp_path / res.run_id / "llm.jsonl").read_text("utf-8")
     assert leaked(journal) == [] and "[ТЕЛЕФОН_1]" in journal
@@ -135,8 +141,8 @@ def test_a_run_without_guard_still_never_sends_raw_text():
     pipeline = Pipeline(model)
     from app.runlog import RunLog
     log = RunLog(None, "test")
-    pipeline._ask(log, "plan", "system", [{"role": "user", "content": 'Описание процесса:\n"""\n' + TEXT + '\n"""'}],
-                  json_mode=True)
+    pipeline._ask(log, "plan", [{"role": "system", "content": "system"},
+                                {"role": "user", "content": 'Описание процесса:\n"""\n' + TEXT + '\n"""'}], {})
     assert leaked(model.calls) == []
 
 
@@ -177,10 +183,29 @@ def test_refine_masks_names_typed_on_the_canvas():
     code = ("pool, lanes = DIAGRAM.add_pool(ROOT_PROCESS_ID, ['Мастер'], 'Сеть')\n"
             "t = DIAGRAM.add_task('Позвонить Петрову Ивану Сергеевичу', lanes[0])\n"
             "DIAGRAM.add_link(ROOT_START_TASK_ID, t)\nDIAGRAM.add_link(t, ROOT_END_TASK_ID)\n")
-    model.complete = lambda system, messages, **kw: (model.calls.append(messages), LLMResponse(code, "echo", 0))[1]
-    res = Pipeline(model).refine("Мастер выезжает на объект.", code, "Добавь звонок на +7 912 345-67-89")
+    model.complete = lambda messages, schema=None, **kw: (model.calls.append(messages), LLMResponse(code, "echo", 0))[1]
+    res = Pipeline(model).refine_code("Мастер выезжает на объект.", code, "Добавь звонок на +7 912 345-67-89")
     sent = json.dumps(model.calls, ensure_ascii=False)
     assert "Петрову" not in sent and "+7 912 345-67-89" not in sent
+    assert res.xml and "Позвонить Петрову Ивану Сергеевичу" in res.xml
+
+
+def test_ir_refine_masks_names_typed_on_the_canvas():
+    code = ("pool, lanes = DIAGRAM.add_pool(ROOT_PROCESS_ID, ['Мастер'], 'Сеть')\n"
+            "t = DIAGRAM.add_task('Позвонить Петрову Ивану Сергеевичу', lanes[0])\n"
+            "DIAGRAM.add_link(ROOT_START_TASK_ID, t)\nDIAGRAM.add_link(t, ROOT_END_TASK_ID)\n")
+    xml = Pipeline(None).from_code(code).xml
+    calls = []
+
+    def echo_ir(messages, schema=None, **kw):     # returns the IR it was given, unchanged
+        calls.append(messages)
+        ir = messages[-1]["content"].split("Текущий IR процесса:\n", 1)[1].split("\n\nШаги по порядку", 1)[0]
+        return LLMResponse(ir, "echo", 0)
+    model = EchoModel()
+    model.complete = echo_ir
+    res = Pipeline(model).refine("Мастер выезжает на объект.", "Добавь звонок на +7 912 345-67-89", xml=xml)
+    sent = json.dumps(calls, ensure_ascii=False)
+    assert calls and "Петрову" not in sent and "+7 912 345-67-89" not in sent
     assert res.xml and "Позвонить Петрову Ивану Сергеевичу" in res.xml
 
 
@@ -202,10 +227,10 @@ def test_the_analysts_own_request_is_not_taken_for_injection():
     code = ("pool, lanes = DIAGRAM.add_pool(ROOT_PROCESS_ID, ['Мастер'], 'Сеть')\n"
             "t = DIAGRAM.add_task('Проверить документы', lanes[0])\n"
             "DIAGRAM.add_link(ROOT_START_TASK_ID, t)\nDIAGRAM.add_link(t, ROOT_END_TASK_ID)\n")
-    model.complete = lambda system, messages, **kw: (model.calls.append(messages), LLMResponse(code, "echo", 0))[1]
+    model.complete = lambda messages, schema=None, **kw: (model.calls.append(messages), LLMResponse(code, "echo", 0))[1]
     request = "Добавь после проверки документов шаг: специалист звонит заявителю на +7 915 222-33-44"
-    Pipeline(model).refine("Мастер проверяет документы.", code, request)
-    sent = model.calls[0][0]["content"]
+    Pipeline(model).refine_code("Мастер проверяет документы.", code, request)
+    sent = next(m["content"] for m in model.calls[0] if m["role"] == "user")
     assert "Добавь после проверки документов шаг: специалист звонит заявителю на [ТЕЛЕФОН_1]" in sent
     # Appended to the description later, it stays trusted only when the analyst typed it.
     text = "Мастер проверяет документы.\n\nУточнение аналитика: " + request

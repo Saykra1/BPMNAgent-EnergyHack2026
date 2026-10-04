@@ -68,7 +68,7 @@ try {
   await page.locator('#generate').hover();
   assert.match(await page.locator('#help-popover').innerText(), /редактируемую BPMN-схему/);
   await page.locator('#text').fill(text);
-  assert.equal(await page.locator('#mode').inputValue(), 'two_stage');
+  assert.equal(await page.locator('#mode').inputValue(), 'ir');
   assert.match(await page.locator('#mode-name').innerText(), /Без уточнений/);
   await page.locator('.generation-settings summary').click();
   await page.locator('[data-mode-choice="direct"]').hover();
@@ -115,7 +115,7 @@ try {
   await page.locator('#navigator-toggle').click();
   await page.locator('#step-search').fill('предоставить');
   assert.match(await page.locator('#search-count').innerText(), /Найдено: 1/);
-  assert.equal(await page.locator('[data-element-id="UserTask_1"]').evaluate(e => e.classList.contains('nav-search')), true);
+  assert.equal(await page.locator('[data-element-id="supply"]').evaluate(e => e.classList.contains('nav-search')), true);
   assert.equal(await page.locator('#participant-filter option').count() > 1, true);
   await page.locator('#participant-filter').selectOption({ index: 1 });
   assert.equal(await page.locator('.nav-participant-hit').count() > 0, true);
@@ -123,7 +123,7 @@ try {
   assert.equal(await page.locator('#navigator').isVisible(), false);
   await page.locator('#nav-focus-clear').click();
   await page.locator('.source-fragment').first().hover();
-  const linkedFill = await page.locator('[data-element-id="UserTask_1"] .djs-visual > :first-child')
+  const linkedFill = await page.locator('[data-element-id="supply"] .djs-visual > :first-child')
     .evaluate(element => getComputedStyle(element).fill);
   assert.notEqual(linkedFill, 'rgb(255, 255, 255)');
   await page.locator('#insights-toggle').click();
@@ -151,7 +151,7 @@ try {
   await page.locator('.toolbar-more summary').click();
   await page.locator('#relayout').click();
   await page.waitForFunction(() => document.querySelector('#loading').hidden);
-  await page.locator('[data-element-id="UserTask_1"] .djs-hit').click();
+  await page.locator('[data-element-id="supply"] .djs-hit').click();
   await page.locator('#insights-toggle').click();
   assert.equal(await page.locator('#detail-documents').inputValue(), 'Заявка\nУведомление');
   await page.locator('#insights-close').click();

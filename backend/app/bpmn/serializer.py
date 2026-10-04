@@ -65,6 +65,9 @@ def to_xml(d: Diagram, lay: LayoutResult, exporter_version: str = "1.0") -> str:
         if not has_content and proc.pool is None:
             continue
         pel = etree.SubElement(root, _b("process"), id=proc.id, isExecutable="false")
+        if proc.id == d.root_process and d.performers:     # performers directory travels with the file
+            etree.SubElement(pel, _b("documentation"), textFormat="application/json").text = (
+                "BPMN_AGENT_PERFORMERS:" + json.dumps(d.performers, ensure_ascii=False))
         if proc.name:
             pel.set("name", proc.name)
         if proc.lanes:
@@ -94,9 +97,19 @@ def _emit_container(d: Diagram, parent_el, container: str) -> None:
         el = etree.SubElement(parent_el, _b(n.kind), id=n.id)
         if n.name:
             el.set("name", n.name)
-        if n.details:
+        if n.kind == "boundaryEvent":
+            el.set("attachedToRef", n.attached_to)
+            el.set("cancelActivity", "true" if n.interrupting else "false")
+        default = next((f.id for f in d.outgoing(n.id) if f.default), None)
+        if default and n.kind in COND_GATEWAYS:
+            el.set("default", default)
+        details = dict(n.details or {})
+        description = details.pop("description", "")
+        if description:                                   # plain BPMN documentation, readable by any tool
+            etree.SubElement(el, _b("documentation")).text = description
+        if details:
             etree.SubElement(el, _b("documentation"), textFormat="application/json").text = (
-                "BPMN_AGENT_DETAILS:" + json.dumps(n.details, ensure_ascii=False))
+                "BPMN_AGENT_DETAILS:" + json.dumps(details, ensure_ascii=False))
         for f in d.incoming(n.id):
             etree.SubElement(el, _b("incoming")).text = f.id
         for f in d.outgoing(n.id):
@@ -106,15 +119,24 @@ def _emit_container(d: Diagram, parent_el, container: str) -> None:
             if n.event_definition == "conditional":
                 c = etree.SubElement(ed, _b("condition"))
                 c.set(f"{{{XSI}}}type", "bpmn:tFormalExpression")
+            if n.event_definition == "timer" and n.timer:
+                td = etree.SubElement(ed, _b("timeDuration"))
+                td.set(f"{{{XSI}}}type", "bpmn:tFormalExpression")
+                td.text = n.timer
         if n.kind == SUBPROCESS_KIND:
             _emit_container(d, el, n.id)
     for f in d.sequence_flows():
         if d.nodes[f.source].container != container:
             continue
         el = etree.SubElement(parent_el, _b("sequenceFlow"), id=f.id, sourceRef=f.source, targetRef=f.target)
+        flow_details = {k: v for k, v in (("probability", f.probability), ("check", f.check)) if v not in (None, "")}
+        if flow_details:
+            etree.SubElement(el, _b("documentation"), textFormat="application/json").text = (
+                "BPMN_AGENT_DETAILS:" + json.dumps(flow_details, ensure_ascii=False))
         if f.name:
             el.set("name", f.name)
-            if d.nodes[f.source].kind in COND_GATEWAYS and len(d.outgoing(f.source)) > 1:
+            if (d.nodes[f.source].kind in COND_GATEWAYS and len(d.outgoing(f.source)) > 1
+                    and not f.default):
                 ce = etree.SubElement(el, _b("conditionExpression"))
                 ce.set(f"{{{XSI}}}type", "bpmn:tFormalExpression")
                 ce.text = f.name
