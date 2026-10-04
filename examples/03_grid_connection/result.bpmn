@@ -52,6 +52,7 @@
       <bpmn:incoming>Flow_31</bpmn:incoming>
     </bpmn:endEvent>
     <bpmn:subProcess id="SubProcess_1" name="Построить сетевые объекты">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "подрядная организация строит сетевые объекты", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
       <bpmn:incoming>Flow_21</bpmn:incoming>
       <bpmn:outgoing>Flow_23</bpmn:outgoing>
       <bpmn:task id="Task_4" name="Выполнить проектирование">
@@ -92,11 +93,13 @@
       <bpmn:outgoing>Flow_3</bpmn:outgoing>
     </bpmn:userTask>
     <bpmn:exclusiveGateway id="Gateway_1" name="Документы в порядке?">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "Если документов не хватает", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
       <bpmn:incoming>Flow_3</bpmn:incoming>
       <bpmn:outgoing>Flow_4</bpmn:outgoing>
       <bpmn:outgoing>Flow_5</bpmn:outgoing>
     </bpmn:exclusiveGateway>
     <bpmn:sendTask id="SendTask_1" name="Уведомить о недостающих документах">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "заявителю направляется уведомление", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
       <bpmn:incoming>Flow_5</bpmn:incoming>
       <bpmn:outgoing>Flow_6</bpmn:outgoing>
     </bpmn:sendTask>
@@ -106,19 +109,23 @@
       <bpmn:outgoing>Flow_7</bpmn:outgoing>
     </bpmn:userTask>
     <bpmn:task id="Task_1" name="Проверить свободную мощность">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "технический отдел проверяет наличие свободной мощности на центре питания", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
       <bpmn:incoming>Flow_4</bpmn:incoming>
       <bpmn:outgoing>Flow_8</bpmn:outgoing>
     </bpmn:task>
     <bpmn:exclusiveGateway id="Gateway_2" name="Мощности достаточно?">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "Если мощности недостаточно", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
       <bpmn:incoming>Flow_8</bpmn:incoming>
       <bpmn:outgoing>Flow_9</bpmn:outgoing>
       <bpmn:outgoing>Flow_10</bpmn:outgoing>
     </bpmn:exclusiveGateway>
     <bpmn:task id="Task_2" name="Разработать мероприятие по увеличению мощности">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "разрабатывается мероприятие по увеличению мощности", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
       <bpmn:incoming>Flow_10</bpmn:incoming>
       <bpmn:outgoing>Flow_11</bpmn:outgoing>
     </bpmn:task>
     <bpmn:userTask id="UserTask_4" name="Согласовать мероприятие">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "которое согласует главный инженер", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
       <bpmn:incoming>Flow_11</bpmn:incoming>
       <bpmn:outgoing>Flow_12</bpmn:outgoing>
     </bpmn:userTask>
@@ -138,6 +145,7 @@
       <bpmn:outgoing>Flow_16</bpmn:outgoing>
     </bpmn:task>
     <bpmn:serviceTask id="ServiceTask_1" name="Рассчитать плату за присоединение">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "отдел по работе с клиентами параллельно рассчитывает плату за присоединение", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
       <bpmn:incoming>Flow_15</bpmn:incoming>
       <bpmn:outgoing>Flow_17</bpmn:outgoing>
     </bpmn:serviceTask>
@@ -162,6 +170,7 @@
       <bpmn:outgoing>Flow_22</bpmn:outgoing>
     </bpmn:parallelGateway>
     <bpmn:manualTask id="ManualTask_1" name="Выполнить мероприятия на своей стороне">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "заявитель выполняет мероприятия на своей стороне", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
       <bpmn:incoming>Flow_22</bpmn:incoming>
       <bpmn:outgoing>Flow_24</bpmn:outgoing>
     </bpmn:manualTask>
@@ -177,19 +186,23 @@
       <bpmn:outgoing>Flow_26</bpmn:outgoing>
     </bpmn:manualTask>
     <bpmn:exclusiveGateway id="Gateway_8" name="Есть замечания?">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "Если выявлены замечания", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
       <bpmn:incoming>Flow_26</bpmn:incoming>
       <bpmn:outgoing>Flow_27</bpmn:outgoing>
       <bpmn:outgoing>Flow_29</bpmn:outgoing>
     </bpmn:exclusiveGateway>
     <bpmn:manualTask id="ManualTask_3" name="Устранить замечания">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "заявитель их устраняет и осмотр повторяется", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
       <bpmn:incoming>Flow_27</bpmn:incoming>
       <bpmn:outgoing>Flow_28</bpmn:outgoing>
     </bpmn:manualTask>
     <bpmn:manualTask id="ManualTask_4" name="Подать напряжение">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "оперативный персонал выполняет фактическое присоединение и подача напряжения", "assumption": "", "deadline": "", "documents": []}</bpmn:documentation>
       <bpmn:incoming>Flow_29</bpmn:incoming>
       <bpmn:outgoing>Flow_30</bpmn:outgoing>
     </bpmn:manualTask>
     <bpmn:sendTask id="SendTask_3" name="Оформить и направить акт о присоединении">
+      <bpmn:documentation textFormat="application/json">BPMN_AGENT_DETAILS:{"source_quote": "отдел по работе с клиентами оформляет акт об осуществлении технологического присоединения и направляет его заявителю", "assumption": "", "deadline": "", "documents": ["Акт об осуществлении технологического присоединения"]}</bpmn:documentation>
       <bpmn:incoming>Flow_30</bpmn:incoming>
       <bpmn:outgoing>Flow_31</bpmn:outgoing>
     </bpmn:sendTask>

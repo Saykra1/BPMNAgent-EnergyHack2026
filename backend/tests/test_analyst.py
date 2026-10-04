@@ -11,6 +11,7 @@ from app.insights import inspect_xml
 from app.llm.client import ScriptedClient
 from app.llm.plan import parse_plan, compile_plan, PlanError
 from app.pipeline import Pipeline, build
+from app.runlog import RunLog
 from app.sandbox import run_code
 from app import main
 
@@ -94,9 +95,46 @@ def test_inspection_examples_have_no_spurious_errors():
         assert not [i for i in report['issues'] if i['level'] == 'error'], example.name
 
 
+def test_grid_connection_quotes_are_exact_and_export_is_valid():
+    root = Path(__file__).resolve().parents[2] / 'examples' / '03_grid_connection'
+    source = (root / 'input.txt').read_text('utf-8')
+    plan = json.loads((root / 'plan.json').read_text('utf-8'))
+    quotes = [el['source_quote'] for el in plan['elements'] if el.get('source_quote')]
+    assert len(quotes) >= 10
+    assert all(quote in source for quote in quotes)
+    xml = (root / 'result.bpmn').read_text('utf-8')
+    assert validate_xsd(xml) == []
+    cards = inspect_xml(xml, source)['cards']
+    assert sum(bool(c['source_found']) for c in cards) >= 10
+
+
 def test_details_reject_non_strings():
     with pytest.raises(Exception, match='списком строк'):
         run_code("DIAGRAM.set_details(ROOT_START_TASK_ID, '', '', '', [123])")
+
+
+def test_generation_without_model_returns_clear_error(monkeypatch):
+    pipeline = Pipeline(None)
+    pipeline.llm_error = 'Не задан LLM_API_KEY'
+    monkeypatch.setattr(main, '_pipeline', lambda: pipeline)
+    with TestClient(main.app) as client:
+        for path, body in (
+            ('/api/prepare', {'text': TEXT}),
+            ('/api/generate', {'text': TEXT, 'mode': 'direct'}),
+            ('/api/refine', {'instruction': 'Добавь проверку', 'code': 'x'}),
+        ):
+            response = client.post(path, json=body)
+            assert response.status_code == 503
+            assert 'LLM_API_KEY' in response.json()['detail']
+
+
+def test_run_journal_is_optional_when_directory_is_unwritable(tmp_path):
+    occupied = tmp_path / 'not-a-directory'
+    occupied.write_text('file', encoding='utf-8')
+    journal = RunLog(occupied, 'test')
+    assert journal.dir is None
+    journal.write('input.txt', TEXT)
+    journal.finish(ok=True)
 
 
 def test_reviewed_plan_ids_are_data_not_python_identifiers():

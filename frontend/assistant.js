@@ -101,6 +101,14 @@
     if ($('#show-source')) $('#show-source').onclick = () => {
       const input = $('#text');
       if (input.value !== state.text) { notice('Описание изменено после построения. Исходная цитата показана в карточке.'); return; }
+      const reader = $('#source-reader');
+      if (!reader.hidden) {
+        const fragment = reader.querySelector('.source-current') ||
+          [...reader.querySelectorAll('.source-fragment')].find(b => quote.includes(b.textContent.trim()));
+        window.workspaceUI?.closeInsights();
+        (fragment || reader).scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
       const start = input.value.indexOf(quote);
       input.focus(); input.setSelectionRange(start, start + quote.length);
     };
@@ -152,6 +160,8 @@
       const res = await api('/api/inspect', { xml, text: state.text.slice(0, 30000) });
       if (id !== requestId) return;
       snapshot = signature; inspection = res;
+      window.diagramStatus?.update({ issues: res.issues, xsd_errors: res.xsd_errors });
+      window.sourceReview?.onInspect(res);
       const errors = res.issues.filter(i => i.level === 'error');
       const report = $('#tab-report');
       report.innerHTML = `<h3>Проверка текущей схемы</h3><p class="hint">Обновляется после ручных изменений. Замечания не исправляются без вашего решения.</p>
@@ -170,6 +180,7 @@
     } catch (e) {
       if (id === requestId) {
         inspection = null; snapshot = '';
+        window.diagramStatus?.failed();
         $('#tab-report').textContent = 'Проверка не завершена: ' + e.message;
         $('#tab-energy').textContent = 'Проверка исключений недоступна, пока не удалось прочитать схему.';
       }
@@ -184,9 +195,10 @@
     prepare, clearInterview, onBusy,
     beforeImport: () => {
       if (simulation) modeler.get('toggleMode').toggleMode(false);
+      window.sourceReview?.beforeImport();
       ++requestId; clearTimeout(timer); inspection = null; snapshot = ''; selectedId = null;
     },
-    onResult: async () => { selectedId = null; snapshot = ''; inspection = null; await inspectCurrent(true); }
+    onResult: async () => { selectedId = null; snapshot = ''; inspection = null; await inspectCurrent(true); await window.sourceReview?.onResult(); }
   };
   $('#text').addEventListener('input', clearInterview);
   $('#mode').addEventListener('change', clearInterview);
@@ -200,14 +212,18 @@
     simulation = e.active;
     $('#simulation-hint').hidden = !simulation;
     $('#simulate').textContent = simulation ? '■ Завершить проигрывание' : '▶ Проиграть';
+    $('#simulate').dataset.help = simulation ? 'Закончить проверку маршрута и вернуться к редактированию.' :
+      'Пошагово пройти по маршрутам процесса и проверить ветвления.';
     if ($('#detail-save')) $('#detail-save').disabled = simulation || state.busy;
   });
   modeler.get('eventBus').on('selection.changed', e => {
     selectedId = e.newSelection.length === 1 ? e.newSelection[0].id : null;
+    window.sourceReview?.onSelect(selectedId);
     renderCard();
     if (selectedId && !simulation) tab('element');
   });
   modeler.get('eventBus').on('commandStack.changed', () => {
+    window.diagramStatus?.pending();
     ++requestId;
     clearTimeout(timer);
     timer = setTimeout(() => inspectCurrent(), 600);

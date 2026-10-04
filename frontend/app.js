@@ -29,6 +29,24 @@ function fileBase() {
   const t = (state.plan && state.plan.title) || 'process';
   return t.replace(/[^\p{L}\p{N}]+/gu, '_').slice(0, 60);
 }
+function updateModelAvailability(health) {
+  const available = Boolean(health.llm);
+  const badge = $('#llm-status');
+  badge.textContent = available ? 'Генерация доступна' : 'Работа с примерами';
+  badge.title = available ? 'Можно создавать схемы по описанию' : (health.llm_error || 'Генерация требует подключения модели');
+  badge.className = 'badge ' + (available ? 'ok' : 'off');
+  $('#model-hint').hidden = available;
+  return available;
+}
+async function ensureModel() {
+  try {
+    if (updateModelAvailability(await api('/api/health'))) return true;
+    $('#summary').innerHTML = '<span class="pill warn">Нужен ключ модели</span> Добавьте LLM_API_KEY в .env, затем повторите попытку.';
+  } catch (error) {
+    $('#summary').innerHTML = `<span class="pill err">Сервер недоступен</span> ${esc(error.message)}`;
+  }
+  return false;
+}
 
 // ------------------------------------------------------------------ steps
 const STEPS = ['plan', 'code', 'sandbox', 'validate', 'layout', 'xsd'];
@@ -55,9 +73,9 @@ function finishSteps(res) {
   setStep('validate', res.xml ? (errs.length ? 'retry' : 'ok') : (res.code && !sandboxFail ? 'fail' : ''));
   setStep('layout', res.xml ? 'ok' : '');
   setStep('xsd', res.xml ? (res.xsd_errors && res.xsd_errors.length ? 'fail' : 'ok') : '');
-  const src = { llm: 'с первой попытки', llm_repaired: `после ${repairs} исправл. (repair-loop)`, reviewed_plan: 'из согласованного плана', plan_compiler: 'детерминированный компилятор плана (fallback)', lenient: 'мягкий режим с автоисправлениями', manual: 'из кода', error: 'ошибка' }[res.source] || res.source;
+  const src = { llm: 'схема построена', llm_repaired: 'схема построена после исправлений', reviewed_plan: 'схема построена по согласованному плану', plan_compiler: 'схема построена по плану', lenient: 'черновик с замечаниями', manual: 'схема построена из кода', error: 'ошибка' }[res.source] || 'схема построена';
   $('#summary').innerHTML = res.xml
-    ? `<span class="pill ${res.ok === false || errs.length ? 'warn' : 'ok'}">${res.ok === false || errs.length ? 'требует проверки' : 'готово'}</span> ${esc(src)} · ${res.duration_s} с`
+    ? `<span class="pill ${res.ok === false || errs.length ? 'warn' : 'ok'}">${res.ok === false || errs.length ? 'требует проверки' : 'готово'}</span> ${esc(src)}`
     : `<span class="pill err">ошибка</span> ${esc(res.message || '')}`;
 }
 
@@ -65,12 +83,58 @@ function finishSteps(res) {
 async function showXml(xml) {
   window.agentFeatures?.beforeImport();
   state.hasDiagram = false;
+  syncDiagramActions();
   const { warnings } = await modeler.importXML(xml);
   $('#empty').hidden = true;
   state.hasDiagram = true;
+  syncDiagramActions();
   modeler.get('canvas').zoom('fit-viewport', 'auto');
+  if (matchMedia('(max-width: 760px)').matches) focusBeginning();
   return warnings;
 }
+
+function syncDiagramActions() {
+  ['#dl-bpmn', '#dl-svg', '#dl-png', '#fit', '#read-view', '#zoom-in', '#zoom-out',
+    '#navigator-toggle', '#palette-toggle', '#relayout', '#check-xsd', '#inspect-current', '#simulate']
+    .forEach(selector => { $(selector).disabled = !state.hasDiagram; });
+  $('#chat-box').hidden = !state.hasDiagram;
+  if (!state.hasDiagram) $('#diagram-status').hidden = true;
+}
+
+function renderDiagramStatus(res) {
+  if (!state.hasDiagram) return;
+  const form = (count, one, few, many) => count % 10 === 1 && count % 100 !== 11 ? one :
+    count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 12 || count % 100 > 14) ? few : many;
+  const elements = modeler.get('elementRegistry').getAll().filter(e => e.businessObject);
+  const tasks = elements.filter(e => e.businessObject.$instanceOf('bpmn:Task')).length;
+  const lanes = elements.filter(e => e.businessObject.$instanceOf('bpmn:Lane')).length;
+  const errors = (res.issues || []).filter(issue => issue.level === 'error').length;
+  const xsdErrors = (res.xsd_errors || []).length;
+  const status = $('#diagram-status');
+  status.hidden = false;
+  status.classList.toggle('has-issues', Boolean(errors || xsdErrors));
+  status.classList.remove('is-pending');
+  $('#diagram-title').textContent = res.plan?.title || state.plan?.title || 'Схема процесса';
+  $('#diagram-details').textContent = [
+    `${tasks} ${form(tasks, 'действие', 'действия', 'действий')}`,
+    lanes ? `${lanes} ${form(lanes, 'дорожка', 'дорожки', 'дорожек')}` : '',
+    xsdErrors ? 'ошибки формата' : errors ? `${errors} ${form(errors, 'ошибка', 'ошибки', 'ошибок')}` : 'BPMN 2.0 проверен',
+  ].filter(Boolean).join(' · ');
+}
+window.diagramStatus = {
+  update: renderDiagramStatus,
+  pending: () => {
+    if (!state.hasDiagram) return;
+    $('#diagram-status').classList.add('is-pending');
+    $('#diagram-details').textContent = 'Проверяю изменения…';
+  },
+  failed: () => {
+    if (!state.hasDiagram) return;
+    $('#diagram-status').classList.add('has-issues');
+    $('#diagram-status').classList.remove('is-pending');
+    $('#diagram-details').textContent = 'Проверка недоступна';
+  },
+};
 
 function renderReport(res, warnings = []) {
   const st = res.stats || {};
@@ -127,7 +191,11 @@ async function applyResult(res) {
   finishSteps(res);
   renderReport(res, warnings);
   renderAttempts(res);
-  if (imported) await window.agentFeatures?.onResult(res);
+  if (imported) {
+    renderDiagramStatus(res);
+    await window.agentFeatures?.onResult(res);
+    if (matchMedia('(max-width: 760px)').matches) $('#center').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }
 
 function chat(text, cls) { const d = document.createElement('div'); d.className = 'msg ' + cls; d.textContent = text; $('#chat').append(d); $('#chat').scrollTop = 1e9; }
@@ -136,25 +204,39 @@ function chat(text, cls) { const d = document.createElement('div'); d.className 
 $('#generate').onclick = async () => {
   const text = $('#text').value.trim();
   if (text.length < 10) { alert('Опишите процесс подробнее'); return; }
+  if (!await ensureModel()) return;
+  // Keep the displayed source identical to the text sent to the model. Otherwise
+  // a trailing newline makes the traceability reader appear stale immediately.
+  $('#text').value = text;
   if ($('#mode').value === 'guided') { await window.agentFeatures.prepare(text); return; }
-  state.text = text;
   const mode = $('#mode').value;
   busy(true, 'Ассистент строит схему…'); animateSteps(mode);
-  try { await applyResult(await api('/api/generate', { text, mode })); }
+  try {
+    const result = await api('/api/generate', { text, mode });
+    if (result.xml) state.text = text;
+    await applyResult(result);
+  }
   catch (e) { clearInterval(stepTimer); $('#summary').innerHTML = `<span class="pill err">ошибка</span> ${esc(e.message)}`; }
   finally { busy(false); }
 };
+
+function updateModeName() {
+  $('#mode-name').textContent = $('#mode').selectedOptions[0].textContent;
+}
+$('#mode').addEventListener('change', updateModeName);
+updateModeName();
 
 $('#refine').onclick = async () => {
   const instruction = $('#instruction').value.trim();
   if (!instruction) return;
   if (!state.hasDiagram) { alert('Сначала постройте или откройте диаграмму'); return; }
+  if (!await ensureModel()) return;
   chat(instruction, 'user'); $('#instruction').value = '';
   busy(true, 'Вношу изменения…'); animateSteps('direct');
   try {
     const { xml } = await modeler.saveXML({ format: true });
     const res = await api('/api/refine', { instruction, xml, code: state.code, text: state.text });
-    if (res.xml) state.text += '\n\nУточнение аналитика: ' + instruction;
+    if (res.xml) { state.text += '\n\nУточнение аналитика: ' + instruction; $('#text').value = state.text; }
     await applyResult(res);
     chat(res.xml ? (res.summary || 'Готово, схема обновлена') : ('Не получилось: ' + (res.message || '')), res.xml ? 'bot' : 'bot err');
   } catch (e) { chat('Ошибка: ' + e.message, 'bot err'); }
@@ -179,12 +261,14 @@ $('#open-file').onchange = async (e) => {
   const f = e.target.files[0]; if (!f) return;
   const xml = await f.text();
   try {
-    state.text = ''; state.plan = null; state.code = '';
+    state.text = ''; state.plan = null; state.code = ''; state.lastResult = null;
     $('#text').value = ''; $('#plan-json').textContent = ''; $('#code').value = '';
     window.agentFeatures?.clearInterview();
     const warnings = await showXml(xml);
     const v = await api('/api/validate', { xml });
-    renderReport({ xml, xsd_errors: v.xsd_errors, stats: {}, issues: [] }, warnings);
+    const result = { xml, xsd_errors: v.xsd_errors, stats: {}, issues: [] };
+    renderReport(result, warnings);
+    renderDiagramStatus(result);
     const imp = await api('/api/import', { xml }).catch(() => null);
     if (imp && imp.code) { state.code = imp.code; $('#code').value = imp.code; }
     await window.agentFeatures?.onResult({});
@@ -200,6 +284,20 @@ $('#check-xsd').onclick = async () => {
 };
 
 $('#fit').onclick = () => modeler.get('canvas').zoom('fit-viewport', 'auto');
+function focusBeginning() {
+  const registry = modeler.get('elementRegistry');
+  const start = registry.getAll().find(e => e.businessObject?.$instanceOf('bpmn:StartEvent')) ||
+    registry.getAll().find(e => e.businessObject?.$instanceOf('bpmn:Task'));
+  if (!start) return;
+  const canvas = modeler.get('canvas');
+  if (canvas.zoom() < 1.05) canvas.zoom(1.05);
+  canvas.scrollToElement(start, 100);
+}
+$('#read-view').onclick = focusBeginning;
+$('#diagram-review').onclick = () => {
+  window.workspaceUI?.openInsights();
+  $('.tabs [data-tab="report"]').click();
+};
 $('#dl-bpmn').onclick = async () => { const { xml } = await modeler.saveXML({ format: true }); download(fileBase() + '.bpmn', xml, 'application/xml'); };
 $('#dl-svg').onclick = async () => { const { svg } = await modeler.saveSVG(); download(fileBase() + '.svg', svg, 'image/svg+xml'); };
 $('#dl-png').onclick = async () => {
@@ -226,31 +324,44 @@ $('#example').onchange = () => {
   if (!ex) { $('#show-saved').hidden = true; return; }
   $('#text').value = ex.text;
   $('#show-saved').hidden = !ex.has_result;
+  $('#show-saved').innerHTML = 'Открыть готовую схему примера <span aria-hidden="true">↗</span>';
+  $('#show-saved').dataset.help = 'Показать готовую схему этого примера без обращения к модели.';
 };
 $('#show-saved').onclick = async () => {
   const id = $('#example').value; if (!id) return;
+  await openExample(id);
+};
+async function openExample(id) {
   const ex = await api('/api/examples/' + encodeURIComponent(id));
+  if ([...$('#example').options].some(option => option.value === id)) $('#example').value = id;
   state.text = ex.text;
   $('#text').value = ex.text;
   window.agentFeatures?.clearInterview();
   const r = ex.report || {};
   await applyResult({ xml: ex.xml, code: ex.code, plan: ex.plan, issues: r.issues || [], xsd_errors: r.xsd_errors || [],
     stats: r.stats || {}, assumptions: r.assumptions || [], questions: r.questions || [], attempts: [], source: 'manual', duration_s: 0 });
-  $('#summary').innerHTML = '<span class="pill ok">сохранённый результат</span> ' + esc(r.source || '');
-};
+  $('#summary').innerHTML = '<span class="pill ok">пример готов</span> Схему можно редактировать';
+  $('#show-saved').innerHTML = 'Вернуть исходную схему примера <span aria-hidden="true">↺</span>';
+  $('#show-saved').dataset.help = 'Сбросить правки и снова открыть исходную схему этого примера.';
+  $('#show-saved').hidden = false;
+}
+$('#open-demo').onclick = () => openExample('03_grid_connection').catch(error => {
+  $('#summary').textContent = 'Не удалось открыть пример: ' + error.message;
+});
 
 // ------------------------------------------------------------------ init
 (async () => {
+  syncDiagramActions();
   try {
     const h = await api('/api/health');
-    const b = $('#llm-status');
-    b.textContent = h.llm ? `LLM: ${h.provider} · ${h.model || ''}` : 'LLM не настроен — наведите для причины';
-    b.title = h.llm ? `Настройки: ${h.env_file || 'переменные окружения'}` : (h.llm_error || '');
-    if (!h.llm && h.llm_error) $('#summary').innerHTML = `<span class="pill err">LLM</span> ${esc(h.llm_error)}`;
-    b.className = 'badge ' + (h.llm ? 'ok' : 'off');
+    updateModelAvailability(h);
   } catch { /* backend unavailable */ }
   try {
     state.examples = await api('/api/examples');
     for (const ex of state.examples) { const o = document.createElement('option'); o.value = ex.id; o.textContent = ex.title; $('#example').append(o); }
+    if (state.hasDiagram && state.text && !$('#example').value) {
+      const loaded = state.examples.find(ex => ex.text === state.text);
+      if (loaded) $('#example').value = loaded.id;
+    }
   } catch { /* ignore */ }
 })();

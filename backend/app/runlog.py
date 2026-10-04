@@ -18,12 +18,20 @@ class RunLog:
         self.kind = kind
         self.dir = (runs_dir / self.id) if runs_dir else None
         if self.dir:
-            self.dir.mkdir(parents=True, exist_ok=True)
+            try:
+                self.dir.mkdir(parents=True, exist_ok=True)
+            except OSError as exc:
+                print(f"[bpmn-agent] Журнал запуска недоступен: {exc}")
+                self.dir = None
         self.meta: dict = {"id": self.id, "kind": kind, "started": time.time(), "events": []}
 
     def write(self, name: str, content: str) -> None:
         if self.dir:
-            (self.dir / name).write_text(content, encoding="utf-8")
+            try:
+                (self.dir / name).write_text(content, encoding="utf-8")
+            except OSError as exc:
+                print(f"[bpmn-agent] Не удалось сохранить журнал: {exc}")
+                self.dir = None
 
     def event(self, stage: str, **data) -> None:
         self.meta["events"].append({"t": round(time.time() - self.meta["started"], 3), "stage": stage, **data})
@@ -33,8 +41,12 @@ class RunLog:
             rec = {"stage": stage, "model": response.model, "latency_s": round(response.latency_s, 2),
                    "input_tokens": response.input_tokens, "output_tokens": response.output_tokens,
                    "messages": messages, "response": response.text}
-            with (self.dir / "llm.jsonl").open("a", encoding="utf-8") as f:
-                f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+            try:
+                with (self.dir / "llm.jsonl").open("a", encoding="utf-8") as f:
+                    f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+            except OSError as exc:
+                print(f"[bpmn-agent] Не удалось сохранить обмен с моделью: {exc}")
+                self.dir = None
         self.event(stage, latency_s=round(response.latency_s, 2), output_tokens=response.output_tokens)
 
     def finish(self, **summary) -> None:

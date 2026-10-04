@@ -16,6 +16,7 @@ from .pipeline import Pipeline
 from .llm.plan import parse_plan, PlanError
 from .sandbox import SandboxError
 from .insights import inspect_xml
+from .jev import JevReviewError, review_source_links
 from lxml import etree
 
 FRONTEND = ROOT / "frontend"
@@ -56,6 +57,14 @@ def _pipeline() -> Pipeline:
     return p
 
 
+def _require_llm() -> Pipeline:
+    pipeline = _pipeline()
+    if pipeline.llm is None:
+        raise HTTPException(503, "Генерация недоступна: " + (
+            pipeline.llm_error or "задайте LLM_PROVIDER и LLM_API_KEY в файле .env"))
+    return pipeline
+
+
 class GenerateRequest(BaseModel):
     text: str = Field(min_length=10, max_length=20000)
     mode: str = "two_stage"          # two_stage | direct
@@ -87,7 +96,7 @@ class InspectRequest(XmlRequest):
 
 @app.post("/api/prepare")
 def prepare(req: GenerateRequest):
-    return _pipeline().prepare(req.text)
+    return _require_llm().prepare(req.text)
 
 
 @app.post("/api/from-plan")
@@ -106,13 +115,24 @@ def inspect(req: InspectRequest):
         raise HTTPException(400, str(e))
 
 
+@app.post("/api/jev-review")
+def jev_review(req: InspectRequest):
+    try:
+        return review_source_links(req.xml, req.text, get_settings())
+    except JevReviewError as e:
+        raise HTTPException(503, str(e))
+    except (ImportErrorBPMN, SandboxError, etree.XMLSyntaxError, ValueError) as e:
+        raise HTTPException(400, str(e))
+
+
 @app.get("/api/health")
 def health():
     p = _pipeline()
     s = _state["settings"]
     return {"ok": True, "llm": p.llm is not None, "provider": s.llm_provider, "llm_error": _state["error"],
             "env_file": s.env_file,
-            "model": getattr(p.llm, "model", None), "max_repairs": s.max_repairs}
+            "model": getattr(p.llm, "model", None), "max_repairs": s.max_repairs,
+            "jev": s.jev_enabled and s.llm_base_url.rstrip("/") == "https://openrouter.ai/api/v1"}
 
 
 @app.get("/api/examples")
@@ -141,12 +161,13 @@ def example_result(ex_id: str):
 
 @app.post("/api/generate")
 def generate(req: GenerateRequest):
-    res = _pipeline().generate(req.text, req.mode)
+    res = _require_llm().generate(req.text, req.mode)
     return res.to_dict()
 
 
 @app.post("/api/refine")
 def refine(req: RefineRequest):
+    pipeline = _require_llm()
     code = req.code
     if req.xml:
         try:
@@ -155,7 +176,7 @@ def refine(req: RefineRequest):
             raise HTTPException(400, str(e))
     if not code.strip():
         raise HTTPException(400, "Нет текущей диаграммы для изменения")
-    return _pipeline().refine(req.text, code, req.instruction).to_dict()
+    return pipeline.refine(req.text, code, req.instruction).to_dict()
 
 
 @app.post("/api/build")

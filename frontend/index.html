@@ -3,96 +3,86 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BPMN Agent</title>
+  <title>Архитектор процессов — BPMN 2.0</title>
   <link rel="stylesheet" href="/static/vendor/assets/diagram-js.css">
   <link rel="stylesheet" href="/static/vendor/assets/bpmn-js.css">
   <link rel="stylesheet" href="/static/vendor/assets/bpmn-font/css/bpmn-embedded.css">
-  <link rel="stylesheet" href="/static/style.css">
   <link rel="stylesheet" href="/static/vendor/modeler-simulation.css">
+  <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-<header>
-  <div class="brand"><span class="logo">◇</span> BPMN Agent <small>текст → BPMN 2.0</small></div>
-  <div id="llm-status" class="badge">…</div>
+<header class="topbar">
+  <div class="brand"><span class="brand-mark" aria-hidden="true">◇</span><span>Архитектор процессов<small>Текст → BPMN 2.0</small></span></div>
+  <div class="topbar-right"><div id="llm-status" class="badge">Проверяем подключение</div><button id="insights-toggle" class="topbar-button" type="button" aria-controls="right" aria-expanded="false" data-help="Открыть проверки, сведения о шагах, связи с текстом и историю правок.">Анализ <span aria-hidden="true">↗</span></button></div>
 </header>
 <main>
-  <aside id="left">
-    <section>
-      <label for="example">Пример</label>
-      <select id="example"><option value="">— выберите пример —</option></select>
-      <label for="text">Описание процесса</label>
-      <textarea id="text" placeholder="Опишите процесс: кто участвует, какие действия выполняет, какие есть условия и параллельные шаги…"></textarea>
-      <div class="row">
-        <select id="mode" title="Режим генерации">
-          <option value="guided">С уточнениями</option>
-          <option value="two_stage">Без уточнений</option>
-          <option value="direct">Прямая генерация</option>
-        </select>
-        <button id="generate" class="primary">Сгенерировать</button>
-      </div>
-      <button id="show-saved" class="link" hidden>Показать сохранённый результат примера (без LLM)</button>
+  <aside id="left" aria-label="Описание процесса">
+    <div class="panel-intro"><span class="eyebrow">ИСХОДНОЕ ОПИСАНИЕ</span><h1>От слов к схеме</h1><p>Опишите процесс или откройте пример. Вы сможете поправить результат прямо на диаграмме.</p></div>
+    <section class="source-section">
+      <label for="example">Пример для начала</label>
+      <select id="example"><option value="">Выберите пример процесса</option></select>
+      <div class="source-head"><label for="text">Описание процесса</label><button id="edit-source" class="quiet" hidden data-help="Переключить просмотр связанных фраз и редактирование исходного описания.">Редактировать</button></div>
+      <div id="source-reader" class="source-reader" hidden aria-label="Описание процесса со связанными шагами"></div>
+      <div id="source-nav" class="source-nav" hidden><span class="source-nav-label">Связанные места</span><button id="source-prev" class="icon-button" aria-label="Предыдущая связанная фраза" data-help="Перейти к предыдущей фразе и показать её шаг на схеме.">←</button><span id="source-position"></span><button id="source-next" class="icon-button" aria-label="Следующая связанная фраза" data-help="Перейти к следующей фразе и показать её шаг на схеме.">→</button></div>
+      <textarea id="text" placeholder="Например: клиент отправляет заявку; менеджер проверяет документы; если чего-то не хватает — просит дополнить…"></textarea>
+      <p id="source-tip" class="hint" hidden></p>
+      <button id="jev-entry" class="jev-entry" type="button" hidden data-help="Jev проверит, соответствуют ли выделенные цитаты шагам схемы, и покажет сомнительные связи.">Сверить текст и схему <span>Jev ↗</span></button>
+      <div class="generate-actions"><button id="generate" class="primary action-main" data-help="Построить редактируемую BPMN-схему по этому описанию.">Создать схему <span aria-hidden="true">→</span></button><details class="generation-settings"><summary data-help="Выбрать генерацию сразу, с уточняющими вопросами или напрямую."><span class="mode-icon" aria-hidden="true">⚙</span><span>Режим: <strong id="mode-name">Без уточнений</strong></span><span class="mode-chevron" aria-hidden="true">⌄</span></summary><label for="mode">Способ построения</label><select id="mode" aria-label="Режим генерации"><option value="two_stage" selected>Без уточнений</option><option value="guided">С уточнениями</option><option value="direct">Прямая генерация</option></select></details></div>
+      <p id="model-hint" class="model-hint" hidden>Для новой схемы нужен ключ модели в файле <code>.env</code>. Пока можно открыть готовый пример или BPMN-файл.</p>
+      <button id="show-saved" class="sample-button" hidden data-help="Показать готовую схему этого примера без обращения к модели.">Открыть готовую схему примера <span aria-hidden="true">↗</span></button>
       <div id="interview" hidden aria-live="polite"></div>
     </section>
-    <section id="steps-box">
-      <ol id="steps">
-        <li data-step="plan">Понять описание и составить план</li>
-        <li data-step="code">Построить элементы процесса</li>
-        <li data-step="sandbox">Проверить команды построения</li>
-        <li data-step="validate">Проверить связи и ветвления</li>
-        <li data-step="layout">Разместить участников и шаги</li>
-        <li data-step="xsd">Проверить формат BPMN 2.0</li>
-      </ol>
-      <div id="summary"></div>
-    </section>
-    <section id="chat-box">
-      <label>Диалог: что изменить в схеме?</label>
-      <div id="chat"></div>
-      <div class="row">
-        <input id="instruction" placeholder="Напр.: добавь проверку юристом перед подписанием договора">
-        <button id="refine">↵</button>
-      </div>
-      <p class="hint">Ассистент учитывает текущую структуру схемы. При перестроении расположение элементов пересчитывается.</p>
-    </section>
+    <section id="steps-box" class="result-section"><div id="summary" role="status"></div><details id="steps-details"><summary>Как получен результат</summary><ol id="steps"><li data-step="plan">Понять описание и составить план</li><li data-step="code">Построить элементы процесса</li><li data-step="sandbox">Проверить команды построения</li><li data-step="validate">Проверить связи и ветвления</li><li data-step="layout">Разместить участников и шаги</li><li data-step="xsd">Проверить формат BPMN 2.0</li></ol></details></section>
+    <section id="chat-box" class="edit-section" hidden><div class="section-title"><span class="eyebrow">ПРАВКИ</span><h2>Изменить словами</h2></div><div id="chat"></div><div class="edit-input"><input id="instruction" aria-label="Изменить схему" placeholder="Например, добавь согласование с юристом"><button id="refine" class="icon-button" aria-label="Применить правку" data-help="Отправить описание правки и обновить текущую схему.">→</button></div><p class="hint">Напишите, что добавить или изменить на схеме.</p></section>
   </aside>
-  <section id="center">
-    <div class="toolbar">
-      <button id="fit" title="Вписать">⤢ Вписать</button>
-      <label class="btn">Открыть .bpmn<input id="open-file" type="file" accept=".bpmn,.xml" hidden></label>
-      <button id="relayout" title="Пересчитать раскладку текущей схемы">Перераскладка</button>
-      <button id="check-xsd">Проверить XSD</button>
-      <button id="inspect-current">Проверить процесс</button>
-      <button id="simulate">▶ Проиграть</button>
-      <span class="sep"></span>
-      <button id="dl-bpmn">.bpmn</button>
-      <button id="dl-svg">SVG</button>
-      <button id="dl-png">PNG</button>
+  <section id="center" aria-label="Рабочая область BPMN">
+    <div class="workspace-toolbar">
+      <div class="workspace-heading"><span class="eyebrow">РАБОЧЕЕ ПОЛЕ</span><strong>Диаграмма</strong></div>
+      <div class="toolbar-actions">
+        <button id="navigator-toggle" class="toolbar-button" type="button" aria-controls="navigator" aria-expanded="false" data-help="Найти шаг по названию или выделить действия конкретного участника.">Найти шаг</button>
+        <button id="palette-toggle" class="toolbar-button" type="button" aria-pressed="false" data-help="Показать инструменты для добавления событий, задач, шлюзов и участников.">Инструменты</button>
+        <label class="btn toolbar-button open-button" role="button" tabindex="0" data-help="Загрузить BPMN-файл с компьютера для просмотра и редактирования.">Открыть<input id="open-file" type="file" accept=".bpmn,.xml" hidden></label>
+        <button id="dl-bpmn" class="primary export-button" data-help="Скачать редактируемый файл BPMN 2.0 XML.">Скачать BPMN</button>
+        <details class="toolbar-more"><summary data-help="Проигрывание процесса, проверки, раскладка и экспорт изображений.">Ещё</summary><div class="toolbar-menu">
+          <button id="simulate" data-help="Пошагово пройти по маршрутам процесса и проверить ветвления.">▶ Проиграть процесс</button>
+          <span class="menu-divider"></span>
+          <button id="inspect-current" data-help="Проверить текущую схему и показать замечания.">Проверить схему</button>
+          <button id="relayout" data-help="Автоматически расположить блоки и связи заново.">Переразместить</button>
+          <button id="check-xsd" data-help="Проверить XML по стандартной схеме BPMN 2.0.">Проверить формат</button>
+          <span class="menu-divider"></span>
+          <button id="dl-svg" data-help="Скачать векторное изображение схемы.">Скачать SVG</button>
+          <button id="dl-png" data-help="Скачать растровое изображение схемы.">Скачать PNG</button>
+        </div></details>
+      </div>
     </div>
+    <div id="diagram-status" class="diagram-status" hidden>
+      <div class="diagram-status-copy"><span class="diagram-status-dot" aria-hidden="true"></span><strong id="diagram-title">Схема готова</strong><span id="diagram-details"></span></div>
+      <button id="diagram-review" type="button" data-help="Открыть результаты проверки BPMN-файла, структуру процесса и замечания.">Результаты проверки <span aria-hidden="true">↗</span></button>
+    </div>
+    <div id="navigator" class="navigator" role="dialog" aria-label="Поиск по диаграмме" hidden>
+      <div class="navigator-head"><div><span class="eyebrow">НАВИГАЦИЯ</span><strong>Быстро к нужному шагу</strong></div><button id="navigator-close" class="icon-button" aria-label="Закрыть поиск" data-help="Скрыть панель поиска.">×</button></div>
+      <label for="step-search">Название шага</label><input id="step-search" type="search" autocomplete="off" placeholder="Например, проверить документы">
+      <div id="search-count" class="navigator-count" role="status">Начните вводить название шага.</div>
+      <div id="search-results" class="search-results"></div>
+      <label for="participant-filter">Показать участника</label><select id="participant-filter"><option value="">Все участники</option></select>
+      <button id="clear-navigation" class="quiet" data-help="Убрать поисковую подсветку и фокус по участнику.">Сбросить выделение</button>
+    </div>
+    <div id="nav-focus" class="nav-focus" hidden><span id="nav-focus-text"></span><button id="nav-focus-clear" class="icon-button" aria-label="Сбросить поиск и фокус по участнику" data-help="Показать все шаги схемы без фильтра.">×</button></div>
+    <div id="source-focus" class="source-focus" hidden aria-live="polite"></div>
     <div id="simulation-hint" class="notice" hidden>Нажмите ▶ у стартового события. На развилке выберите ветвь; параллельные ветви выполняются одновременно. Сроки из карточек не отсчитываются: это проверка маршрута, а не расчёт длительности.</div>
-    <div id="canvas"><div id="empty">Опишите процесс слева или выберите пример</div></div>
+    <div id="canvas"><div id="empty"><span class="empty-symbol" aria-hidden="true">◇</span><strong>Начните с готового процесса</strong><span>Откройте пример техприсоединения: участники, развилки и проверки уже на схеме.</span><button id="open-demo" type="button" class="primary" data-help="Открыть редактируемый пример техприсоединения без обращения к модели.">Открыть демо-процесс <span aria-hidden="true">→</span></button><small>Без ожидания генерации · можно сразу редактировать</small></div></div>
+    <div class="canvas-controls" aria-label="Масштаб схемы"><button id="fit" data-help="Показать всю схему целиком.">Вся схема</button><button id="read-view" data-help="Перейти к началу процесса и увеличить схему до читаемого масштаба.">К началу</button><span class="control-divider" aria-hidden="true"></span><button id="zoom-out" class="icon-button zoom-control" aria-label="Уменьшить масштаб" data-help="Уменьшить схему для обзора.">−</button><button id="zoom-in" class="icon-button zoom-control" aria-label="Увеличить масштаб" data-help="Увеличить схему, чтобы рассмотреть детали.">+</button></div>
     <div id="loading" hidden><div class="spinner"></div><span id="loading-text">Генерация…</span></div>
   </section>
-  <aside id="right">
-    <nav class="tabs">
-      <button data-tab="report" class="active">Отчёт</button>
-      <button data-tab="element">Шаг</button>
-      <button data-tab="energy">Исключения</button>
-      <button data-tab="plan">План</button>
-      <button data-tab="code">Код</button>
-      <button data-tab="attempts">Попытки</button>
-    </nav>
-    <div class="tab" id="tab-report"><p class="muted">Здесь появятся результаты проверок, допущения и вопросы к заказчику.</p></div>
-    <div class="tab" id="tab-element" hidden><p class="muted">Выберите шаг на схеме: здесь будут основание в тексте, срок и документы.</p></div>
-    <div class="tab" id="tab-energy" hidden><p class="muted">Постройте или откройте процесс, чтобы проверить исключительные ситуации.</p></div>
-    <div class="tab" id="tab-plan" hidden><pre id="plan-json" class="code"></pre></div>
-    <div class="tab" id="tab-code" hidden>
-      <textarea id="code" spellcheck="false"></textarea>
-      <button id="rebuild">Перестроить диаграмму из кода</button>
-    </div>
-    <div class="tab" id="tab-attempts" hidden><div id="attempts"></div></div>
+  <div id="panel-backdrop" hidden></div>
+  <aside id="right" aria-label="Анализ диаграммы" aria-hidden="true">
+    <div class="insights-head"><div><span class="eyebrow">ПРОЦЕСС</span><h2>Анализ схемы</h2></div><button id="insights-close" class="icon-button" aria-label="Закрыть анализ" data-help="Вернуться к диаграмме на всю ширину.">×</button></div>
+    <nav class="tabs" aria-label="Информация о процессе"><button data-tab="report" class="active" data-help="Результат проверки и вопросы к заказчику.">Обзор</button><button data-tab="element" data-help="Основание, срок и документы выбранного шага.">Шаг</button><button data-tab="coverage" data-help="Какие фразы и шаги связаны друг с другом.">Связи</button><button data-tab="energy" data-help="Исключительные ситуации и контрольные вопросы.">Риски</button><button data-tab="history" data-help="Предыдущие версии схемы в этой вкладке.">История</button></nav>
+    <div class="tab" id="tab-report"><p class="muted">Здесь появятся результаты проверок, допущения и вопросы к заказчику.</p></div><div class="tab" id="tab-element" hidden><p class="muted">Выберите шаг на схеме: здесь будут основание в тексте, срок и документы.</p></div><div class="tab" id="tab-coverage" hidden><p class="muted">После построения схемы здесь будут связи фраз с её шагами.</p></div><div class="tab" id="tab-energy" hidden><p class="muted">Постройте или откройте процесс, чтобы проверить исключительные ситуации.</p></div><div class="tab" id="tab-history" hidden><p class="muted">Изменения схемы в этой вкладке появятся здесь.</p></div><div class="tab" id="tab-plan" hidden><pre id="plan-json" class="code"></pre></div><div class="tab" id="tab-code" hidden><textarea id="code" spellcheck="false" aria-label="Код схемы"></textarea><button id="rebuild" data-help="Снова построить схему по отредактированному коду.">Перестроить из кода</button></div><div class="tab" id="tab-attempts" hidden><div id="attempts"></div></div>
+    <details class="advanced"><summary data-help="Открыть план, код и подробности генерации для технической проверки.">Технические детали</summary><div class="advanced-links"><button data-tab="plan" data-help="Показать JSON-план процесса.">План</button><button data-tab="code" data-help="Посмотреть или изменить код построения схемы.">Код</button><button data-tab="attempts" data-help="Посмотреть попытки построения и ошибки.">Попытки</button></div></details>
   </aside>
 </main>
-<script src="/static/vendor/modeler-simulation.js"></script>
-<script src="/static/app.js"></script>
-<script src="/static/assistant.js"></script>
+<div id="help-popover" role="tooltip" hidden></div>
+<script src="/static/vendor/modeler-simulation.js"></script><script src="/static/app.js"></script><script src="/static/assistant.js"></script><script src="/static/source-review.js"></script><script src="/static/workspace-ui.js"></script><script src="/static/diagram-navigation.js"></script>
 </body>
 </html>
