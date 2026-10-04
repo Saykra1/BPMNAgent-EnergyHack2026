@@ -152,6 +152,7 @@
             id: flow.id, excerpt: branch.excerpt, gateway: branch.gateway,
             condition: flow.condition, destination: flow.destination,
           }))).slice(0, 12),
+          privacy: window.privacyUI.options(),
         });
         scores = result;
         mount.querySelectorAll('.audit-score').forEach(node => node.remove());

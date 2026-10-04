@@ -43,6 +43,9 @@ def main():
                       "stats": res.stats, "assumptions": res.assumptions, "questions": res.questions,
                       "run_id": res.run_id, "duration_s": res.duration_s}
         else:
+            if not (d / "plan.json").exists():
+                print(f"{d.name}: пропущен — нет эталонного plan.json (пример для генерации через модель)")
+                continue
             plan = parse_plan((d / "plan.json").read_text("utf-8"))
             code = compile_plan(plan)
             r = build(code, plan.title)

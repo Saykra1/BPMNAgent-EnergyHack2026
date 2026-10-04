@@ -8,17 +8,21 @@ with warnings so the analyst always gets an editable diagram.
 """
 from __future__ import annotations
 
+import ast
 import json
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 
 from .bpmn.layout import layout
 from .bpmn.serializer import to_xml
 from .bpmn.validator import Issue, errors_of, format_issues_for_llm, normalize, validate
 from .bpmn.xsd import validate_xsd
+from .conflicts import add_footnotes, open_conflicts, planner_decisions
 from .llm import prompts
 from .llm.client import LLMClient, LLMError
-from .llm.plan import Plan, PlanError, compile_plan, parse_plan
+from .llm.plan import ConflictSpec, Plan, PlanError, compile_plan, extract_json, parse_plan
+from .privacy import PrivacyGuard
 from .runlog import RunLog
 from .sandbox import SandboxError, run_code
 
@@ -75,12 +79,30 @@ class PipelineResult:
     questions: list[str]
     run_id: str
     duration_s: float
-    source: str                       # llm | llm_repaired | plan_compiler | lenient
+    source: str                       # llm | llm_repaired | plan_compiler | lenient | conflict
     message: str = ""
     summary: str = ""
+    conflicts: list[dict] = field(default_factory=list)     # undecided pairs: the diagram is not built
+    resolutions: list[dict] = field(default_factory=list)   # analyst decisions applied to this result
+    privacy: dict = field(default_factory=dict)             # what was hidden from the model (no personal data)
 
     def to_dict(self) -> dict:
         return self.__dict__.copy()
+
+
+def _counts(guard: PrivacyGuard | None) -> dict:
+    """Privacy summary for meta.json: counts only."""
+    return {k: v for k, v in guard.report().items() if k != "masked_text"} if guard else {}
+
+
+def code_strings(code: str) -> str:
+    """String literals of DIAGRAM code, one per line, so names typed on the canvas are checked as text."""
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return ""
+    return "\n".join(node.value for node in ast.walk(tree)
+                     if isinstance(node, ast.Constant) and isinstance(node.value, str) and node.value.strip())
 
 
 def _strip_fences(text: str) -> str:
@@ -102,15 +124,29 @@ class Pipeline:
         self.llm_error: str | None = None     # why the LLM client could not be created
 
     # ------------------------------------------------------------------ LLM stages
+    def _open_log(self, kind: str, text: str, privacy: dict | None) -> RunLog:
+        """A run journal with its privacy guard: personal data of `text` is known before any request."""
+        log = RunLog(self.runs_dir, kind)
+        log.guard = PrivacyGuard(text, **(privacy or {}))
+        log.write("input.txt", text)
+        return log
+
     def _ask(self, log: RunLog, stage: str, system: str, messages: list[dict], json_mode=False) -> str:
+        """The only way to a model: personal data is masked before sending and restored in the answer."""
         if self.llm is None:
             raise LLMError("LLM не настроен: " + (self.llm_error or "задайте LLM_PROVIDER/LLM_API_KEY в .env"))
-        resp = self.llm.complete(system, messages, json_mode=json_mode)
-        log.llm(stage, system, messages, resp)
-        return resp.text
+        if log.guard is None:     # fail closed: a run without a guard still never sends raw text
+            log.guard = PrivacyGuard("\n".join(m["content"] for m in messages))
+        outgoing = log.guard.mask_messages(messages)
+        if log.guard.originals:
+            system += prompts.PRIVACY_NOTE
+        resp = self.llm.complete(system, outgoing, json_mode=json_mode)
+        log.llm(stage, system, outgoing, resp)
+        return log.guard.unmask(resp.text)
 
-    def plan(self, text: str, log: RunLog, attempts: list[dict]) -> Plan:
-        messages = [{"role": "user", "content": prompts.PLANNER_USER.format(text=text)}]
+    def plan(self, text: str, log: RunLog, attempts: list[dict], resolutions=()) -> Plan:
+        content = prompts.PLANNER_USER.format(text=text) + planner_decisions(resolutions)
+        messages = [{"role": "user", "content": content}]
         last_err = None
         for i in range(MAX_PLAN_REPAIRS + 1):
             answer = self._ask(log, "plan" if i == 0 else f"plan_repair_{i}", prompts.PLANNER_SYSTEM,
@@ -126,6 +162,25 @@ class Pipeline:
                 messages += [{"role": "assistant", "content": answer},
                              {"role": "user", "content": prompts.PLANNER_REPAIR.format(errors=last_err)}]
         raise PlanError(last_err or "Не удалось построить план")
+
+    def _find_conflicts(self, text: str, log: RunLog) -> list[ConflictSpec]:
+        """A narrow second look for contradictions: the planner alone misses some among all its tasks."""
+        try:
+            answer = self._ask(log, "conflicts", prompts.CONFLICT_SYSTEM,
+                              [{"role": "user", "content": prompts.PLANNER_USER.format(text=text)}], json_mode=True)
+            found = extract_json(answer).get("conflicts") or []
+            return [ConflictSpec.model_validate(c) for c in found if isinstance(c, dict)]
+        except (LLMError, PlanError, ValueError) as e:     # the planner's own check still applies
+            log.event("conflicts_failed", error=str(e)[:300])
+            return []
+
+    def _plan_and_conflicts(self, text: str, log: RunLog, attempts: list[dict], resolutions) -> tuple[Plan, list[dict]]:
+        """Plan and the contradiction check run side by side, so the check adds no waiting time."""
+        with ThreadPoolExecutor(2) as pool:
+            extra = pool.submit(self._find_conflicts, text, log)
+            plan = self.plan(text, log, attempts, resolutions)
+            self._ground_quotes(plan, text)
+            return plan, open_conflicts(plan.conflicts + extra.result(), text, resolutions)
 
     def _code_loop(self, log: RunLog, system: str, messages: list[dict], title: str,
                    attempts: list[dict]) -> tuple[BuildResult, int]:
@@ -148,19 +203,18 @@ class Pipeline:
         return result, self.max_repairs
 
     # ------------------------------------------------------------------ public entry points
-    def prepare(self, text: str) -> dict:
+    def prepare(self, text: str, resolutions=(), privacy: dict | None = None) -> dict:
         """One planning pass, exposed for analyst review before diagram construction."""
-        log = RunLog(self.runs_dir, "interview")
-        log.write("input.txt", text)
+        log = self._open_log("interview", text, privacy)
         attempts = []
         try:
-            plan = self.plan(text, log, attempts)
-            self._ground_quotes(plan, text)
+            plan, conflicts = self._plan_and_conflicts(text, log, attempts, resolutions)
             log.write("plan.json", plan.model_dump_json(indent=2, by_alias=True))
-            log.finish(ok=True)
-            return {"ok": True, "plan": plan.model_dump(by_alias=True), "run_id": log.id}
+            log.finish(ok=True, conflicts=conflicts, privacy=_counts(log.guard))
+            return {"ok": True, "plan": plan.model_dump(by_alias=True), "run_id": log.id, "conflicts": conflicts,
+                    "privacy": log.guard.report()}
         except (LLMError, PlanError) as e:
-            log.finish(ok=False, error=str(e))
+            log.finish(ok=False, error=str(e), privacy=_counts(log.guard))
             return {"ok": False, "message": str(e), "run_id": log.id}
 
     @staticmethod
@@ -170,7 +224,28 @@ class Pipeline:
                 element.source_quote = ""
                 element.assumption = (element.assumption + " Основание в исходном тексте не подтверждено.").strip()
 
-    def from_plan(self, plan: Plan, text: str = "") -> PipelineResult:
+    @staticmethod
+    def _with_footnotes(result: BuildResult, title: str, source: str, resolutions, text: str) -> BuildResult:
+        """Keep every decided contradiction on the diagram as a text annotation."""
+        if not result.xml:
+            return result
+        code = add_footnotes(result.code, resolutions, text)
+        if code == result.code:
+            return result
+        noted = build(code, title, lenient=source == "lenient")
+        return noted if noted.xml else result
+
+    def _stop_on_conflicts(self, log, t0, plan: Plan, attempts, conflicts, resolutions) -> PipelineResult:
+        """The description contradicts itself: ask the analyst instead of guessing."""
+        log.write("conflicts.json", json.dumps(conflicts, ensure_ascii=False, indent=2))
+        log.finish(ok=False, source="conflict", conflicts=conflicts, privacy=_counts(log.guard))
+        topics = "; ".join(c["topic"] for c in conflicts if c["topic"])
+        return PipelineResult(False, None, "", json.loads(plan.model_dump_json(by_alias=True)), [], [], attempts,
+                              {}, plan.assumptions, plan.questions, log.id, round(time.time() - t0, 2),
+                              "conflict", "Описание противоречит само себе" + (f": {topics}" if topics else ""),
+                              conflicts=conflicts, resolutions=list(resolutions), privacy=log.guard.report())
+
+    def from_plan(self, plan: Plan, text: str = "", resolutions=()) -> PipelineResult:
         log = RunLog(self.runs_dir, "reviewed_plan")
         t0 = time.time()
         self._ground_quotes(plan, text)
@@ -183,21 +258,27 @@ class Pipeline:
         if not result.ok:
             result = build(result.code, plan.title, lenient=True)
             source = "lenient"
-        return self._finish(log, t0, result, plan, attempts, source)
+        result = self._with_footnotes(result, plan.title, source, resolutions, text)
+        res = self._finish(log, t0, result, plan, attempts, source)
+        res.resolutions = list(resolutions)
+        return res
 
-    def generate(self, text: str, mode: str = "two_stage") -> PipelineResult:
-        log = RunLog(self.runs_dir, "generate")
-        log.write("input.txt", text)
+    def generate(self, text: str, mode: str = "two_stage", resolutions=(), privacy: dict | None = None) -> PipelineResult:
+        log = self._open_log("generate", text, privacy)
+        if resolutions:
+            log.write("resolutions.json", json.dumps(list(resolutions), ensure_ascii=False, indent=2))
         t0 = time.time()
         attempts: list[dict] = []
         plan: Plan | None = None
         title = "Процесс"
         try:
             if mode == "two_stage":
-                plan = self.plan(text, log, attempts)
-                self._ground_quotes(plan, text)
+                plan, conflicts = self._plan_and_conflicts(text, log, attempts, resolutions)
+                if conflicts:
+                    return self._stop_on_conflicts(log, t0, plan, attempts, conflicts, resolutions)
                 title = plan.title
-                plan_json = plan.model_dump_json(indent=1, by_alias=True, exclude_none=True)
+                plan_json = plan.model_dump_json(indent=1, by_alias=True, exclude_none=True,
+                                                 exclude={"conflicts"})
                 system = prompts.CODEGEN_SYSTEM
                 messages = [{"role": "user", "content": prompts.CODEGEN_USER.format(plan=plan_json)}]
             else:
@@ -206,9 +287,10 @@ class Pipeline:
             result, repairs = self._code_loop(log, system, messages, title, attempts)
             source = "llm" if repairs == 0 else "llm_repaired"
         except (LLMError, PlanError) as e:
-            log.finish(ok=False, error=str(e))
+            log.finish(ok=False, error=str(e), privacy=_counts(log.guard))
             return PipelineResult(False, None, "", plan.model_dump(by_alias=True) if plan else None, [], [],
-                                  attempts, {}, [], [], log.id, round(time.time() - t0, 2), "error", str(e))
+                                  attempts, {}, [], [], log.id, round(time.time() - t0, 2), "error", str(e),
+                                  privacy=log.guard.report())
 
         if not result.ok and plan is not None:
             compiled = compile_plan(plan)
@@ -221,11 +303,15 @@ class Pipeline:
             lenient = build(result.code, title, lenient=True)
             if lenient.xml:
                 result, source = lenient, "lenient"
-        return self._finish(log, t0, result, plan, attempts, source)
+        result = self._with_footnotes(result, title, source, resolutions, text)
+        res = self._finish(log, t0, result, plan, attempts, source)
+        res.resolutions = list(resolutions)
+        return res
 
-    def refine(self, text: str, code: str, instruction: str) -> PipelineResult:
-        log = RunLog(self.runs_dir, "refine")
-        log.write("input.txt", text)
+    def refine(self, text: str, code: str, instruction: str, privacy: dict | None = None) -> PipelineResult:
+        log = self._open_log("refine", text, privacy)
+        log.guard.learn(instruction, own=True)   # the analyst's request is a command by design
+        log.guard.learn(code_strings(code))      # labels edited by hand on the canvas are text too
         log.write("instruction.txt", instruction)
         log.write("code_before.py", code)
         t0 = time.time()
@@ -236,9 +322,9 @@ class Pipeline:
             result, repairs = self._code_loop(log, prompts.REFINE_SYSTEM, messages, "Процесс", attempts)
             source = "llm" if repairs == 0 else "llm_repaired"
         except LLMError as e:
-            log.finish(ok=False, error=str(e))
+            log.finish(ok=False, error=str(e), privacy=_counts(log.guard))
             return PipelineResult(False, None, code, None, [], [], attempts, {}, [], [], log.id,
-                                  round(time.time() - t0, 2), "error", str(e))
+                                  round(time.time() - t0, 2), "error", str(e), privacy=log.guard.report())
         if not result.ok:
             lenient = build(result.code, "Процесс", lenient=True)
             if lenient.xml:
@@ -279,8 +365,9 @@ class Pipeline:
             duration_s=round(time.time() - t0, 2),
             source=source,
             message="" if result.xml else (result.errors_for_llm() or "Не удалось построить диаграмму"),
+            privacy=log.guard.report() if log.guard else {},
         )
-        log.finish(ok=res.ok, source=source, stats=result.stats,
+        log.finish(ok=res.ok, source=source, stats=result.stats, privacy=_counts(log.guard),
                    repairs=sum(1 for a in attempts if a["stage"].startswith("repair")),
                    errors=[i.to_dict() for i in result.issues if i.level == "error"],
                    xsd_errors=result.xsd_errors)

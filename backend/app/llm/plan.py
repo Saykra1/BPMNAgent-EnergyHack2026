@@ -60,6 +60,13 @@ class GroupSpec(BaseModel):
     name: str
 
 
+class ConflictSpec(BaseModel):
+    """Two rules of the description that cannot both hold; quotes are checked against the text later."""
+    topic: str = ""
+    rule_a: str = ""
+    rule_b: str = ""
+
+
 class Plan(BaseModel):
     title: str = "Процесс"
     organization: str | None = None
@@ -70,6 +77,12 @@ class Plan(BaseModel):
     groups: list[GroupSpec] = Field(default_factory=list)
     assumptions: list[str] = Field(default_factory=list)
     questions: list[str] = Field(default_factory=list)
+    conflicts: list[ConflictSpec] = Field(default_factory=list)
+
+    @field_validator("conflicts", mode="before")
+    @classmethod
+    def _none_conflicts(cls, v):
+        return v or []
 
 
 class PlanError(ValueError):
@@ -100,7 +113,28 @@ def parse_plan(text_or_dict) -> Plan:
         msgs = [f"{'.'.join(str(x) for x in err['loc'])}: {err['msg']}" for err in e.errors()[:15]]
         raise PlanError("План не соответствует схеме:\n" + "\n".join(msgs)) from e
     check_plan(plan)
+    plan.assumptions += normalize_plan(plan)
     return plan
+
+
+def normalize_plan(plan: Plan) -> list[str]:
+    """Safe fixes of the plan; returns notes for the analyst.
+
+    A participant marked external but joined to the process by control flows is a lane, not a
+    separate pool: between pools BPMN allows only messages, so such flows would break the route.
+    """
+    owner = {e.id: e.participant for e in plan.elements}
+    external = {p.id: p for p in plan.participants if p.external}
+    notes = []
+    for f in plan.flows:
+        a, b = owner.get(f.source), owner.get(f.target)
+        for side, other in ((a, b), (b, a)):
+            if side in external and other != side:
+                participant = external.pop(side)
+                participant.external = False
+                notes.append(f"Участник «{participant.name}» показан дорожкой основного пула: его шаги связаны "
+                             "с процессом последовательно, а не сообщениями.")
+    return notes
 
 
 def check_plan(plan: Plan) -> None:

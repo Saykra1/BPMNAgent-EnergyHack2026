@@ -67,7 +67,10 @@ class _Checker(ast.NodeVisitor):
             if isinstance(stmt, ast.Assign):
                 for t in stmt.targets:
                     self.check_target(t)
-                self.check_call(stmt.value)
+                if isinstance(stmt.value, ast.Call):
+                    self.check_call(stmt.value)
+                else:                      # alias such as `lane_client = lanes[0]`: names and indexes only
+                    self.check_value(stmt.value)
             elif isinstance(stmt, ast.Expr):
                 if isinstance(stmt.value, ast.Constant) and isinstance(stmt.value.value, str):
                     continue  # docstring-like comment

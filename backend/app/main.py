@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 import json
+from typing import Annotated, Literal
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import AfterValidator, BaseModel, Field
 
 from .bpmn.importer import ImportErrorBPMN, bpmn_to_code
 from .bpmn.xsd import validate_xsd
@@ -16,6 +17,7 @@ from .pipeline import Pipeline
 from .llm.plan import parse_plan, PlanError
 from .sandbox import SandboxError
 from .insights import inspect_xml
+from .privacy import clean_text, ner_available, preview
 from .jev import JevReviewError, review_source_links, review_audit_items
 from lxml import etree
 
@@ -65,16 +67,38 @@ def _require_llm() -> Pipeline:
     return pipeline
 
 
+class PrivacyOptions(BaseModel):
+    """Analyst overrides: fragments to hide by hand and uncertain findings to send anyway."""
+    hide: list[str] = Field(default_factory=list, max_length=100)
+    show: list[str] = Field(default_factory=list, max_length=200)
+    trusted: list[str] = Field(default_factory=list, max_length=100)   # the analyst's own edits and answers
+
+
+# Invisible characters never reach the pipeline (zero-width, bidi, Unicode tag smuggling).
+CleanText = Annotated[str, AfterValidator(lambda value: clean_text(value)[0])]
+
+
+class Resolution(BaseModel):
+    """Analyst decision on a self-contradicting description: which rule is senior."""
+    topic: str = Field(default="", max_length=300)
+    rule_a: str = Field(min_length=1, max_length=3000)
+    rule_b: str = Field(min_length=1, max_length=3000)
+    chosen: Literal["a", "b", "both"]
+
+
 class GenerateRequest(BaseModel):
-    text: str = Field(min_length=10, max_length=20000)
+    text: CleanText = Field(min_length=10, max_length=20000)
     mode: str = "two_stage"          # two_stage | direct
+    resolutions: list[Resolution] = Field(default_factory=list, max_length=20)
+    privacy: PrivacyOptions = Field(default_factory=PrivacyOptions)
 
 
 class RefineRequest(BaseModel):
-    instruction: str = Field(min_length=2, max_length=4000)
+    instruction: CleanText = Field(min_length=2, max_length=4000)
     code: str = ""
     xml: str | None = None           # current (possibly hand-edited) diagram
-    text: str = ""
+    text: CleanText = ""
+    privacy: PrivacyOptions = Field(default_factory=PrivacyOptions)
 
 
 class CodeRequest(BaseModel):
@@ -87,11 +111,18 @@ class XmlRequest(BaseModel):
 
 class PlanRequest(BaseModel):
     plan: dict
-    text: str = Field(default="", max_length=30000)
+    text: CleanText = Field(default="", max_length=30000)
+    resolutions: list[Resolution] = Field(default_factory=list, max_length=20)
 
 
 class InspectRequest(XmlRequest):
+    text: CleanText = Field(default="", max_length=30000)
+    privacy: PrivacyOptions = Field(default_factory=PrivacyOptions)
+
+
+class PrivacyRequest(BaseModel):
     text: str = Field(default="", max_length=30000)
+    privacy: PrivacyOptions = Field(default_factory=PrivacyOptions)
 
 
 class AuditGap(BaseModel):
@@ -111,17 +142,27 @@ class AuditBranch(BaseModel):
 class JevAuditRequest(BaseModel):
     gaps: list[AuditGap] = Field(default_factory=list, max_length=12)
     branches: list[AuditBranch] = Field(default_factory=list, max_length=12)
+    privacy: PrivacyOptions = Field(default_factory=PrivacyOptions)
+
+
+@app.post("/api/privacy")
+def privacy_preview(req: PrivacyRequest):
+    """What the model will see. Runs locally: no request leaves the server."""
+    text, invisible = clean_text(req.text)
+    return {**preview(text, req.privacy.hide, req.privacy.show, req.privacy.trusted), "invisible": invisible,
+            "clean_text": text}
 
 
 @app.post("/api/prepare")
 def prepare(req: GenerateRequest):
-    return _require_llm().prepare(req.text)
+    return _require_llm().prepare(req.text, [r.model_dump() for r in req.resolutions], req.privacy.model_dump())
 
 
 @app.post("/api/from-plan")
 def from_plan(req: PlanRequest):
     try:
-        return _pipeline().from_plan(parse_plan(req.plan), req.text).to_dict()
+        return _pipeline().from_plan(parse_plan(req.plan), req.text,
+                                     [r.model_dump() for r in req.resolutions]).to_dict()
     except (PlanError, KeyError, ValueError) as e:
         raise HTTPException(400, str(e))
 
@@ -137,7 +178,7 @@ def inspect(req: InspectRequest):
 @app.post("/api/jev-review")
 def jev_review(req: InspectRequest):
     try:
-        return review_source_links(req.xml, req.text, get_settings())
+        return review_source_links(req.xml, req.text, get_settings(), privacy=req.privacy.model_dump())
     except JevReviewError as e:
         raise HTTPException(503, str(e))
     except (ImportErrorBPMN, SandboxError, etree.XMLSyntaxError, ValueError) as e:
@@ -148,7 +189,8 @@ def jev_review(req: InspectRequest):
 def jev_audit(req: JevAuditRequest):
     try:
         return review_audit_items([item.model_dump() for item in req.gaps],
-                                  [item.model_dump() for item in req.branches], get_settings())
+                                  [item.model_dump() for item in req.branches], get_settings(),
+                                  privacy=req.privacy.model_dump())
     except JevReviewError as e:
         raise HTTPException(503, str(e))
 
@@ -160,7 +202,8 @@ def health():
     return {"ok": True, "llm": p.llm is not None, "provider": s.llm_provider, "llm_error": _state["error"],
             "env_file": s.env_file,
             "model": getattr(p.llm, "model", None), "max_repairs": s.max_repairs,
-            "jev": s.jev_enabled and s.llm_base_url.rstrip("/") == "https://openrouter.ai/api/v1"}
+            "jev": s.jev_enabled and s.llm_base_url.rstrip("/") == "https://openrouter.ai/api/v1",
+            "privacy": {"ner": ner_available()}}
 
 
 @app.get("/api/examples")
@@ -189,7 +232,8 @@ def example_result(ex_id: str):
 
 @app.post("/api/generate")
 def generate(req: GenerateRequest):
-    res = _require_llm().generate(req.text, req.mode)
+    res = _require_llm().generate(req.text, req.mode, [r.model_dump() for r in req.resolutions],
+                                  req.privacy.model_dump())
     return res.to_dict()
 
 
@@ -204,7 +248,7 @@ def refine(req: RefineRequest):
             raise HTTPException(400, str(e))
     if not code.strip():
         raise HTTPException(400, "Нет текущей диаграммы для изменения")
-    return pipeline.refine(req.text, code, req.instruction).to_dict()
+    return pipeline.refine(req.text, code, req.instruction, req.privacy.model_dump()).to_dict()
 
 
 @app.post("/api/build")

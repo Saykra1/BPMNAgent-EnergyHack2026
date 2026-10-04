@@ -195,7 +195,7 @@
       output.textContent = 'Сверяю цитаты и шаги…';
       try {
         const { xml } = await modeler.saveXML({ format: true });
-        const result = await api('/api/jev-review', { xml, text: state.text.slice(0, 30000) });
+        const result = await api('/api/jev-review', { xml, text: state.text.slice(0, 30000), privacy: window.privacyUI.options() });
         if (!output.isConnected) return;
         const doubtful = result.items.filter(item => item.support < 0.7);
         output.innerHTML = `<p><strong>Проверено ${result.checked} из ${result.total} связей.</strong> ${doubtful.length ? `Стоит просмотреть: ${doubtful.length}.` : 'Явно сомнительных связей не найдено.'}</p>

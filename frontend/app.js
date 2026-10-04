@@ -2,7 +2,11 @@
 const $ = (s) => document.querySelector(s);
 const modeler = new BpmnJS({ container: '#canvas' });
 
-const state = { text: '', code: '', plan: null, lastResult: null, examples: [], hasDiagram: false };
+// resolutions: the analyst's choices of the senior rule for the current description (see conflicts.js)
+// privacy: analyst overrides for personal data — fragments hidden by hand and findings sent as is (see privacy.js)
+// trusted: the analyst's own edit requests and answers; they command by design and are never taken for injection.
+const state = { text: '', code: '', plan: null, lastResult: null, examples: [], hasDiagram: false, resolutions: [],
+  privacy: { hide: [], show: [], trusted: [] } };
 
 // ------------------------------------------------------------------ helpers
 async function api(path, body) {
@@ -98,7 +102,7 @@ async function showXml(xml) {
 
 function syncDiagramActions() {
   ['#dl-bpmn', '#dl-svg', '#dl-png', '#fit', '#read-view', '#zoom-in', '#zoom-out',
-    '#navigator-toggle', '#tour-toggle', '#palette-toggle', '#relayout', '#check-xsd', '#inspect-current', '#simulate']
+    '#navigator-toggle', '#tour-toggle', '#trust-toggle', '#palette-toggle', '#relayout', '#check-xsd', '#inspect-current', '#simulate']
     .forEach(selector => { $(selector).disabled = !state.hasDiagram; });
   $('#chat-box').hidden = !state.hasDiagram;
   if (!state.hasDiagram) $('#diagram-status').hidden = true;
@@ -201,27 +205,53 @@ async function applyResult(res) {
   }
 }
 
+// The description contradicts itself: nothing is drawn until the analyst picks the senior rule.
+function askSeniorRule(conflicts, retry) {
+  clearInterval(stepTimer);
+  STEPS.forEach((s) => setStep(s, ''));
+  setStep('plan', 'retry');
+  $('#summary').innerHTML = '<span class="pill warn">нужно решение</span> Описание противоречит само себе. Схема будет построена после выбора старшего правила.';
+  window.conflictGate.show(conflicts, (decided) => { state.resolutions.push(...decided); retry(); });
+}
+function resetResolutions() {
+  state.resolutions = [];
+  window.conflictGate?.clear();
+}
+
 function chat(text, cls) { const d = document.createElement('div'); d.className = 'msg ' + cls; d.textContent = text; $('#chat').append(d); $('#chat').scrollTop = 1e9; }
 
 // ------------------------------------------------------------------ actions
+// Invisible characters are removed before sending; the analyst sees the cleaned text.
+function cleanSource() {
+  const raw = $('#text').value;
+  const cleaned = window.privacyUI.clean(raw);
+  if (cleaned !== raw) { $('#text').value = cleaned; window.privacyUI.refresh(); }
+  return cleaned.trim();
+}
+
 $('#generate').onclick = async () => {
-  const text = $('#text').value.trim();
+  const text = cleanSource();
   if (text.length < 10) { alert('Опишите процесс подробнее'); return; }
   if (!await ensureModel()) return;
   // Keep the displayed source identical to the text sent to the model. Otherwise
   // a trailing newline makes the traceability reader appear stale immediately.
   $('#text').value = text;
+  window.conflictGate.clear();
   if ($('#mode').value === 'guided') { await window.agentFeatures.prepare(text); return; }
-  const mode = $('#mode').value;
-  busy(true, 'Ассистент строит схему…'); animateSteps(mode);
+  await generate(text, $('#mode').value);
+};
+async function generate(text, mode) {
+  busy(true, state.resolutions.length ? 'Строю схему с учётом вашего решения…' : 'Ассистент строит схему…'); animateSteps(mode);
   try {
-    const result = await api('/api/generate', { text, mode });
+    const result = await api('/api/generate', { text, mode, resolutions: state.resolutions, privacy: window.privacyUI.options() });
+    if (result.source === 'conflict') { askSeniorRule(result.conflicts, () => generate(text, mode)); return; }
     if (result.xml) state.text = text;
     await applyResult(result);
   }
   catch (e) { clearInterval(stepTimer); $('#summary').innerHTML = `<span class="pill err">ошибка</span> ${esc(e.message)}`; }
   finally { busy(false); }
-};
+}
+$('#text').addEventListener('input', resetResolutions);
 
 function updateModeName() {
   $('#mode-name').textContent = $('#mode').selectedOptions[0].textContent;
@@ -230,7 +260,7 @@ $('#mode').addEventListener('change', updateModeName);
 updateModeName();
 
 $('#refine').onclick = async () => {
-  const instruction = $('#instruction').value.trim();
+  const instruction = window.privacyUI.clean($('#instruction').value).trim();
   if (!instruction) return;
   if (!state.hasDiagram) { alert('Сначала постройте или откройте диаграмму'); return; }
   if (!await ensureModel()) return;
@@ -238,8 +268,12 @@ $('#refine').onclick = async () => {
   busy(true, 'Вношу изменения…'); animateSteps('direct');
   try {
     const { xml } = await modeler.saveXML({ format: true });
-    const res = await api('/api/refine', { instruction, xml, code: state.code, text: state.text });
-    if (res.xml) { state.text += '\n\nУточнение аналитика: ' + instruction; $('#text').value = state.text; }
+    const res = await api('/api/refine', { instruction, xml, code: state.code, text: state.text, privacy: window.privacyUI.options() });
+    if (res.xml) {
+      state.text += '\n\nУточнение аналитика: ' + instruction; $('#text').value = state.text;
+      state.privacy.trusted.push(instruction);
+      window.privacyUI.refresh();
+    }
     await applyResult(res);
     chat(res.xml ? (res.summary || 'Готово, схема обновлена') : ('Не получилось: ' + (res.message || '')), res.xml ? 'bot' : 'bot err');
   } catch (e) { chat('Ошибка: ' + e.message, 'bot err'); }
@@ -332,6 +366,8 @@ $('#example').onchange = () => {
   const ex = state.examples.find((x) => x.id === $('#example').value);
   if (!ex) { $('#show-saved').hidden = true; return; }
   $('#text').value = ex.text;
+  resetResolutions();
+  window.privacyUI.refresh();
   $('#show-saved').hidden = !ex.has_result;
   $('#show-saved').innerHTML = 'Открыть готовую схему примера <span aria-hidden="true">↗</span>';
   $('#show-saved').dataset.help = 'Показать готовую схему этого примера без обращения к модели.';
@@ -345,6 +381,8 @@ async function openExample(id) {
   if ([...$('#example').options].some(option => option.value === id)) $('#example').value = id;
   state.text = ex.text;
   $('#text').value = ex.text;
+  resetResolutions();
+  window.privacyUI.refresh();
   window.agentFeatures?.clearInterview();
   const r = ex.report || {};
   await applyResult({ xml: ex.xml, code: ex.code, plan: ex.plan, issues: r.issues || [], xsd_errors: r.xsd_errors || [],

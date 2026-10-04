@@ -5,6 +5,7 @@ import httpx
 
 from .config import Settings
 from .insights import inspect_xml
+from .privacy import PrivacyGuard
 
 JEV_URL = "https://openrouter.ai/api/alpha/decisions"
 TASK_KINDS = {"task", "userTask", "serviceTask", "scriptTask", "manualTask",
@@ -17,7 +18,7 @@ class JevReviewError(Exception):
 
 
 def review_source_links(xml: str, text: str, settings: Settings,
-                        transport: httpx.BaseTransport | None = None) -> dict:
+                        transport: httpx.BaseTransport | None = None, privacy: dict | None = None) -> dict:
     if not settings.jev_enabled:
         raise JevReviewError("Проверка Jev не включена в настройках сервера.")
     if not settings.llm_api_key or settings.llm_base_url.rstrip("/") != "https://openrouter.ai/api/v1":
@@ -30,7 +31,10 @@ def review_source_links(xml: str, text: str, settings: Settings,
         return {"ok": True, "model": settings.jev_model, "checked": 0, "total": 0, "items": [],
                 "note": "Нет шагов с точной цитатой из описания для смысловой сверки."}
 
-    links = {f"link_{i}": {"quote": c["source_quote"][:1200], "step": c["name"][:250]}
+    # Personal data is masked here too: Jev is a model behind an external API.
+    guard = PrivacyGuard(text, **(privacy or {}))
+    guard.learn("\n".join(c["name"] for c in selected))
+    links = {f"link_{i}": {"quote": guard.mask(c["source_quote"])[:1200], "step": guard.mask(c["name"])[:250]}
              for i, c in enumerate(selected)}
     questions = {key: {"type": "noul", "instructions":
                  f"Does the source quote in links.{key}.quote describe substantially the same process action "
@@ -68,7 +72,7 @@ def review_source_links(xml: str, text: str, settings: Settings,
 
 
 def review_audit_items(gaps: list[dict], branches: list[dict], settings: Settings,
-                       transport: httpx.BaseTransport | None = None) -> dict:
+                       transport: httpx.BaseTransport | None = None, privacy: dict | None = None) -> dict:
     """Assess bounded, user-visible audit candidates; never mutate the BPMN graph."""
     if not settings.jev_enabled:
         raise JevReviewError("Проверка Jev не включена в настройках сервера.")
@@ -80,13 +84,18 @@ def review_audit_items(gaps: list[dict], branches: list[dict], settings: Setting
     if not selected_gaps and not selected_branches:
         return {"ok": True, "gaps": [], "branches": [], "note": "Нет спорных мест для проверки."}
 
+    strings = [str(v) for item in selected_gaps for v in [item.get("fragment", ""), *item.get("candidates", [])]]
+    strings += [str(item.get(k, "")) for item in selected_branches
+                for k in ("excerpt", "gateway", "condition", "destination")]
+    guard = PrivacyGuard("\n".join(strings), **(privacy or {}))
+    mask = guard.mask
     state = {"gaps": {}, "branches": {}}
     questions = {}
     for i, item in enumerate(selected_gaps):
         key = f"gap_{i}"
         state["gaps"][key] = {
-            "requirement": str(item.get("fragment", ""))[:1000],
-            "closest_bpmn_steps": [str(v)[:180] for v in item.get("candidates", [])[:4]],
+            "requirement": mask(str(item.get("fragment", "")))[:1000],
+            "closest_bpmn_steps": [mask(str(v))[:180] for v in item.get("candidates", [])[:4]],
         }
         questions[key] = {"type": "noul", "instructions":
                           f"Is the process requirement in gaps.{key}.requirement substantively represented "
@@ -94,10 +103,10 @@ def review_audit_items(gaps: list[dict], branches: list[dict], settings: Setting
     for i, item in enumerate(selected_branches):
         key = f"branch_{i}"
         state["branches"][key] = {
-            "source_excerpt": str(item.get("excerpt", ""))[:1200],
-            "gateway": str(item.get("gateway", ""))[:180],
-            "condition": str(item.get("condition", ""))[:180],
-            "destination": str(item.get("destination", ""))[:180],
+            "source_excerpt": mask(str(item.get("excerpt", "")))[:1200],
+            "gateway": mask(str(item.get("gateway", "")))[:180],
+            "condition": mask(str(item.get("condition", "")))[:180],
+            "destination": mask(str(item.get("destination", "")))[:180],
         }
         questions[key] = {"type": "noul", "instructions":
                           f"Does branches.{key}.source_excerpt support taking this exact BPMN branch "

@@ -7,6 +7,7 @@ from lxml import etree
 from .bpmn.importer import BPMN, NS, bpmn_to_code
 from .bpmn.validator import validate
 from .bpmn.xsd import validate_xsd
+from .facts import trust, unsupported_facts
 from .sandbox import run_code
 
 GUIDANCE = {
@@ -69,6 +70,9 @@ def inspect_xml(xml: str, text: str = "") -> dict:
                       "role": d.lanes[node.lane].name if node.lane in d.lanes else "",
                       **details, "source_found": start >= 0,
                       "source_start": start, "source_end": start + len(quote) if start >= 0 else -1})
+    facts = unsupported_facts(d, text, reverse)
+    for card in cards:
+        card["trust"] = trust(card, [f for f in facts if f["owner"] == card["id"]]) if text.strip() else "neutral"
     labels = [{"id": el.get("id"), "text": el.get("name") or ""} for el in root.iter()
               if isinstance(el.tag, str) and el.tag.startswith("{" + BPMN + "}") and el.get("id")]
     context = text + " " + " ".join(v["text"] for v in labels)
@@ -82,6 +86,6 @@ def inspect_xml(xml: str, text: str = "") -> dict:
                           if isinstance(el.tag, str) and etree.QName(el).localname in
                           {"boundaryEvent", "complexGateway", "callActivity", "transaction", "adHocSubProcess",
                            "dataObjectReference", "dataStoreReference"}})
-    return {"issues": issues, "cards": cards, "energy_checks": checks,
+    return {"issues": issues, "cards": cards, "energy_checks": checks, "facts": facts,
             "xsd_errors": validate_xsd(xml), "unsupported": unsupported,
             "note": "Проверка исключений ищет упоминания, а не доказывает полноту маршрутов или соответствие нормативам."}

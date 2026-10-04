@@ -16,6 +16,7 @@ from typing import Protocol
 import httpx
 
 from ..config import Settings
+from .prompts import CONFLICT_SYSTEM
 
 
 class LLMError(RuntimeError):
@@ -317,14 +318,23 @@ class GeminiClient:
 
 
 class ScriptedClient:
-    """Returns prepared answers in order. Used by tests and the offline demo."""
+    """Returns prepared answers in order. Used by tests and the offline demo.
+
+    The contradiction check runs in parallel with the planner, so it gets its own answer
+    (`conflicts`, by default none) and its own call log instead of taking one from the queue.
+    """
     name = "scripted"
 
-    def __init__(self, answers: list[str]):
+    def __init__(self, answers: list[str], conflicts: str = '{"conflicts": []}'):
         self.answers = list(answers)
+        self.conflicts = conflicts
         self.calls: list[dict] = []
+        self.conflict_calls: list[dict] = []
 
     def complete(self, system, messages, json_mode=False, max_tokens=8000):
+        if system.startswith(CONFLICT_SYSTEM[:60]):
+            self.conflict_calls.append({"system": system, "messages": messages})
+            return LLMResponse(self.conflicts, "scripted", 0.0)
         self.calls.append({"system": system, "messages": messages})
         if not self.answers:
             raise LLMError("ScriptedClient: ответы закончились")

@@ -246,6 +246,7 @@ class _PlaneBuilder:
             x += w + COL_GAP
         content_right = x - COL_GAP + CONTENT_PAD
         self.col_left, self.col_w = col_left, col_w
+        self.content_right = content_right
 
         # loops per lane (for bottom corridor)
         loops_by_lane = defaultdict(list)
@@ -254,8 +255,12 @@ class _PlaneBuilder:
                 ls, lt = lane_of[f.source], lane_of[f.target]
                 key = ls if self._lane_index(ls) >= self._lane_index(lt) else lt
                 loops_by_lane[key].append(f.id)
-        annotated_top = {lane_of[a.target] for a in d.annotations.values()
-                         if a.target in lane_of and eng.row.get(a.target) == 0}
+        # room above the first row for annotations, so a long footnote stays inside its lane
+        annotated_top: dict[str, float] = {}
+        for a in d.annotations.values():
+            if a.target in lane_of and eng.row.get(a.target) == 0:
+                key = lane_of[a.target]
+                annotated_top[key] = max(annotated_top.get(key, 0), 55, _annotation_size(a.text)[1] - 1)
 
         # lane geometry
         rows_by_lane = defaultdict(int)
@@ -274,7 +279,7 @@ class _PlaneBuilder:
             if ln["kind"] == "blackbox":
                 h = 70
             else:
-                top = LANE_TOP + (55 if key in annotated_top else 0)
+                top = LANE_TOP + annotated_top.get(key, 0)
                 h = top + max(rows_by_lane[key], 1) * ROW_H + LANE_BOTTOM + LOOP_STEP * len(loops_by_lane[key])
                 self.lane_top[key] = y + top
             self.lane_box[key] = Bounds(0, y, 0, h)
@@ -512,12 +517,17 @@ class _PlaneBuilder:
             if a.target not in S:
                 continue
             t = S[a.target]
-            w = 150
-            lines = max(1, (len(a.text) + 23) // 24)
-            h = 14 * lines + 14
-            b = Bounds(t.cx + 10, t.y - h - 20, w, h)
+            w, h = _annotation_size(a.text)
+            x = max(t.x, min(t.cx + 10, self.content_right - w - 10))   # keep it inside the pool
+            b = Bounds(x, t.y - h - 20, w, h)
             self.p.shapes[a.id] = b
             self.p.edges[f"Association_{a.id}"] = [(t.cx, t.y), (b.x, b.bottom)]
+
+
+def _annotation_size(text: str) -> tuple[int, int]:
+    """Short notes stay narrow; long ones (contradiction footnotes) get a wider box."""
+    w, per_line = (150, 24) if len(text) <= 72 else (240, 38)
+    return w, 14 * max(1, (len(text) + per_line - 1) // per_line) + 14
 
 
 def _message_label(pts, name) -> Bounds:

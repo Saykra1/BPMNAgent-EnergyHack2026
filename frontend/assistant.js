@@ -24,6 +24,11 @@
     }
     return {};
   }
+  function writeDetails(element, next) {
+    const old = (element.businessObject.documentation || []).filter(d => !(d.text || '').startsWith(PREFIX));
+    const doc = modeler.get('moddle').create('bpmn:Documentation', { textFormat: 'application/json', text: PREFIX + JSON.stringify(next) });
+    modeler.get('modeling').updateProperties(element, { documentation: [...old, doc] });
+  }
   function renderInterview() {
     const box = $('#interview');
     box.hidden = false;
@@ -41,6 +46,7 @@
         .map(el => `${questions[+el.dataset.question]}\nОтвет: ${el.value.trim()}`);
       if (!answers.length) { $('#interview-status').textContent = 'Заполните хотя бы один ответ или постройте черновик.'; return; }
       const context = pending.text + '\n\nУточнения заказчика:\n' + answers.join('\n\n');
+      state.privacy.trusted.push(...answers);   // typed by the analyst: never taken for injection
       if (context.length > 20000) { $('#interview-status').textContent = 'Описание вместе с ответами превышает 20 000 символов. Сократите ответы.'; return; }
       await prepare(context, true);
     };
@@ -48,8 +54,9 @@
       const current = pending;
       busy(true, 'Строю схему по проверенному плану…');
       try {
-        const res = await api('/api/from-plan', { plan: current.plan, text: current.text });
+        const res = await api('/api/from-plan', { plan: current.plan, text: current.text, resolutions: state.resolutions });
         if (!res.xml) throw new Error(res.message || 'Не удалось построить план');
+        if (!res.privacy?.requests) res.privacy = current.privacy;   // the model worked only at the planning step
         state.text = current.text;
         $('#text').value = current.text;
         await applyResult(res);
@@ -62,9 +69,15 @@
   async function prepare(text, answering = false) {
     busy(true, answering ? 'Учитываю ответы заказчика…' : 'Выделяю шаги и вопросы к процессу…');
     try {
-      const res = await api('/api/prepare', { text });
+      const res = await api('/api/prepare', { text, resolutions: state.resolutions, privacy: window.privacyUI.options() });
       if (!res.ok) throw new Error(res.message || 'Не удалось подготовить план');
-      pending = { plan: res.plan, text };
+      if (res.conflicts?.length) {
+        clearInterview();
+        notice('Описание противоречит само себе. После выбора старшего правила план будет составлен заново.');
+        window.conflictGate.show(res.conflicts, (decided) => { state.resolutions.push(...decided); prepare(text, answering); });
+        return;
+      }
+      pending = { plan: res.plan, text, privacy: res.privacy };
       renderInterview();
       notice('План подготовлен. Ответьте на вопросы или постройте схему.');
     } catch (e) {
@@ -121,9 +134,7 @@
       }
       const next = { source_quote: sourceQuote, assumption: $('#detail-assumption').value.trim(),
         deadline: $('#detail-deadline').value.trim(), documents: $('#detail-documents').value.split('\n').map(s => s.trim()).filter(Boolean) };
-      const old = (element.businessObject.documentation || []).filter(d => !(d.text || '').startsWith(PREFIX));
-      const doc = modeler.get('moddle').create('bpmn:Documentation', { textFormat: 'application/json', text: PREFIX + JSON.stringify(next) });
-      modeler.get('modeling').updateProperties(element, { documentation: [...old, doc] });
+      writeDetails(element, next);
       $('#detail-status').textContent = 'Карточка сохранена в схеме.';
     };
   }
@@ -173,7 +184,11 @@
         <p class="hint">Отсутствие замечаний не доказывает полноту бизнес-процесса. Проверьте вкладку «Исключения».</p>`;
       if (state.lastResult?.assumptions?.length) report.insertAdjacentHTML('beforeend', '<h4>Допущения при построении</h4><ul class="list">' + state.lastResult.assumptions.map(x => `<li>${esc(x)}</li>`).join('') + '</ul>');
       if (state.lastResult?.questions?.length) report.insertAdjacentHTML('beforeend', '<h4>Нерешённые вопросы при построении</h4><ul class="list">' + state.lastResult.questions.map(x => `<li>${esc(x)}</li>`).join('') + '</ul>');
+      const decided = (state.lastResult?.resolutions || []).filter(r => r.chosen !== 'both');
+      if (decided.length) report.insertAdjacentHTML('beforeend', '<h4>Противоречия в описании</h4><ul class="list">' + decided.map(r => `<li>${r.topic ? esc(r.topic) + ': п' : 'П'}ринято «${esc((r.chosen === 'a' ? r.rule_a : r.rule_b).replace(/[\s.;,]+$/, ''))}». Сноска на схеме напоминает поправить текст.</li>`).join('') + '</ul>');
       report.querySelectorAll('[data-issue]').forEach(el => el.onclick = () => highlight(res.issues[+el.dataset.issue].elements));
+      window.factCheck?.onInspect(res);
+      window.privacyUI?.renderReport();
       renderEnergy();
       // Do not erase an in-progress edit while an automatic check finishes.
       if (!$('#tab-element').contains(document.activeElement)) renderCard();
@@ -193,9 +208,11 @@
   }
   window.agentFeatures = {
     prepare, clearInterview, onBusy,
+    details: { read: readDetails, write: writeDetails },
     beforeImport: () => {
       if (simulation) modeler.get('toggleMode').toggleMode(false);
       window.sourceReview?.beforeImport();
+      window.factCheck?.beforeImport();
       ++requestId; clearTimeout(timer); inspection = null; snapshot = ''; selectedId = null;
     },
     onResult: async () => { selectedId = null; snapshot = ''; inspection = null; await inspectCurrent(true); await window.sourceReview?.onResult(); }

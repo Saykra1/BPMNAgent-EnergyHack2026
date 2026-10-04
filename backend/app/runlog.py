@@ -24,6 +24,7 @@ class RunLog:
                 print(f"[bpmn-agent] Журнал запуска недоступен: {exc}")
                 self.dir = None
         self.meta: dict = {"id": self.id, "kind": kind, "started": time.time(), "events": []}
+        self.guard = None     # PrivacyGuard of this run: llm.jsonl stores exactly what left the machine
 
     def write(self, name: str, content: str) -> None:
         if self.dir:

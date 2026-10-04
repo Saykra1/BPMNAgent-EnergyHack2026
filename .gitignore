@@ -9,3 +9,5 @@ eval/results/*
 !eval/results/.gitkeep
 .venv/
 .cache/
+venv/
+.gitignore/
