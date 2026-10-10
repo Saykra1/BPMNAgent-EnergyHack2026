@@ -1,0 +1,1259 @@
+{
+	"nodes": [
+		{
+			"id": "n0",
+			"type": "text",
+			"x": 0,
+			"y": -40,
+			"width": 2900,
+			"height": 260,
+			"color": "6",
+			"text": "# 🗺 Roadmap подготовки: ML → DL → Transformers\nИди **слева направо** по колонкам и **сверху вниз** внутри колонки. Сплошные стрелки внутри колонки — порядок изучения. Цветные стрелки между колонками — «что на чём основано».\n\nНачни с [[00 План подготовки]] · Все темы списком: [[01 Карта знаний (MOC)]] · Детальные карты: [[01 Математика.canvas]] · [[02 Классический ML.canvas]] · [[03 Deep Learning.canvas]] · [[04 Трансформеры.canvas]]"
+		},
+		{
+			"id": "g1",
+			"type": "group",
+			"label": "🧮 1. Математика",
+			"x": -30,
+			"y": 240,
+			"width": 460,
+			"height": 530,
+			"color": "6"
+		},
+		{
+			"id": "n2",
+			"type": "file",
+			"file": "01 Математика/1.1 Линейная алгебра.md",
+			"x": 0,
+			"y": 300,
+			"width": 400,
+			"height": 60,
+			"color": "6"
+		},
+		{
+			"id": "n3",
+			"type": "file",
+			"file": "01 Математика/1.2 Матанализ и градиенты.md",
+			"x": 0,
+			"y": 390,
+			"width": 400,
+			"height": 60,
+			"color": "6"
+		},
+		{
+			"id": "n5",
+			"type": "file",
+			"file": "01 Математика/1.3 Теория вероятностей.md",
+			"x": 0,
+			"y": 480,
+			"width": 400,
+			"height": 60,
+			"color": "6"
+		},
+		{
+			"id": "n7",
+			"type": "file",
+			"file": "01 Математика/1.4 Статистика и MLE.md",
+			"x": 0,
+			"y": 570,
+			"width": 400,
+			"height": 60,
+			"color": "6"
+		},
+		{
+			"id": "n9",
+			"type": "file",
+			"file": "01 Математика/1.5 Оптимизация.md",
+			"x": 0,
+			"y": 660,
+			"width": 400,
+			"height": 60,
+			"color": "6"
+		},
+		{
+			"id": "g11",
+			"type": "group",
+			"label": "🧱 2. Основы ML",
+			"x": 490,
+			"y": 240,
+			"width": 460,
+			"height": 800,
+			"color": "5"
+		},
+		{
+			"id": "n12",
+			"type": "file",
+			"file": "02 Основы ML/2.1 Постановка задач ML.md",
+			"x": 520,
+			"y": 300,
+			"width": 400,
+			"height": 60,
+			"color": "5"
+		},
+		{
+			"id": "n13",
+			"type": "file",
+			"file": "02 Основы ML/2.8 Функции потерь.md",
+			"x": 520,
+			"y": 390,
+			"width": 400,
+			"height": 60,
+			"color": "5"
+		},
+		{
+			"id": "n15",
+			"type": "file",
+			"file": "02 Основы ML/2.2 Bias-Variance и переобучение.md",
+			"x": 520,
+			"y": 480,
+			"width": 400,
+			"height": 60,
+			"color": "5"
+		},
+		{
+			"id": "n17",
+			"type": "file",
+			"file": "02 Основы ML/2.3 Регуляризация.md",
+			"x": 520,
+			"y": 570,
+			"width": 400,
+			"height": 60,
+			"color": "5"
+		},
+		{
+			"id": "n19",
+			"type": "file",
+			"file": "02 Основы ML/2.4 Валидация и подбор гиперпараметров.md",
+			"x": 520,
+			"y": 660,
+			"width": 400,
+			"height": 60,
+			"color": "5"
+		},
+		{
+			"id": "n21",
+			"type": "file",
+			"file": "02 Основы ML/2.5 Метрики классификации.md",
+			"x": 520,
+			"y": 750,
+			"width": 400,
+			"height": 60,
+			"color": "5"
+		},
+		{
+			"id": "n23",
+			"type": "file",
+			"file": "02 Основы ML/2.6 Метрики регрессии и ранжирования.md",
+			"x": 520,
+			"y": 840,
+			"width": 400,
+			"height": 60,
+			"color": "5"
+		},
+		{
+			"id": "n25",
+			"type": "file",
+			"file": "02 Основы ML/2.7 Предобработка и Feature Engineering.md",
+			"x": 520,
+			"y": 930,
+			"width": 400,
+			"height": 60,
+			"color": "5"
+		},
+		{
+			"id": "g27",
+			"type": "group",
+			"label": "🌳 3. Классический ML",
+			"x": 1010,
+			"y": 240,
+			"width": 460,
+			"height": 1430,
+			"color": "4"
+		},
+		{
+			"id": "n28",
+			"type": "file",
+			"file": "03 Классический ML/3.1 Линейная регрессия.md",
+			"x": 1040,
+			"y": 300,
+			"width": 400,
+			"height": 60,
+			"color": "4"
+		},
+		{
+			"id": "n29",
+			"type": "file",
+			"file": "03 Классический ML/3.2 Логистическая регрессия.md",
+			"x": 1040,
+			"y": 390,
+			"width": 400,
+			"height": 60,
+			"color": "4"
+		},
+		{
+			"id": "n31",
+			"type": "file",
+			"file": "03 Классический ML/3.3 kNN.md",
+			"x": 1040,
+			"y": 480,
+			"width": 400,
+			"height": 60,
+			"color": "4"
+		},
+		{
+			"id": "n33",
+			"type": "file",
+			"file": "03 Классический ML/3.4 Наивный Байес.md",
+			"x": 1040,
+			"y": 570,
+			"width": 400,
+			"height": 60,
+			"color": "4"
+		},
+		{
+			"id": "n35",
+			"type": "file",
+			"file": "03 Классический ML/3.5 SVM.md",
+			"x": 1040,
+			"y": 660,
+			"width": 400,
+			"height": 60,
+			"color": "4"
+		},
+		{
+			"id": "n37",
+			"type": "file",
+			"file": "03 Классический ML/3.6 Решающие деревья.md",
+			"x": 1040,
+			"y": 750,
+			"width": 400,
+			"height": 60,
+			"color": "4"
+		},
+		{
+			"id": "n39",
+			"type": "file",
+			"file": "03 Классический ML/3.7 Бэггинг и Random Forest.md",
+			"x": 1040,
+			"y": 840,
+			"width": 400,
+			"height": 60,
+			"color": "4"
+		},
+		{
+			"id": "n41",
+			"type": "file",
+			"file": "03 Классический ML/3.8 Градиентный бустинг.md",
+			"x": 1040,
+			"y": 930,
+			"width": 400,
+			"height": 60,
+			"color": "4"
+		},
+		{
+			"id": "n43",
+			"type": "file",
+			"file": "03 Классический ML/3.9 Кластеризация.md",
+			"x": 1040,
+			"y": 1020,
+			"width": 400,
+			"height": 60,
+			"color": "4"
+		},
+		{
+			"id": "n45",
+			"type": "file",
+			"file": "03 Классический ML/3.10 Понижение размерности.md",
+			"x": 1040,
+			"y": 1110,
+			"width": 400,
+			"height": 60,
+			"color": "4"
+		},
+		{
+			"id": "n47",
+			"type": "file",
+			"file": "03 Классический ML/3.11 Поиск аномалий.md",
+			"x": 1040,
+			"y": 1200,
+			"width": 400,
+			"height": 60,
+			"color": "4"
+		},
+		{
+			"id": "n49",
+			"type": "file",
+			"file": "03 Классический ML/3.12 Рекомендательные системы.md",
+			"x": 1040,
+			"y": 1290,
+			"width": 400,
+			"height": 60,
+			"color": "4"
+		},
+		{
+			"id": "n51",
+			"type": "file",
+			"file": "03 Классический ML/3.13 Временные ряды.md",
+			"x": 1040,
+			"y": 1380,
+			"width": 400,
+			"height": 60,
+			"color": "4"
+		},
+		{
+			"id": "n53",
+			"type": "file",
+			"file": "03 Классический ML/3.14 Дисбаланс классов.md",
+			"x": 1040,
+			"y": 1470,
+			"width": 400,
+			"height": 60,
+			"color": "4"
+		},
+		{
+			"id": "n55",
+			"type": "file",
+			"file": "03 Классический ML/3.15 Интерпретируемость моделей.md",
+			"x": 1040,
+			"y": 1560,
+			"width": 400,
+			"height": 60,
+			"color": "4"
+		},
+		{
+			"id": "g57",
+			"type": "group",
+			"label": "🧠 4. Deep Learning",
+			"x": 1530,
+			"y": 240,
+			"width": 460,
+			"height": 1250,
+			"color": "3"
+		},
+		{
+			"id": "n58",
+			"type": "file",
+			"file": "04 Deep Learning/4.1 Нейрон и MLP.md",
+			"x": 1560,
+			"y": 300,
+			"width": 400,
+			"height": 60,
+			"color": "3"
+		},
+		{
+			"id": "n59",
+			"type": "file",
+			"file": "04 Deep Learning/4.2 Backpropagation.md",
+			"x": 1560,
+			"y": 390,
+			"width": 400,
+			"height": 60,
+			"color": "3"
+		},
+		{
+			"id": "n61",
+			"type": "file",
+			"file": "04 Deep Learning/4.3 Функции активации.md",
+			"x": 1560,
+			"y": 480,
+			"width": 400,
+			"height": 60,
+			"color": "3"
+		},
+		{
+			"id": "n63",
+			"type": "file",
+			"file": "04 Deep Learning/4.4 Инициализация весов.md",
+			"x": 1560,
+			"y": 570,
+			"width": 400,
+			"height": 60,
+			"color": "3"
+		},
+		{
+			"id": "n65",
+			"type": "file",
+			"file": "04 Deep Learning/4.5 Оптимизаторы.md",
+			"x": 1560,
+			"y": 660,
+			"width": 400,
+			"height": 60,
+			"color": "3"
+		},
+		{
+			"id": "n67",
+			"type": "file",
+			"file": "04 Deep Learning/4.6 Нормализация.md",
+			"x": 1560,
+			"y": 750,
+			"width": 400,
+			"height": 60,
+			"color": "3"
+		},
+		{
+			"id": "n69",
+			"type": "file",
+			"file": "04 Deep Learning/4.7 Регуляризация в DL.md",
+			"x": 1560,
+			"y": 840,
+			"width": 400,
+			"height": 60,
+			"color": "3"
+		},
+		{
+			"id": "n71",
+			"type": "file",
+			"file": "04 Deep Learning/4.8 CNN.md",
+			"x": 1560,
+			"y": 930,
+			"width": 400,
+			"height": 60,
+			"color": "3"
+		},
+		{
+			"id": "n73",
+			"type": "file",
+			"file": "04 Deep Learning/4.9 RNN, LSTM, GRU.md",
+			"x": 1560,
+			"y": 1020,
+			"width": 400,
+			"height": 60,
+			"color": "3"
+		},
+		{
+			"id": "n75",
+			"type": "file",
+			"file": "04 Deep Learning/4.10 Эмбеддинги слов.md",
+			"x": 1560,
+			"y": 1110,
+			"width": 400,
+			"height": 60,
+			"color": "3"
+		},
+		{
+			"id": "n77",
+			"type": "file",
+			"file": "04 Deep Learning/4.11 Seq2Seq и Attention.md",
+			"x": 1560,
+			"y": 1200,
+			"width": 400,
+			"height": 60,
+			"color": "3"
+		},
+		{
+			"id": "n79",
+			"type": "file",
+			"file": "04 Deep Learning/4.12 Генеративные модели.md",
+			"x": 1560,
+			"y": 1290,
+			"width": 400,
+			"height": 60,
+			"color": "3"
+		},
+		{
+			"id": "n81",
+			"type": "file",
+			"file": "04 Deep Learning/4.13 Практика обучения нейросетей.md",
+			"x": 1560,
+			"y": 1380,
+			"width": 400,
+			"height": 60,
+			"color": "3"
+		},
+		{
+			"id": "g83",
+			"type": "group",
+			"label": "⚡ 5. Трансформеры",
+			"x": 2050,
+			"y": 240,
+			"width": 460,
+			"height": 1430,
+			"color": "1"
+		},
+		{
+			"id": "n84",
+			"type": "file",
+			"file": "05 Трансформеры/5.1 Self-Attention.md",
+			"x": 2080,
+			"y": 300,
+			"width": 400,
+			"height": 60,
+			"color": "1"
+		},
+		{
+			"id": "n85",
+			"type": "file",
+			"file": "05 Трансформеры/5.2 Multi-Head Attention и маски.md",
+			"x": 2080,
+			"y": 390,
+			"width": 400,
+			"height": 60,
+			"color": "1"
+		},
+		{
+			"id": "n87",
+			"type": "file",
+			"file": "05 Трансформеры/5.3 Позиционное кодирование.md",
+			"x": 2080,
+			"y": 480,
+			"width": 400,
+			"height": 60,
+			"color": "1"
+		},
+		{
+			"id": "n89",
+			"type": "file",
+			"file": "05 Трансформеры/5.4 Архитектура Transformer.md",
+			"x": 2080,
+			"y": 570,
+			"width": 400,
+			"height": 60,
+			"color": "1"
+		},
+		{
+			"id": "n91",
+			"type": "file",
+			"file": "05 Трансформеры/5.5 Токенизация.md",
+			"x": 2080,
+			"y": 660,
+			"width": 400,
+			"height": 60,
+			"color": "1"
+		},
+		{
+			"id": "n93",
+			"type": "file",
+			"file": "05 Трансформеры/5.6 BERT и encoder-модели.md",
+			"x": 2080,
+			"y": 750,
+			"width": 400,
+			"height": 60,
+			"color": "1"
+		},
+		{
+			"id": "n95",
+			"type": "file",
+			"file": "05 Трансформеры/5.7 GPT и decoder-модели.md",
+			"x": 2080,
+			"y": 840,
+			"width": 400,
+			"height": 60,
+			"color": "1"
+		},
+		{
+			"id": "n97",
+			"type": "file",
+			"file": "05 Трансформеры/5.8 T5 и encoder-decoder.md",
+			"x": 2080,
+			"y": 930,
+			"width": 400,
+			"height": 60,
+			"color": "1"
+		},
+		{
+			"id": "n99",
+			"type": "file",
+			"file": "05 Трансформеры/5.9 Обучение LLM.md",
+			"x": 2080,
+			"y": 1020,
+			"width": 400,
+			"height": 60,
+			"color": "1"
+		},
+		{
+			"id": "n101",
+			"type": "file",
+			"file": "05 Трансформеры/5.10 Fine-tuning и PEFT.md",
+			"x": 2080,
+			"y": 1110,
+			"width": 400,
+			"height": 60,
+			"color": "1"
+		},
+		{
+			"id": "n103",
+			"type": "file",
+			"file": "05 Трансформеры/5.11 Генерация и декодирование.md",
+			"x": 2080,
+			"y": 1200,
+			"width": 400,
+			"height": 60,
+			"color": "1"
+		},
+		{
+			"id": "n105",
+			"type": "file",
+			"file": "05 Трансформеры/5.12 Эффективность и инференс.md",
+			"x": 2080,
+			"y": 1290,
+			"width": 400,
+			"height": 60,
+			"color": "1"
+		},
+		{
+			"id": "n107",
+			"type": "file",
+			"file": "05 Трансформеры/5.13 Современные LLM архитектуры.md",
+			"x": 2080,
+			"y": 1380,
+			"width": 400,
+			"height": 60,
+			"color": "1"
+		},
+		{
+			"id": "n109",
+			"type": "file",
+			"file": "05 Трансформеры/5.14 ViT и мультимодальность.md",
+			"x": 2080,
+			"y": 1470,
+			"width": 400,
+			"height": 60,
+			"color": "1"
+		},
+		{
+			"id": "n111",
+			"type": "file",
+			"file": "05 Трансформеры/5.15 RAG и агенты.md",
+			"x": 2080,
+			"y": 1560,
+			"width": 400,
+			"height": 60,
+			"color": "1"
+		},
+		{
+			"id": "g113",
+			"type": "group",
+			"label": "🎤 6. Собеседование",
+			"x": 2570,
+			"y": 240,
+			"width": 460,
+			"height": 350,
+			"color": "2"
+		},
+		{
+			"id": "n114",
+			"type": "file",
+			"file": "06 Собеседование/6.1 Вопросы и ответы.md",
+			"x": 2600,
+			"y": 300,
+			"width": 400,
+			"height": 60,
+			"color": "2"
+		},
+		{
+			"id": "n115",
+			"type": "file",
+			"file": "06 Собеседование/6.2 Код на собеседовании.md",
+			"x": 2600,
+			"y": 390,
+			"width": 400,
+			"height": 60,
+			"color": "2"
+		},
+		{
+			"id": "n117",
+			"type": "file",
+			"file": "06 Собеседование/6.3 Шпаргалка за час до.md",
+			"x": 2600,
+			"y": 480,
+			"width": 400,
+			"height": 60,
+			"color": "2"
+		}
+	],
+	"edges": [
+		{
+			"id": "e4",
+			"fromNode": "n2",
+			"fromSide": "bottom",
+			"toNode": "n3",
+			"toSide": "top"
+		},
+		{
+			"id": "e6",
+			"fromNode": "n3",
+			"fromSide": "bottom",
+			"toNode": "n5",
+			"toSide": "top"
+		},
+		{
+			"id": "e8",
+			"fromNode": "n5",
+			"fromSide": "bottom",
+			"toNode": "n7",
+			"toSide": "top"
+		},
+		{
+			"id": "e10",
+			"fromNode": "n7",
+			"fromSide": "bottom",
+			"toNode": "n9",
+			"toSide": "top"
+		},
+		{
+			"id": "e14",
+			"fromNode": "n12",
+			"fromSide": "bottom",
+			"toNode": "n13",
+			"toSide": "top"
+		},
+		{
+			"id": "e16",
+			"fromNode": "n13",
+			"fromSide": "bottom",
+			"toNode": "n15",
+			"toSide": "top"
+		},
+		{
+			"id": "e18",
+			"fromNode": "n15",
+			"fromSide": "bottom",
+			"toNode": "n17",
+			"toSide": "top"
+		},
+		{
+			"id": "e20",
+			"fromNode": "n17",
+			"fromSide": "bottom",
+			"toNode": "n19",
+			"toSide": "top"
+		},
+		{
+			"id": "e22",
+			"fromNode": "n19",
+			"fromSide": "bottom",
+			"toNode": "n21",
+			"toSide": "top"
+		},
+		{
+			"id": "e24",
+			"fromNode": "n21",
+			"fromSide": "bottom",
+			"toNode": "n23",
+			"toSide": "top"
+		},
+		{
+			"id": "e26",
+			"fromNode": "n23",
+			"fromSide": "bottom",
+			"toNode": "n25",
+			"toSide": "top"
+		},
+		{
+			"id": "e30",
+			"fromNode": "n28",
+			"fromSide": "bottom",
+			"toNode": "n29",
+			"toSide": "top"
+		},
+		{
+			"id": "e32",
+			"fromNode": "n29",
+			"fromSide": "bottom",
+			"toNode": "n31",
+			"toSide": "top"
+		},
+		{
+			"id": "e34",
+			"fromNode": "n31",
+			"fromSide": "bottom",
+			"toNode": "n33",
+			"toSide": "top"
+		},
+		{
+			"id": "e36",
+			"fromNode": "n33",
+			"fromSide": "bottom",
+			"toNode": "n35",
+			"toSide": "top"
+		},
+		{
+			"id": "e38",
+			"fromNode": "n35",
+			"fromSide": "bottom",
+			"toNode": "n37",
+			"toSide": "top"
+		},
+		{
+			"id": "e40",
+			"fromNode": "n37",
+			"fromSide": "bottom",
+			"toNode": "n39",
+			"toSide": "top"
+		},
+		{
+			"id": "e42",
+			"fromNode": "n39",
+			"fromSide": "bottom",
+			"toNode": "n41",
+			"toSide": "top"
+		},
+		{
+			"id": "e44",
+			"fromNode": "n41",
+			"fromSide": "bottom",
+			"toNode": "n43",
+			"toSide": "top"
+		},
+		{
+			"id": "e46",
+			"fromNode": "n43",
+			"fromSide": "bottom",
+			"toNode": "n45",
+			"toSide": "top"
+		},
+		{
+			"id": "e48",
+			"fromNode": "n45",
+			"fromSide": "bottom",
+			"toNode": "n47",
+			"toSide": "top"
+		},
+		{
+			"id": "e50",
+			"fromNode": "n47",
+			"fromSide": "bottom",
+			"toNode": "n49",
+			"toSide": "top"
+		},
+		{
+			"id": "e52",
+			"fromNode": "n49",
+			"fromSide": "bottom",
+			"toNode": "n51",
+			"toSide": "top"
+		},
+		{
+			"id": "e54",
+			"fromNode": "n51",
+			"fromSide": "bottom",
+			"toNode": "n53",
+			"toSide": "top"
+		},
+		{
+			"id": "e56",
+			"fromNode": "n53",
+			"fromSide": "bottom",
+			"toNode": "n55",
+			"toSide": "top"
+		},
+		{
+			"id": "e60",
+			"fromNode": "n58",
+			"fromSide": "bottom",
+			"toNode": "n59",
+			"toSide": "top"
+		},
+		{
+			"id": "e62",
+			"fromNode": "n59",
+			"fromSide": "bottom",
+			"toNode": "n61",
+			"toSide": "top"
+		},
+		{
+			"id": "e64",
+			"fromNode": "n61",
+			"fromSide": "bottom",
+			"toNode": "n63",
+			"toSide": "top"
+		},
+		{
+			"id": "e66",
+			"fromNode": "n63",
+			"fromSide": "bottom",
+			"toNode": "n65",
+			"toSide": "top"
+		},
+		{
+			"id": "e68",
+			"fromNode": "n65",
+			"fromSide": "bottom",
+			"toNode": "n67",
+			"toSide": "top"
+		},
+		{
+			"id": "e70",
+			"fromNode": "n67",
+			"fromSide": "bottom",
+			"toNode": "n69",
+			"toSide": "top"
+		},
+		{
+			"id": "e72",
+			"fromNode": "n69",
+			"fromSide": "bottom",
+			"toNode": "n71",
+			"toSide": "top"
+		},
+		{
+			"id": "e74",
+			"fromNode": "n71",
+			"fromSide": "bottom",
+			"toNode": "n73",
+			"toSide": "top"
+		},
+		{
+			"id": "e76",
+			"fromNode": "n73",
+			"fromSide": "bottom",
+			"toNode": "n75",
+			"toSide": "top"
+		},
+		{
+			"id": "e78",
+			"fromNode": "n75",
+			"fromSide": "bottom",
+			"toNode": "n77",
+			"toSide": "top"
+		},
+		{
+			"id": "e80",
+			"fromNode": "n77",
+			"fromSide": "bottom",
+			"toNode": "n79",
+			"toSide": "top"
+		},
+		{
+			"id": "e82",
+			"fromNode": "n79",
+			"fromSide": "bottom",
+			"toNode": "n81",
+			"toSide": "top"
+		},
+		{
+			"id": "e86",
+			"fromNode": "n84",
+			"fromSide": "bottom",
+			"toNode": "n85",
+			"toSide": "top"
+		},
+		{
+			"id": "e88",
+			"fromNode": "n85",
+			"fromSide": "bottom",
+			"toNode": "n87",
+			"toSide": "top"
+		},
+		{
+			"id": "e90",
+			"fromNode": "n87",
+			"fromSide": "bottom",
+			"toNode": "n89",
+			"toSide": "top"
+		},
+		{
+			"id": "e92",
+			"fromNode": "n89",
+			"fromSide": "bottom",
+			"toNode": "n91",
+			"toSide": "top"
+		},
+		{
+			"id": "e94",
+			"fromNode": "n91",
+			"fromSide": "bottom",
+			"toNode": "n93",
+			"toSide": "top"
+		},
+		{
+			"id": "e96",
+			"fromNode": "n93",
+			"fromSide": "bottom",
+			"toNode": "n95",
+			"toSide": "top"
+		},
+		{
+			"id": "e98",
+			"fromNode": "n95",
+			"fromSide": "bottom",
+			"toNode": "n97",
+			"toSide": "top"
+		},
+		{
+			"id": "e100",
+			"fromNode": "n97",
+			"fromSide": "bottom",
+			"toNode": "n99",
+			"toSide": "top"
+		},
+		{
+			"id": "e102",
+			"fromNode": "n99",
+			"fromSide": "bottom",
+			"toNode": "n101",
+			"toSide": "top"
+		},
+		{
+			"id": "e104",
+			"fromNode": "n101",
+			"fromSide": "bottom",
+			"toNode": "n103",
+			"toSide": "top"
+		},
+		{
+			"id": "e106",
+			"fromNode": "n103",
+			"fromSide": "bottom",
+			"toNode": "n105",
+			"toSide": "top"
+		},
+		{
+			"id": "e108",
+			"fromNode": "n105",
+			"fromSide": "bottom",
+			"toNode": "n107",
+			"toSide": "top"
+		},
+		{
+			"id": "e110",
+			"fromNode": "n107",
+			"fromSide": "bottom",
+			"toNode": "n109",
+			"toSide": "top"
+		},
+		{
+			"id": "e112",
+			"fromNode": "n109",
+			"fromSide": "bottom",
+			"toNode": "n111",
+			"toSide": "top"
+		},
+		{
+			"id": "e116",
+			"fromNode": "n114",
+			"fromSide": "bottom",
+			"toNode": "n115",
+			"toSide": "top"
+		},
+		{
+			"id": "e118",
+			"fromNode": "n115",
+			"fromSide": "bottom",
+			"toNode": "n117",
+			"toSide": "top"
+		},
+		{
+			"id": "e119",
+			"fromNode": "n2",
+			"fromSide": "right",
+			"toNode": "n45",
+			"toSide": "left",
+			"label": "SVD",
+			"color": "4"
+		},
+		{
+			"id": "e120",
+			"fromNode": "n2",
+			"fromSide": "right",
+			"toNode": "n28",
+			"toSide": "left",
+			"label": "матрицы",
+			"color": "4"
+		},
+		{
+			"id": "e121",
+			"fromNode": "n3",
+			"fromSide": "right",
+			"toNode": "n59",
+			"toSide": "left",
+			"label": "chain rule",
+			"color": "4"
+		},
+		{
+			"id": "e122",
+			"fromNode": "n5",
+			"fromSide": "right",
+			"toNode": "n33",
+			"toSide": "left",
+			"label": "Байес",
+			"color": "4"
+		},
+		{
+			"id": "e123",
+			"fromNode": "n5",
+			"fromSide": "right",
+			"toNode": "n13",
+			"toSide": "left",
+			"label": "CE, KL",
+			"color": "4"
+		},
+		{
+			"id": "e124",
+			"fromNode": "n7",
+			"fromSide": "right",
+			"toNode": "n13",
+			"toSide": "left",
+			"label": "MLE",
+			"color": "4"
+		},
+		{
+			"id": "e125",
+			"fromNode": "n7",
+			"fromSide": "right",
+			"toNode": "n17",
+			"toSide": "left",
+			"label": "MAP",
+			"color": "4"
+		},
+		{
+			"id": "e126",
+			"fromNode": "n9",
+			"fromSide": "right",
+			"toNode": "n35",
+			"toSide": "left",
+			"label": "KKT",
+			"color": "4"
+		},
+		{
+			"id": "e127",
+			"fromNode": "n9",
+			"fromSide": "right",
+			"toNode": "n65",
+			"toSide": "left",
+			"label": "GD",
+			"color": "4"
+		},
+		{
+			"id": "e128",
+			"fromNode": "n25",
+			"fromSide": "right",
+			"toNode": "n28",
+			"toSide": "left",
+			"color": "4"
+		},
+		{
+			"id": "e129",
+			"fromNode": "n15",
+			"fromSide": "right",
+			"toNode": "n39",
+			"toSide": "left",
+			"label": "↓variance",
+			"color": "4"
+		},
+		{
+			"id": "e130",
+			"fromNode": "n15",
+			"fromSide": "right",
+			"toNode": "n41",
+			"toSide": "left",
+			"label": "↓bias",
+			"color": "4"
+		},
+		{
+			"id": "e131",
+			"fromNode": "n29",
+			"fromSide": "right",
+			"toNode": "n58",
+			"toSide": "left",
+			"label": "нейрон = логрег",
+			"color": "4"
+		},
+		{
+			"id": "e132",
+			"fromNode": "n31",
+			"fromSide": "right",
+			"toNode": "n111",
+			"toSide": "left",
+			"label": "ANN-поиск",
+			"color": "4"
+		},
+		{
+			"id": "e133",
+			"fromNode": "n17",
+			"fromSide": "right",
+			"toNode": "n69",
+			"toSide": "left",
+			"color": "4"
+		},
+		{
+			"id": "e134",
+			"fromNode": "n59",
+			"fromSide": "right",
+			"toNode": "n73",
+			"toSide": "left",
+			"label": "BPTT",
+			"color": "4"
+		},
+		{
+			"id": "e135",
+			"fromNode": "n71",
+			"fromSide": "right",
+			"toNode": "n109",
+			"toSide": "left",
+			"label": "CNN→ViT",
+			"color": "4"
+		},
+		{
+			"id": "e136",
+			"fromNode": "n67",
+			"fromSide": "right",
+			"toNode": "n89",
+			"toSide": "left",
+			"label": "LayerNorm",
+			"color": "4"
+		},
+		{
+			"id": "e137",
+			"fromNode": "n71",
+			"fromSide": "right",
+			"toNode": "n89",
+			"toSide": "left",
+			"label": "residual",
+			"color": "4"
+		},
+		{
+			"id": "e138",
+			"fromNode": "n77",
+			"fromSide": "right",
+			"toNode": "n84",
+			"toSide": "left",
+			"label": "Attention Is All You Need",
+			"color": "4"
+		},
+		{
+			"id": "e139",
+			"fromNode": "n75",
+			"fromSide": "right",
+			"toNode": "n93",
+			"toSide": "left",
+			"label": "контекстные эмб.",
+			"color": "4"
+		},
+		{
+			"id": "e140",
+			"fromNode": "n79",
+			"fromSide": "right",
+			"toNode": "n109",
+			"toSide": "left",
+			"label": "диффузия + CLIP",
+			"color": "4"
+		},
+		{
+			"id": "e141",
+			"fromNode": "n81",
+			"fromSide": "right",
+			"toNode": "n101",
+			"toSide": "left",
+			"label": "transfer",
+			"color": "4"
+		},
+		{
+			"id": "e142",
+			"fromNode": "n49",
+			"fromSide": "right",
+			"toNode": "n111",
+			"toSide": "left",
+			"label": "two-tower",
+			"color": "4"
+		},
+		{
+			"id": "e143",
+			"fromNode": "n21",
+			"fromSide": "right",
+			"toNode": "n114",
+			"toSide": "left",
+			"color": "4"
+		}
+	]
+}

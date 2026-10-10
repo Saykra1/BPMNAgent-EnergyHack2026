@@ -1,0 +1,650 @@
+{
+	"nodes": [
+		{
+			"id": "n317",
+			"type": "text",
+			"x": 0,
+			"y": -220,
+			"width": 1500,
+			"height": 160,
+			"color": "6",
+			"text": "# ⚡ Трансформеры и LLM\nМеханизм (attention, головы, позиции) → архитектура → токенизация → семейства (BERT/GPT/T5) → обучение LLM → адаптация (LoRA) → генерация → инференс → современные модели → мультимодальность → RAG. ← [[Roadmap.canvas]]"
+		},
+		{
+			"id": "n318",
+			"type": "file",
+			"file": "05 Трансформеры/5.1 Self-Attention.md",
+			"x": 0,
+			"y": 0,
+			"width": 400,
+			"height": 160,
+			"color": "1"
+		},
+		{
+			"id": "n319",
+			"type": "text",
+			"x": 420,
+			"y": 20,
+			"width": 260,
+			"height": 120,
+			"text": "**1.** softmax(QKᵀ/√d)V, O(n²)"
+		},
+		{
+			"id": "n321",
+			"type": "file",
+			"file": "05 Трансформеры/5.2 Multi-Head Attention и маски.md",
+			"x": 760,
+			"y": 0,
+			"width": 400,
+			"height": 160,
+			"color": "1"
+		},
+		{
+			"id": "n322",
+			"type": "text",
+			"x": 1180,
+			"y": 20,
+			"width": 260,
+			"height": 120,
+			"text": "**2.** головы, causal mask, GQA"
+		},
+		{
+			"id": "n325",
+			"type": "file",
+			"file": "05 Трансформеры/5.3 Позиционное кодирование.md",
+			"x": 1520,
+			"y": 0,
+			"width": 400,
+			"height": 160,
+			"color": "1"
+		},
+		{
+			"id": "n326",
+			"type": "text",
+			"x": 1940,
+			"y": 20,
+			"width": 260,
+			"height": 120,
+			"text": "**3.** sin, learned, RoPE, ALiBi"
+		},
+		{
+			"id": "n329",
+			"type": "file",
+			"file": "05 Трансформеры/5.4 Архитектура Transformer.md",
+			"x": 1520,
+			"y": 230,
+			"width": 400,
+			"height": 160,
+			"color": "1"
+		},
+		{
+			"id": "n330",
+			"type": "text",
+			"x": 1940,
+			"y": 250,
+			"width": 260,
+			"height": 120,
+			"text": "**4.** блок, FFN, residual, LN, 12d²"
+		},
+		{
+			"id": "n333",
+			"type": "file",
+			"file": "05 Трансформеры/5.5 Токенизация.md",
+			"x": 760,
+			"y": 230,
+			"width": 400,
+			"height": 160,
+			"color": "1"
+		},
+		{
+			"id": "n334",
+			"type": "text",
+			"x": 1180,
+			"y": 250,
+			"width": 260,
+			"height": 120,
+			"text": "**5.** BPE, WordPiece, Unigram"
+		},
+		{
+			"id": "n337",
+			"type": "file",
+			"file": "05 Трансформеры/5.6 BERT и encoder-модели.md",
+			"x": 0,
+			"y": 230,
+			"width": 400,
+			"height": 160,
+			"color": "1"
+		},
+		{
+			"id": "n338",
+			"type": "text",
+			"x": 420,
+			"y": 250,
+			"width": 260,
+			"height": 120,
+			"text": "**6.** MLM 80/10/10, [CLS], RoBERTa"
+		},
+		{
+			"id": "n341",
+			"type": "file",
+			"file": "05 Трансформеры/5.7 GPT и decoder-модели.md",
+			"x": 0,
+			"y": 460,
+			"width": 400,
+			"height": 160,
+			"color": "1"
+		},
+		{
+			"id": "n342",
+			"type": "text",
+			"x": 420,
+			"y": 480,
+			"width": 260,
+			"height": 120,
+			"text": "**7.** next token, ICL, CoT"
+		},
+		{
+			"id": "n345",
+			"type": "file",
+			"file": "05 Трансформеры/5.8 T5 и encoder-decoder.md",
+			"x": 760,
+			"y": 460,
+			"width": 400,
+			"height": 160,
+			"color": "1"
+		},
+		{
+			"id": "n346",
+			"type": "text",
+			"x": 1180,
+			"y": 480,
+			"width": 260,
+			"height": 120,
+			"text": "**8.** text-to-text, span corruption"
+		},
+		{
+			"id": "n349",
+			"type": "file",
+			"file": "05 Трансформеры/5.9 Обучение LLM.md",
+			"x": 1520,
+			"y": 460,
+			"width": 400,
+			"height": 160,
+			"color": "1"
+		},
+		{
+			"id": "n350",
+			"type": "text",
+			"x": 1940,
+			"y": 480,
+			"width": 260,
+			"height": 120,
+			"text": "**9.** pretrain→SFT→RLHF/DPO, scaling"
+		},
+		{
+			"id": "n353",
+			"type": "file",
+			"file": "05 Трансформеры/5.10 Fine-tuning и PEFT.md",
+			"x": 1520,
+			"y": 690,
+			"width": 400,
+			"height": 160,
+			"color": "1"
+		},
+		{
+			"id": "n354",
+			"type": "text",
+			"x": 1940,
+			"y": 710,
+			"width": 260,
+			"height": 120,
+			"text": "**10.** LoRA, QLoRA, адаптеры"
+		},
+		{
+			"id": "n357",
+			"type": "file",
+			"file": "05 Трансформеры/5.11 Генерация и декодирование.md",
+			"x": 760,
+			"y": 690,
+			"width": 400,
+			"height": 160,
+			"color": "1"
+		},
+		{
+			"id": "n358",
+			"type": "text",
+			"x": 1180,
+			"y": 710,
+			"width": 260,
+			"height": 120,
+			"text": "**11.** greedy, beam, T, top-k/p"
+		},
+		{
+			"id": "n361",
+			"type": "file",
+			"file": "05 Трансформеры/5.12 Эффективность и инференс.md",
+			"x": 0,
+			"y": 690,
+			"width": 400,
+			"height": 160,
+			"color": "1"
+		},
+		{
+			"id": "n362",
+			"type": "text",
+			"x": 420,
+			"y": 710,
+			"width": 260,
+			"height": 120,
+			"text": "**12.** KV-cache, FlashAttn, квантизация, MoE"
+		},
+		{
+			"id": "n365",
+			"type": "file",
+			"file": "05 Трансформеры/5.13 Современные LLM архитектуры.md",
+			"x": 0,
+			"y": 920,
+			"width": 400,
+			"height": 160,
+			"color": "1"
+		},
+		{
+			"id": "n366",
+			"type": "text",
+			"x": 420,
+			"y": 940,
+			"width": 260,
+			"height": 120,
+			"text": "**13.** RMSNorm, SwiGLU, RoPE, GQA"
+		},
+		{
+			"id": "n369",
+			"type": "file",
+			"file": "05 Трансформеры/5.14 ViT и мультимодальность.md",
+			"x": 760,
+			"y": 920,
+			"width": 400,
+			"height": 160,
+			"color": "1"
+		},
+		{
+			"id": "n370",
+			"type": "text",
+			"x": 1180,
+			"y": 940,
+			"width": 260,
+			"height": 120,
+			"text": "**14.** патчи, CLIP, VLM"
+		},
+		{
+			"id": "n373",
+			"type": "file",
+			"file": "05 Трансформеры/5.15 RAG и агенты.md",
+			"x": 1520,
+			"y": 920,
+			"width": 400,
+			"height": 160,
+			"color": "1"
+		},
+		{
+			"id": "n374",
+			"type": "text",
+			"x": 1940,
+			"y": 940,
+			"width": 260,
+			"height": 120,
+			"text": "**15.** retrieval, rerank, tools"
+		},
+		{
+			"id": "n377",
+			"type": "file",
+			"file": "06 Собеседование/6.1 Вопросы и ответы.md",
+			"x": 1520,
+			"y": 1150,
+			"width": 400,
+			"height": 160,
+			"color": "2"
+		},
+		{
+			"id": "n378",
+			"type": "text",
+			"x": 1940,
+			"y": 1170,
+			"width": 260,
+			"height": 120,
+			"text": "**16.** вопросы + ML system design"
+		},
+		{
+			"id": "n381",
+			"type": "file",
+			"file": "06 Собеседование/6.2 Код на собеседовании.md",
+			"x": 760,
+			"y": 1150,
+			"width": 400,
+			"height": 160,
+			"color": "2"
+		},
+		{
+			"id": "n382",
+			"type": "text",
+			"x": 1180,
+			"y": 1170,
+			"width": 260,
+			"height": 120,
+			"text": "**17.** NumPy/PyTorch с нуля"
+		},
+		{
+			"id": "n385",
+			"type": "file",
+			"file": "06 Собеседование/6.3 Шпаргалка за час до.md",
+			"x": 0,
+			"y": 1150,
+			"width": 400,
+			"height": 160,
+			"color": "2"
+		},
+		{
+			"id": "n386",
+			"type": "text",
+			"x": 420,
+			"y": 1170,
+			"width": 260,
+			"height": 120,
+			"text": "**18.** формулы и «почему»"
+		},
+		{
+			"id": "n389",
+			"type": "text",
+			"x": 0,
+			"y": 1420,
+			"width": 700,
+			"height": 420,
+			"color": "5",
+			"text": "## Attention\n$$\\text{softmax}\\left(\\frac{QK^\\top}{\\sqrt{d_k}}\\right)V$$\n- √d_k: дисперсия q·k = d_k\n- O(n²) время и память\n- causal mask: −∞ над диагональю\n- MHA → GQA → MQA (KV-кэш ↓)"
+		},
+		{
+			"id": "n390",
+			"type": "text",
+			"x": 760,
+			"y": 1420,
+			"width": 700,
+			"height": 420,
+			"color": "5",
+			"text": "## Три семейства\n```\nEncoder (BERT): MLM, bi\n  → классиф., NER, эмбеддинги\nDecoder (GPT): next token, causal\n  → генерация, чат, LLM\nEnc-Dec (T5): span corruption\n  → перевод, суммаризация\n```"
+		},
+		{
+			"id": "n391",
+			"type": "text",
+			"x": 1520,
+			"y": 1420,
+			"width": 700,
+			"height": 420,
+			"color": "5",
+			"text": "## Жизненный цикл LLM\n```\nPretrain (next token, T токенов)\n  → SFT (инструкции)\n  → RLHF (RM + PPO + KL) / DPO\n  → RL reasoning (GRPO)\n  → LoRA под задачу\n  → квантизация + vLLM\n  → RAG + агенты\n```"
+		}
+	],
+	"edges": [
+		{
+			"id": "e320",
+			"fromNode": "n318",
+			"fromSide": "right",
+			"toNode": "n319",
+			"toSide": "left"
+		},
+		{
+			"id": "e323",
+			"fromNode": "n321",
+			"fromSide": "right",
+			"toNode": "n322",
+			"toSide": "left"
+		},
+		{
+			"id": "e324",
+			"fromNode": "n318",
+			"fromSide": "top",
+			"toNode": "n321",
+			"toSide": "top",
+			"color": "1"
+		},
+		{
+			"id": "e327",
+			"fromNode": "n325",
+			"fromSide": "right",
+			"toNode": "n326",
+			"toSide": "left"
+		},
+		{
+			"id": "e328",
+			"fromNode": "n321",
+			"fromSide": "top",
+			"toNode": "n325",
+			"toSide": "top",
+			"color": "1"
+		},
+		{
+			"id": "e331",
+			"fromNode": "n329",
+			"fromSide": "right",
+			"toNode": "n330",
+			"toSide": "left"
+		},
+		{
+			"id": "e332",
+			"fromNode": "n325",
+			"fromSide": "bottom",
+			"toNode": "n329",
+			"toSide": "top",
+			"color": "1"
+		},
+		{
+			"id": "e335",
+			"fromNode": "n333",
+			"fromSide": "right",
+			"toNode": "n334",
+			"toSide": "left"
+		},
+		{
+			"id": "e336",
+			"fromNode": "n329",
+			"fromSide": "bottom",
+			"toNode": "n333",
+			"toSide": "bottom",
+			"color": "1"
+		},
+		{
+			"id": "e339",
+			"fromNode": "n337",
+			"fromSide": "right",
+			"toNode": "n338",
+			"toSide": "left"
+		},
+		{
+			"id": "e340",
+			"fromNode": "n333",
+			"fromSide": "bottom",
+			"toNode": "n337",
+			"toSide": "bottom",
+			"color": "1"
+		},
+		{
+			"id": "e343",
+			"fromNode": "n341",
+			"fromSide": "right",
+			"toNode": "n342",
+			"toSide": "left"
+		},
+		{
+			"id": "e344",
+			"fromNode": "n337",
+			"fromSide": "bottom",
+			"toNode": "n341",
+			"toSide": "top",
+			"color": "1"
+		},
+		{
+			"id": "e347",
+			"fromNode": "n345",
+			"fromSide": "right",
+			"toNode": "n346",
+			"toSide": "left"
+		},
+		{
+			"id": "e348",
+			"fromNode": "n341",
+			"fromSide": "top",
+			"toNode": "n345",
+			"toSide": "top",
+			"color": "1"
+		},
+		{
+			"id": "e351",
+			"fromNode": "n349",
+			"fromSide": "right",
+			"toNode": "n350",
+			"toSide": "left"
+		},
+		{
+			"id": "e352",
+			"fromNode": "n345",
+			"fromSide": "top",
+			"toNode": "n349",
+			"toSide": "top",
+			"color": "1"
+		},
+		{
+			"id": "e355",
+			"fromNode": "n353",
+			"fromSide": "right",
+			"toNode": "n354",
+			"toSide": "left"
+		},
+		{
+			"id": "e356",
+			"fromNode": "n349",
+			"fromSide": "bottom",
+			"toNode": "n353",
+			"toSide": "top",
+			"color": "1"
+		},
+		{
+			"id": "e359",
+			"fromNode": "n357",
+			"fromSide": "right",
+			"toNode": "n358",
+			"toSide": "left"
+		},
+		{
+			"id": "e360",
+			"fromNode": "n353",
+			"fromSide": "bottom",
+			"toNode": "n357",
+			"toSide": "bottom",
+			"color": "1"
+		},
+		{
+			"id": "e363",
+			"fromNode": "n361",
+			"fromSide": "right",
+			"toNode": "n362",
+			"toSide": "left"
+		},
+		{
+			"id": "e364",
+			"fromNode": "n357",
+			"fromSide": "bottom",
+			"toNode": "n361",
+			"toSide": "bottom",
+			"color": "1"
+		},
+		{
+			"id": "e367",
+			"fromNode": "n365",
+			"fromSide": "right",
+			"toNode": "n366",
+			"toSide": "left"
+		},
+		{
+			"id": "e368",
+			"fromNode": "n361",
+			"fromSide": "bottom",
+			"toNode": "n365",
+			"toSide": "top",
+			"color": "1"
+		},
+		{
+			"id": "e371",
+			"fromNode": "n369",
+			"fromSide": "right",
+			"toNode": "n370",
+			"toSide": "left"
+		},
+		{
+			"id": "e372",
+			"fromNode": "n365",
+			"fromSide": "top",
+			"toNode": "n369",
+			"toSide": "top",
+			"color": "1"
+		},
+		{
+			"id": "e375",
+			"fromNode": "n373",
+			"fromSide": "right",
+			"toNode": "n374",
+			"toSide": "left"
+		},
+		{
+			"id": "e376",
+			"fromNode": "n369",
+			"fromSide": "top",
+			"toNode": "n373",
+			"toSide": "top",
+			"color": "1"
+		},
+		{
+			"id": "e379",
+			"fromNode": "n377",
+			"fromSide": "right",
+			"toNode": "n378",
+			"toSide": "left"
+		},
+		{
+			"id": "e380",
+			"fromNode": "n373",
+			"fromSide": "bottom",
+			"toNode": "n377",
+			"toSide": "top",
+			"color": "2"
+		},
+		{
+			"id": "e383",
+			"fromNode": "n381",
+			"fromSide": "right",
+			"toNode": "n382",
+			"toSide": "left"
+		},
+		{
+			"id": "e384",
+			"fromNode": "n377",
+			"fromSide": "bottom",
+			"toNode": "n381",
+			"toSide": "bottom",
+			"color": "2"
+		},
+		{
+			"id": "e387",
+			"fromNode": "n385",
+			"fromSide": "right",
+			"toNode": "n386",
+			"toSide": "left"
+		},
+		{
+			"id": "e388",
+			"fromNode": "n381",
+			"fromSide": "bottom",
+			"toNode": "n385",
+			"toSide": "bottom",
+			"color": "2"
+		}
+	]
+}

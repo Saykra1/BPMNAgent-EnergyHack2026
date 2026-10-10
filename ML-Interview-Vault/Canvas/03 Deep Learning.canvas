@@ -1,0 +1,480 @@
+{
+	"nodes": [
+		{
+			"id": "n262",
+			"type": "text",
+			"x": 0,
+			"y": -220,
+			"width": 1500,
+			"height": 160,
+			"color": "6",
+			"text": "# 🧠 Deep Learning\nОт нейрона к обучению сети (backprop, init, оптимизаторы, нормализация, регуляризация), затем архитектуры (CNN, RNN), эмбеддинги и attention — мост к трансформерам. ← [[Roadmap.canvas]]"
+		},
+		{
+			"id": "n263",
+			"type": "file",
+			"file": "04 Deep Learning/4.1 Нейрон и MLP.md",
+			"x": 0,
+			"y": 0,
+			"width": 400,
+			"height": 160,
+			"color": "3"
+		},
+		{
+			"id": "n264",
+			"type": "text",
+			"x": 420,
+			"y": 20,
+			"width": 260,
+			"height": 120,
+			"text": "**1.** нейрон=логрег, слои, softmax"
+		},
+		{
+			"id": "n266",
+			"type": "file",
+			"file": "04 Deep Learning/4.2 Backpropagation.md",
+			"x": 760,
+			"y": 0,
+			"width": 400,
+			"height": 160,
+			"color": "3"
+		},
+		{
+			"id": "n267",
+			"type": "text",
+			"x": 1180,
+			"y": 20,
+			"width": 260,
+			"height": 120,
+			"text": "**2.** chain rule, vanishing/exploding"
+		},
+		{
+			"id": "n270",
+			"type": "file",
+			"file": "04 Deep Learning/4.3 Функции активации.md",
+			"x": 1520,
+			"y": 0,
+			"width": 400,
+			"height": 160,
+			"color": "3"
+		},
+		{
+			"id": "n271",
+			"type": "text",
+			"x": 1940,
+			"y": 20,
+			"width": 260,
+			"height": 120,
+			"text": "**3.** ReLU, GELU, SwiGLU, sigmoid"
+		},
+		{
+			"id": "n274",
+			"type": "file",
+			"file": "04 Deep Learning/4.4 Инициализация весов.md",
+			"x": 1520,
+			"y": 230,
+			"width": 400,
+			"height": 160,
+			"color": "3"
+		},
+		{
+			"id": "n275",
+			"type": "text",
+			"x": 1940,
+			"y": 250,
+			"width": 260,
+			"height": 120,
+			"text": "**4.** симметрия, Xavier, He"
+		},
+		{
+			"id": "n278",
+			"type": "file",
+			"file": "04 Deep Learning/4.5 Оптимизаторы.md",
+			"x": 760,
+			"y": 230,
+			"width": 400,
+			"height": 160,
+			"color": "3"
+		},
+		{
+			"id": "n279",
+			"type": "text",
+			"x": 1180,
+			"y": 250,
+			"width": 260,
+			"height": 120,
+			"text": "**5.** Momentum, Adam, AdamW, warmup"
+		},
+		{
+			"id": "n282",
+			"type": "file",
+			"file": "04 Deep Learning/4.6 Нормализация.md",
+			"x": 0,
+			"y": 230,
+			"width": 400,
+			"height": 160,
+			"color": "3"
+		},
+		{
+			"id": "n283",
+			"type": "text",
+			"x": 420,
+			"y": 250,
+			"width": 260,
+			"height": 120,
+			"text": "**6.** BatchNorm, LayerNorm, RMSNorm"
+		},
+		{
+			"id": "n286",
+			"type": "file",
+			"file": "04 Deep Learning/4.7 Регуляризация в DL.md",
+			"x": 0,
+			"y": 460,
+			"width": 400,
+			"height": 160,
+			"color": "3"
+		},
+		{
+			"id": "n287",
+			"type": "text",
+			"x": 420,
+			"y": 480,
+			"width": 260,
+			"height": 120,
+			"text": "**7.** dropout, аугментации, label smoothing"
+		},
+		{
+			"id": "n290",
+			"type": "file",
+			"file": "04 Deep Learning/4.8 CNN.md",
+			"x": 760,
+			"y": 460,
+			"width": 400,
+			"height": 160,
+			"color": "3"
+		},
+		{
+			"id": "n291",
+			"type": "text",
+			"x": 1180,
+			"y": 480,
+			"width": 260,
+			"height": 120,
+			"text": "**8.** свёртка, pooling, ResNet"
+		},
+		{
+			"id": "n294",
+			"type": "file",
+			"file": "04 Deep Learning/4.9 RNN, LSTM, GRU.md",
+			"x": 1520,
+			"y": 460,
+			"width": 400,
+			"height": 160,
+			"color": "3"
+		},
+		{
+			"id": "n295",
+			"type": "text",
+			"x": 1940,
+			"y": 480,
+			"width": 260,
+			"height": 120,
+			"text": "**9.** BPTT, гейты, cell state"
+		},
+		{
+			"id": "n298",
+			"type": "file",
+			"file": "04 Deep Learning/4.10 Эмбеддинги слов.md",
+			"x": 1520,
+			"y": 690,
+			"width": 400,
+			"height": 160,
+			"color": "3"
+		},
+		{
+			"id": "n299",
+			"type": "text",
+			"x": 1940,
+			"y": 710,
+			"width": 260,
+			"height": 120,
+			"text": "**10.** word2vec, GloVe, FastText"
+		},
+		{
+			"id": "n302",
+			"type": "file",
+			"file": "04 Deep Learning/4.11 Seq2Seq и Attention.md",
+			"x": 760,
+			"y": 690,
+			"width": 400,
+			"height": 160,
+			"color": "3"
+		},
+		{
+			"id": "n303",
+			"type": "text",
+			"x": 1180,
+			"y": 710,
+			"width": 260,
+			"height": 120,
+			"text": "**11.** bottleneck → attention, Q/K/V"
+		},
+		{
+			"id": "n306",
+			"type": "file",
+			"file": "04 Deep Learning/4.12 Генеративные модели.md",
+			"x": 0,
+			"y": 690,
+			"width": 400,
+			"height": 160,
+			"color": "3"
+		},
+		{
+			"id": "n307",
+			"type": "text",
+			"x": 420,
+			"y": 710,
+			"width": 260,
+			"height": 120,
+			"text": "**12.** AE, VAE, GAN, Diffusion"
+		},
+		{
+			"id": "n310",
+			"type": "file",
+			"file": "04 Deep Learning/4.13 Практика обучения нейросетей.md",
+			"x": 0,
+			"y": 920,
+			"width": 400,
+			"height": 160,
+			"color": "3"
+		},
+		{
+			"id": "n311",
+			"type": "text",
+			"x": 420,
+			"y": 940,
+			"width": 260,
+			"height": 120,
+			"text": "**13.** transfer, отладка, mixed precision"
+		},
+		{
+			"id": "n314",
+			"type": "text",
+			"x": 0,
+			"y": 1190,
+			"width": 700,
+			"height": 420,
+			"color": "5",
+			"text": "## Цикл обучения\n```\nbatch → forward → loss\n  ↑                 ↓\nstep ← optimizer ← backward\n```\n`zero_grad → loss.backward() → step()`\n\n`model.eval()` для Dropout/BN!"
+		},
+		{
+			"id": "n315",
+			"type": "text",
+			"x": 760,
+			"y": 1190,
+			"width": 700,
+			"height": 420,
+			"color": "5",
+			"text": "## Против vanishing gradients\n- ReLU / GELU\n- Residual connections\n- BatchNorm / LayerNorm\n- He / Xavier init\n- LSTM / GRU\n- (exploding) gradient clipping"
+		},
+		{
+			"id": "n316",
+			"type": "text",
+			"x": 1520,
+			"y": 1190,
+			"width": 700,
+			"height": 420,
+			"color": "5",
+			"text": "## Эволюция для текста\n```\nRNN → LSTM/GRU\n  → Seq2Seq (bottleneck)\n  → + Attention\n  → Transformer\n```\nWord2Vec → ELMo → BERT"
+		}
+	],
+	"edges": [
+		{
+			"id": "e265",
+			"fromNode": "n263",
+			"fromSide": "right",
+			"toNode": "n264",
+			"toSide": "left"
+		},
+		{
+			"id": "e268",
+			"fromNode": "n266",
+			"fromSide": "right",
+			"toNode": "n267",
+			"toSide": "left"
+		},
+		{
+			"id": "e269",
+			"fromNode": "n263",
+			"fromSide": "top",
+			"toNode": "n266",
+			"toSide": "top",
+			"color": "3"
+		},
+		{
+			"id": "e272",
+			"fromNode": "n270",
+			"fromSide": "right",
+			"toNode": "n271",
+			"toSide": "left"
+		},
+		{
+			"id": "e273",
+			"fromNode": "n266",
+			"fromSide": "top",
+			"toNode": "n270",
+			"toSide": "top",
+			"color": "3"
+		},
+		{
+			"id": "e276",
+			"fromNode": "n274",
+			"fromSide": "right",
+			"toNode": "n275",
+			"toSide": "left"
+		},
+		{
+			"id": "e277",
+			"fromNode": "n270",
+			"fromSide": "bottom",
+			"toNode": "n274",
+			"toSide": "top",
+			"color": "3"
+		},
+		{
+			"id": "e280",
+			"fromNode": "n278",
+			"fromSide": "right",
+			"toNode": "n279",
+			"toSide": "left"
+		},
+		{
+			"id": "e281",
+			"fromNode": "n274",
+			"fromSide": "bottom",
+			"toNode": "n278",
+			"toSide": "bottom",
+			"color": "3"
+		},
+		{
+			"id": "e284",
+			"fromNode": "n282",
+			"fromSide": "right",
+			"toNode": "n283",
+			"toSide": "left"
+		},
+		{
+			"id": "e285",
+			"fromNode": "n278",
+			"fromSide": "bottom",
+			"toNode": "n282",
+			"toSide": "bottom",
+			"color": "3"
+		},
+		{
+			"id": "e288",
+			"fromNode": "n286",
+			"fromSide": "right",
+			"toNode": "n287",
+			"toSide": "left"
+		},
+		{
+			"id": "e289",
+			"fromNode": "n282",
+			"fromSide": "bottom",
+			"toNode": "n286",
+			"toSide": "top",
+			"color": "3"
+		},
+		{
+			"id": "e292",
+			"fromNode": "n290",
+			"fromSide": "right",
+			"toNode": "n291",
+			"toSide": "left"
+		},
+		{
+			"id": "e293",
+			"fromNode": "n286",
+			"fromSide": "top",
+			"toNode": "n290",
+			"toSide": "top",
+			"color": "3"
+		},
+		{
+			"id": "e296",
+			"fromNode": "n294",
+			"fromSide": "right",
+			"toNode": "n295",
+			"toSide": "left"
+		},
+		{
+			"id": "e297",
+			"fromNode": "n290",
+			"fromSide": "top",
+			"toNode": "n294",
+			"toSide": "top",
+			"color": "3"
+		},
+		{
+			"id": "e300",
+			"fromNode": "n298",
+			"fromSide": "right",
+			"toNode": "n299",
+			"toSide": "left"
+		},
+		{
+			"id": "e301",
+			"fromNode": "n294",
+			"fromSide": "bottom",
+			"toNode": "n298",
+			"toSide": "top",
+			"color": "3"
+		},
+		{
+			"id": "e304",
+			"fromNode": "n302",
+			"fromSide": "right",
+			"toNode": "n303",
+			"toSide": "left"
+		},
+		{
+			"id": "e305",
+			"fromNode": "n298",
+			"fromSide": "bottom",
+			"toNode": "n302",
+			"toSide": "bottom",
+			"color": "3"
+		},
+		{
+			"id": "e308",
+			"fromNode": "n306",
+			"fromSide": "right",
+			"toNode": "n307",
+			"toSide": "left"
+		},
+		{
+			"id": "e309",
+			"fromNode": "n302",
+			"fromSide": "bottom",
+			"toNode": "n306",
+			"toSide": "bottom",
+			"color": "3"
+		},
+		{
+			"id": "e312",
+			"fromNode": "n310",
+			"fromSide": "right",
+			"toNode": "n311",
+			"toSide": "left"
+		},
+		{
+			"id": "e313",
+			"fromNode": "n306",
+			"fromSide": "bottom",
+			"toNode": "n310",
+			"toSide": "top",
+			"color": "3"
+		}
+	]
+}

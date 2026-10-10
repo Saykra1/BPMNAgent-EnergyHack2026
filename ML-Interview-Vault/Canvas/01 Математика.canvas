@@ -1,0 +1,480 @@
+{
+	"nodes": [
+		{
+			"id": "n144",
+			"type": "text",
+			"x": 0,
+			"y": -220,
+			"width": 1500,
+			"height": 160,
+			"color": "6",
+			"text": "# 🧮 Математика → Основы ML\nПорядок: змейкой по номерам. Математика даёт язык (векторы, градиенты, вероятности), основы ML — постановку, лоссы, метрики и валидацию. ← [[Roadmap.canvas]]"
+		},
+		{
+			"id": "n145",
+			"type": "file",
+			"file": "01 Математика/1.1 Линейная алгебра.md",
+			"x": 0,
+			"y": 0,
+			"width": 400,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "n146",
+			"type": "text",
+			"x": 420,
+			"y": 20,
+			"width": 260,
+			"height": 120,
+			"text": "**1.** векторы, скалярное пр., SVD, собств. числа"
+		},
+		{
+			"id": "n148",
+			"type": "file",
+			"file": "01 Математика/1.2 Матанализ и градиенты.md",
+			"x": 760,
+			"y": 0,
+			"width": 400,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "n149",
+			"type": "text",
+			"x": 1180,
+			"y": 20,
+			"width": 260,
+			"height": 120,
+			"text": "**2.** градиент, chain rule, якобиан, Тейлор"
+		},
+		{
+			"id": "n152",
+			"type": "file",
+			"file": "01 Математика/1.3 Теория вероятностей.md",
+			"x": 1520,
+			"y": 0,
+			"width": 400,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "n153",
+			"type": "text",
+			"x": 1940,
+			"y": 20,
+			"width": 260,
+			"height": 120,
+			"text": "**3.** Байес, распределения, энтропия, KL"
+		},
+		{
+			"id": "n156",
+			"type": "file",
+			"file": "01 Математика/1.4 Статистика и MLE.md",
+			"x": 1520,
+			"y": 230,
+			"width": 400,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "n157",
+			"type": "text",
+			"x": 1940,
+			"y": 250,
+			"width": 260,
+			"height": 120,
+			"text": "**4.** MLE→лоссы, MAP→регуляризация, A/B"
+		},
+		{
+			"id": "n160",
+			"type": "file",
+			"file": "01 Математика/1.5 Оптимизация.md",
+			"x": 760,
+			"y": 230,
+			"width": 400,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "n161",
+			"type": "text",
+			"x": 1180,
+			"y": 250,
+			"width": 260,
+			"height": 120,
+			"text": "**5.** GD/SGD, выпуклость, Ньютон, KKT"
+		},
+		{
+			"id": "n164",
+			"type": "file",
+			"file": "02 Основы ML/2.1 Постановка задач ML.md",
+			"x": 0,
+			"y": 230,
+			"width": 400,
+			"height": 160,
+			"color": "5"
+		},
+		{
+			"id": "n165",
+			"type": "text",
+			"x": 420,
+			"y": 250,
+			"width": 260,
+			"height": 120,
+			"text": "**6.** типы задач, эмпирический риск"
+		},
+		{
+			"id": "n168",
+			"type": "file",
+			"file": "02 Основы ML/2.8 Функции потерь.md",
+			"x": 0,
+			"y": 460,
+			"width": 400,
+			"height": 160,
+			"color": "5"
+		},
+		{
+			"id": "n169",
+			"type": "text",
+			"x": 420,
+			"y": 480,
+			"width": 260,
+			"height": 120,
+			"text": "**7.** MSE/MAE/Huber, log-loss, hinge, focal"
+		},
+		{
+			"id": "n172",
+			"type": "file",
+			"file": "02 Основы ML/2.2 Bias-Variance и переобучение.md",
+			"x": 760,
+			"y": 460,
+			"width": 400,
+			"height": 160,
+			"color": "5"
+		},
+		{
+			"id": "n173",
+			"type": "text",
+			"x": 1180,
+			"y": 480,
+			"width": 260,
+			"height": 120,
+			"text": "**8.** bias²+var+шум, under/overfit"
+		},
+		{
+			"id": "n176",
+			"type": "file",
+			"file": "02 Основы ML/2.3 Регуляризация.md",
+			"x": 1520,
+			"y": 460,
+			"width": 400,
+			"height": 160,
+			"color": "5"
+		},
+		{
+			"id": "n177",
+			"type": "text",
+			"x": 1940,
+			"y": 480,
+			"width": 260,
+			"height": 120,
+			"text": "**9.** L1 (ромб→нули), L2, ElasticNet"
+		},
+		{
+			"id": "n180",
+			"type": "file",
+			"file": "02 Основы ML/2.4 Валидация и подбор гиперпараметров.md",
+			"x": 1520,
+			"y": 690,
+			"width": 400,
+			"height": 160,
+			"color": "5"
+		},
+		{
+			"id": "n181",
+			"type": "text",
+			"x": 1940,
+			"y": 710,
+			"width": 260,
+			"height": 120,
+			"text": "**10.** k-fold, time split, утечки, Optuna"
+		},
+		{
+			"id": "n184",
+			"type": "file",
+			"file": "02 Основы ML/2.5 Метрики классификации.md",
+			"x": 760,
+			"y": 690,
+			"width": 400,
+			"height": 160,
+			"color": "5"
+		},
+		{
+			"id": "n185",
+			"type": "text",
+			"x": 1180,
+			"y": 710,
+			"width": 260,
+			"height": 120,
+			"text": "**11.** P/R/F1, ROC-AUC, PR-AUC, калибровка"
+		},
+		{
+			"id": "n188",
+			"type": "file",
+			"file": "02 Основы ML/2.6 Метрики регрессии и ранжирования.md",
+			"x": 0,
+			"y": 690,
+			"width": 400,
+			"height": 160,
+			"color": "5"
+		},
+		{
+			"id": "n189",
+			"type": "text",
+			"x": 420,
+			"y": 710,
+			"width": 260,
+			"height": 120,
+			"text": "**12.** RMSE, MAPE, R², NDCG, MAP"
+		},
+		{
+			"id": "n192",
+			"type": "file",
+			"file": "02 Основы ML/2.7 Предобработка и Feature Engineering.md",
+			"x": 0,
+			"y": 920,
+			"width": 400,
+			"height": 160,
+			"color": "5"
+		},
+		{
+			"id": "n193",
+			"type": "text",
+			"x": 420,
+			"y": 940,
+			"width": 260,
+			"height": 120,
+			"text": "**13.** пропуски, скейлинг, кодирование, отбор"
+		},
+		{
+			"id": "n196",
+			"type": "text",
+			"x": 0,
+			"y": 1190,
+			"width": 700,
+			"height": 420,
+			"color": "5",
+			"text": "## Связи\n- **MLE** + гауссов шум ⇒ **MSE**\n- **MLE** + Бернулли ⇒ **log-loss**\n- **MAP** + гауссов prior ⇒ **L2**\n- **MAP** + Лаплас prior ⇒ **L1**\n- **CE** = H(p) + **KL**(p‖q)\n- **Градиент** + chain rule ⇒ backprop"
+		},
+		{
+			"id": "n197",
+			"type": "text",
+			"x": 760,
+			"y": 1190,
+			"width": 700,
+			"height": 420,
+			"color": "5",
+			"text": "## Bias–Variance\n```\nсложность ↑ ⇒ bias ↓, variance ↑\nбэггинг ⇒ variance ↓\nбустинг ⇒ bias ↓\nрегуляризация ⇒ variance ↓\nданные ↑ ⇒ variance ↓\n```"
+		},
+		{
+			"id": "n198",
+			"type": "text",
+			"x": 1520,
+			"y": 1190,
+			"width": 700,
+			"height": 420,
+			"color": "5",
+			"text": "## Метрики — когда что\n- баланс → accuracy, ROC-AUC\n- дисбаланс → **PR-AUC**, F1\n- дорог FP → precision\n- дорог FN → recall\n- вероятности → log-loss, Brier\n- банк → **Gini = 2AUC−1**\n- ранжирование → NDCG"
+		}
+	],
+	"edges": [
+		{
+			"id": "e147",
+			"fromNode": "n145",
+			"fromSide": "right",
+			"toNode": "n146",
+			"toSide": "left"
+		},
+		{
+			"id": "e150",
+			"fromNode": "n148",
+			"fromSide": "right",
+			"toNode": "n149",
+			"toSide": "left"
+		},
+		{
+			"id": "e151",
+			"fromNode": "n145",
+			"fromSide": "top",
+			"toNode": "n148",
+			"toSide": "top",
+			"color": "6"
+		},
+		{
+			"id": "e154",
+			"fromNode": "n152",
+			"fromSide": "right",
+			"toNode": "n153",
+			"toSide": "left"
+		},
+		{
+			"id": "e155",
+			"fromNode": "n148",
+			"fromSide": "top",
+			"toNode": "n152",
+			"toSide": "top",
+			"color": "6"
+		},
+		{
+			"id": "e158",
+			"fromNode": "n156",
+			"fromSide": "right",
+			"toNode": "n157",
+			"toSide": "left"
+		},
+		{
+			"id": "e159",
+			"fromNode": "n152",
+			"fromSide": "bottom",
+			"toNode": "n156",
+			"toSide": "top",
+			"color": "6"
+		},
+		{
+			"id": "e162",
+			"fromNode": "n160",
+			"fromSide": "right",
+			"toNode": "n161",
+			"toSide": "left"
+		},
+		{
+			"id": "e163",
+			"fromNode": "n156",
+			"fromSide": "bottom",
+			"toNode": "n160",
+			"toSide": "bottom",
+			"color": "6"
+		},
+		{
+			"id": "e166",
+			"fromNode": "n164",
+			"fromSide": "right",
+			"toNode": "n165",
+			"toSide": "left"
+		},
+		{
+			"id": "e167",
+			"fromNode": "n160",
+			"fromSide": "bottom",
+			"toNode": "n164",
+			"toSide": "bottom",
+			"color": "5"
+		},
+		{
+			"id": "e170",
+			"fromNode": "n168",
+			"fromSide": "right",
+			"toNode": "n169",
+			"toSide": "left"
+		},
+		{
+			"id": "e171",
+			"fromNode": "n164",
+			"fromSide": "bottom",
+			"toNode": "n168",
+			"toSide": "top",
+			"color": "5"
+		},
+		{
+			"id": "e174",
+			"fromNode": "n172",
+			"fromSide": "right",
+			"toNode": "n173",
+			"toSide": "left"
+		},
+		{
+			"id": "e175",
+			"fromNode": "n168",
+			"fromSide": "top",
+			"toNode": "n172",
+			"toSide": "top",
+			"color": "5"
+		},
+		{
+			"id": "e178",
+			"fromNode": "n176",
+			"fromSide": "right",
+			"toNode": "n177",
+			"toSide": "left"
+		},
+		{
+			"id": "e179",
+			"fromNode": "n172",
+			"fromSide": "top",
+			"toNode": "n176",
+			"toSide": "top",
+			"color": "5"
+		},
+		{
+			"id": "e182",
+			"fromNode": "n180",
+			"fromSide": "right",
+			"toNode": "n181",
+			"toSide": "left"
+		},
+		{
+			"id": "e183",
+			"fromNode": "n176",
+			"fromSide": "bottom",
+			"toNode": "n180",
+			"toSide": "top",
+			"color": "5"
+		},
+		{
+			"id": "e186",
+			"fromNode": "n184",
+			"fromSide": "right",
+			"toNode": "n185",
+			"toSide": "left"
+		},
+		{
+			"id": "e187",
+			"fromNode": "n180",
+			"fromSide": "bottom",
+			"toNode": "n184",
+			"toSide": "bottom",
+			"color": "5"
+		},
+		{
+			"id": "e190",
+			"fromNode": "n188",
+			"fromSide": "right",
+			"toNode": "n189",
+			"toSide": "left"
+		},
+		{
+			"id": "e191",
+			"fromNode": "n184",
+			"fromSide": "bottom",
+			"toNode": "n188",
+			"toSide": "bottom",
+			"color": "5"
+		},
+		{
+			"id": "e194",
+			"fromNode": "n192",
+			"fromSide": "right",
+			"toNode": "n193",
+			"toSide": "left"
+		},
+		{
+			"id": "e195",
+			"fromNode": "n188",
+			"fromSide": "bottom",
+			"toNode": "n192",
+			"toSide": "top",
+			"color": "5"
+		}
+	]
+}

@@ -1,0 +1,548 @@
+{
+	"nodes": [
+		{
+			"id": "n199",
+			"type": "text",
+			"x": 0,
+			"y": -220,
+			"width": 1500,
+			"height": 160,
+			"color": "6",
+			"text": "# 🌳 Классический ML\nЛинейные → метрические/вероятностные → SVM → деревья → ансамбли → unsupervised → прикладное. ← [[Roadmap.canvas]]"
+		},
+		{
+			"id": "n200",
+			"type": "file",
+			"file": "03 Классический ML/3.1 Линейная регрессия.md",
+			"x": 0,
+			"y": 0,
+			"width": 400,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "n201",
+			"type": "text",
+			"x": 420,
+			"y": 20,
+			"width": 260,
+			"height": 120,
+			"text": "**1.** МНК, предположения, Ridge/Lasso"
+		},
+		{
+			"id": "n203",
+			"type": "file",
+			"file": "03 Классический ML/3.2 Логистическая регрессия.md",
+			"x": 760,
+			"y": 0,
+			"width": 400,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "n204",
+			"type": "text",
+			"x": 1180,
+			"y": 20,
+			"width": 260,
+			"height": 120,
+			"text": "**2.** σ, log-loss, odds, скоринг WoE"
+		},
+		{
+			"id": "n207",
+			"type": "file",
+			"file": "03 Классический ML/3.3 kNN.md",
+			"x": 1520,
+			"y": 0,
+			"width": 400,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "n208",
+			"type": "text",
+			"x": 1940,
+			"y": 20,
+			"width": 260,
+			"height": 120,
+			"text": "**3.** ленивый, метрики, k, HNSW"
+		},
+		{
+			"id": "n211",
+			"type": "file",
+			"file": "03 Классический ML/3.4 Наивный Байес.md",
+			"x": 1520,
+			"y": 230,
+			"width": 400,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "n212",
+			"type": "text",
+			"x": 1940,
+			"y": 250,
+			"width": 260,
+			"height": 120,
+			"text": "**4.** условная независимость, Лаплас"
+		},
+		{
+			"id": "n215",
+			"type": "file",
+			"file": "03 Классический ML/3.5 SVM.md",
+			"x": 760,
+			"y": 230,
+			"width": 400,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "n216",
+			"type": "text",
+			"x": 1180,
+			"y": 250,
+			"width": 260,
+			"height": 120,
+			"text": "**5.** margin, hinge, kernel trick, C/γ"
+		},
+		{
+			"id": "n219",
+			"type": "file",
+			"file": "03 Классический ML/3.6 Решающие деревья.md",
+			"x": 0,
+			"y": 230,
+			"width": 400,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "n220",
+			"type": "text",
+			"x": 420,
+			"y": 250,
+			"width": 260,
+			"height": 120,
+			"text": "**6.** Gini/энтропия, жадность, pruning"
+		},
+		{
+			"id": "n223",
+			"type": "file",
+			"file": "03 Классический ML/3.7 Бэггинг и Random Forest.md",
+			"x": 0,
+			"y": 460,
+			"width": 400,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "n224",
+			"type": "text",
+			"x": 420,
+			"y": 480,
+			"width": 260,
+			"height": 120,
+			"text": "**7.** bootstrap, OOB, ↓variance"
+		},
+		{
+			"id": "n227",
+			"type": "file",
+			"file": "03 Классический ML/3.8 Градиентный бустинг.md",
+			"x": 760,
+			"y": 460,
+			"width": 400,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "n228",
+			"type": "text",
+			"x": 1180,
+			"y": 480,
+			"width": 260,
+			"height": 120,
+			"text": "**8.** антиградиент, XGB/LGBM/CatBoost"
+		},
+		{
+			"id": "n231",
+			"type": "file",
+			"file": "03 Классический ML/3.9 Кластеризация.md",
+			"x": 1520,
+			"y": 460,
+			"width": 400,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "n232",
+			"type": "text",
+			"x": 1940,
+			"y": 480,
+			"width": 260,
+			"height": 120,
+			"text": "**9.** K-Means, DBSCAN, GMM/EM, silhouette"
+		},
+		{
+			"id": "n235",
+			"type": "file",
+			"file": "03 Классический ML/3.10 Понижение размерности.md",
+			"x": 1520,
+			"y": 690,
+			"width": 400,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "n236",
+			"type": "text",
+			"x": 1940,
+			"y": 710,
+			"width": 260,
+			"height": 120,
+			"text": "**10.** PCA/SVD, t-SNE, UMAP"
+		},
+		{
+			"id": "n239",
+			"type": "file",
+			"file": "03 Классический ML/3.11 Поиск аномалий.md",
+			"x": 760,
+			"y": 690,
+			"width": 400,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "n240",
+			"type": "text",
+			"x": 1180,
+			"y": 710,
+			"width": 260,
+			"height": 120,
+			"text": "**11.** Isolation Forest, LOF, AE"
+		},
+		{
+			"id": "n243",
+			"type": "file",
+			"file": "03 Классический ML/3.12 Рекомендательные системы.md",
+			"x": 0,
+			"y": 690,
+			"width": 400,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "n244",
+			"type": "text",
+			"x": 420,
+			"y": 710,
+			"width": 260,
+			"height": 120,
+			"text": "**12.** CF, MF/ALS, two-tower, cold start"
+		},
+		{
+			"id": "n247",
+			"type": "file",
+			"file": "03 Классический ML/3.13 Временные ряды.md",
+			"x": 0,
+			"y": 920,
+			"width": 400,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "n248",
+			"type": "text",
+			"x": 420,
+			"y": 940,
+			"width": 260,
+			"height": 120,
+			"text": "**13.** стационарность, ARIMA, лаги+бустинг"
+		},
+		{
+			"id": "n251",
+			"type": "file",
+			"file": "03 Классический ML/3.14 Дисбаланс классов.md",
+			"x": 760,
+			"y": 920,
+			"width": 400,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "n252",
+			"type": "text",
+			"x": 1180,
+			"y": 940,
+			"width": 260,
+			"height": 120,
+			"text": "**14.** веса, SMOTE, порог, PR-AUC"
+		},
+		{
+			"id": "n255",
+			"type": "file",
+			"file": "03 Классический ML/3.15 Интерпретируемость моделей.md",
+			"x": 1520,
+			"y": 920,
+			"width": 400,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "n256",
+			"type": "text",
+			"x": 1940,
+			"y": 940,
+			"width": 260,
+			"height": 120,
+			"text": "**15.** SHAP, permutation, LIME"
+		},
+		{
+			"id": "n259",
+			"type": "text",
+			"x": 0,
+			"y": 1190,
+			"width": 700,
+			"height": 420,
+			"color": "5",
+			"text": "## Линейные vs деревья\n| | Линейные | Деревья/ансамбли |\n|---|---|---|\n| Скейлинг | нужен | не нужен |\n| Нелинейность | через признаки | сама |\n| Экстраполяция | да | нет |\n| Интерпретация | веса | SHAP |"
+		},
+		{
+			"id": "n260",
+			"type": "text",
+			"x": 760,
+			"y": 1190,
+			"width": 700,
+			"height": 420,
+			"color": "5",
+			"text": "## Ансамбли\n```\nБэггинг: ║ параллельно, глубокие\n         деревья, усреднение\n         → ↓variance (RF)\n\nБустинг: → последовательно,\n         неглубокие, антиградиент\n         → ↓bias (XGB/LGBM/CB)\n\nСтекинг: мета-модель на OOF\n```"
+		},
+		{
+			"id": "n261",
+			"type": "text",
+			"x": 1520,
+			"y": 1190,
+			"width": 700,
+			"height": 420,
+			"color": "5",
+			"text": "## Unsupervised\n- **K-Means**: сферы, нужно k\n- **DBSCAN**: плотность, форма любая, шум\n- **GMM/EM**: мягкая кластеризация\n- **PCA**: линейно, SVD, дисперсия\n- **t-SNE/UMAP**: визуализация\n- **Isolation Forest**: аномалии"
+		}
+	],
+	"edges": [
+		{
+			"id": "e202",
+			"fromNode": "n200",
+			"fromSide": "right",
+			"toNode": "n201",
+			"toSide": "left"
+		},
+		{
+			"id": "e205",
+			"fromNode": "n203",
+			"fromSide": "right",
+			"toNode": "n204",
+			"toSide": "left"
+		},
+		{
+			"id": "e206",
+			"fromNode": "n200",
+			"fromSide": "top",
+			"toNode": "n203",
+			"toSide": "top",
+			"color": "4"
+		},
+		{
+			"id": "e209",
+			"fromNode": "n207",
+			"fromSide": "right",
+			"toNode": "n208",
+			"toSide": "left"
+		},
+		{
+			"id": "e210",
+			"fromNode": "n203",
+			"fromSide": "top",
+			"toNode": "n207",
+			"toSide": "top",
+			"color": "4"
+		},
+		{
+			"id": "e213",
+			"fromNode": "n211",
+			"fromSide": "right",
+			"toNode": "n212",
+			"toSide": "left"
+		},
+		{
+			"id": "e214",
+			"fromNode": "n207",
+			"fromSide": "bottom",
+			"toNode": "n211",
+			"toSide": "top",
+			"color": "4"
+		},
+		{
+			"id": "e217",
+			"fromNode": "n215",
+			"fromSide": "right",
+			"toNode": "n216",
+			"toSide": "left"
+		},
+		{
+			"id": "e218",
+			"fromNode": "n211",
+			"fromSide": "bottom",
+			"toNode": "n215",
+			"toSide": "bottom",
+			"color": "4"
+		},
+		{
+			"id": "e221",
+			"fromNode": "n219",
+			"fromSide": "right",
+			"toNode": "n220",
+			"toSide": "left"
+		},
+		{
+			"id": "e222",
+			"fromNode": "n215",
+			"fromSide": "bottom",
+			"toNode": "n219",
+			"toSide": "bottom",
+			"color": "4"
+		},
+		{
+			"id": "e225",
+			"fromNode": "n223",
+			"fromSide": "right",
+			"toNode": "n224",
+			"toSide": "left"
+		},
+		{
+			"id": "e226",
+			"fromNode": "n219",
+			"fromSide": "bottom",
+			"toNode": "n223",
+			"toSide": "top",
+			"color": "4"
+		},
+		{
+			"id": "e229",
+			"fromNode": "n227",
+			"fromSide": "right",
+			"toNode": "n228",
+			"toSide": "left"
+		},
+		{
+			"id": "e230",
+			"fromNode": "n223",
+			"fromSide": "top",
+			"toNode": "n227",
+			"toSide": "top",
+			"color": "4"
+		},
+		{
+			"id": "e233",
+			"fromNode": "n231",
+			"fromSide": "right",
+			"toNode": "n232",
+			"toSide": "left"
+		},
+		{
+			"id": "e234",
+			"fromNode": "n227",
+			"fromSide": "top",
+			"toNode": "n231",
+			"toSide": "top",
+			"color": "4"
+		},
+		{
+			"id": "e237",
+			"fromNode": "n235",
+			"fromSide": "right",
+			"toNode": "n236",
+			"toSide": "left"
+		},
+		{
+			"id": "e238",
+			"fromNode": "n231",
+			"fromSide": "bottom",
+			"toNode": "n235",
+			"toSide": "top",
+			"color": "4"
+		},
+		{
+			"id": "e241",
+			"fromNode": "n239",
+			"fromSide": "right",
+			"toNode": "n240",
+			"toSide": "left"
+		},
+		{
+			"id": "e242",
+			"fromNode": "n235",
+			"fromSide": "bottom",
+			"toNode": "n239",
+			"toSide": "bottom",
+			"color": "4"
+		},
+		{
+			"id": "e245",
+			"fromNode": "n243",
+			"fromSide": "right",
+			"toNode": "n244",
+			"toSide": "left"
+		},
+		{
+			"id": "e246",
+			"fromNode": "n239",
+			"fromSide": "bottom",
+			"toNode": "n243",
+			"toSide": "bottom",
+			"color": "4"
+		},
+		{
+			"id": "e249",
+			"fromNode": "n247",
+			"fromSide": "right",
+			"toNode": "n248",
+			"toSide": "left"
+		},
+		{
+			"id": "e250",
+			"fromNode": "n243",
+			"fromSide": "bottom",
+			"toNode": "n247",
+			"toSide": "top",
+			"color": "4"
+		},
+		{
+			"id": "e253",
+			"fromNode": "n251",
+			"fromSide": "right",
+			"toNode": "n252",
+			"toSide": "left"
+		},
+		{
+			"id": "e254",
+			"fromNode": "n247",
+			"fromSide": "top",
+			"toNode": "n251",
+			"toSide": "top",
+			"color": "4"
+		},
+		{
+			"id": "e257",
+			"fromNode": "n255",
+			"fromSide": "right",
+			"toNode": "n256",
+			"toSide": "left"
+		},
+		{
+			"id": "e258",
+			"fromNode": "n251",
+			"fromSide": "top",
+			"toNode": "n255",
+			"toSide": "top",
+			"color": "4"
+		}
+	]
+}
